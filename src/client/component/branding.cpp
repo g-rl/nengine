@@ -1,9 +1,6 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
-#include "command.hpp"
-#include "dvars.hpp"
-#include "localized_strings.hpp"
 #include "scheduler.hpp"
 #include "version.hpp"
 
@@ -12,7 +9,7 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
-// fonts/default.otf, fonts/defaultBold.otf, fonts/fira_mono_regular.ttf, fonts/fira_mono_bold.ttf
+// fonts/main_regular.ttf, fonts/main_bold.ttf, fonts/fira_mono_regular.ttf, fonts/fira_mono_regular.ttf
 
 namespace branding
 {
@@ -36,11 +33,7 @@ namespace branding
 				return;
 			}
 
-#ifdef DEBUG
 			const auto text = "iw8-mod: " VERSION " (" __DATE__ " " __TIME__ ")";
-#else
-			const auto text = "iw8-mod: " VERSION;
-#endif
 
 			const auto placement = game::ScrPlace_GetViewPlacement();
 			float text_color[4] = {0.6f, 0.6f, 0.6f, 0.6f};
@@ -73,8 +66,7 @@ namespace branding
 				return;
 			}
 
-			ui_get_formatted_build_number_hook.create(
-				SELECT_VALUE(0x406EC0_b, 0x1DF300_b), ui_get_formatted_build_number_stub);
+			ui_get_formatted_build_number_hook.create(0x0, ui_get_formatted_build_number_stub);
 		}
 	};
 }

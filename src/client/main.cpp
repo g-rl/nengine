@@ -17,8 +17,25 @@ DECLSPEC_NORETURN void WINAPI exit_hook(const int code)
 
 BOOL WINAPI system_parameters_info_a(const UINT uiAction, const UINT uiParam, const PVOID pvParam, const UINT fWinIni)
 {
-	component_loader::post_unpack();
 	return SystemParametersInfoA(uiAction, uiParam, pvParam, fWinIni);
+}
+
+FARPROC WINAPI get_proc_address(const HMODULE hModule, const LPCSTR lpProcName)
+{
+	if (lpProcName == "InitializeCriticalSectionEx"s)
+	{
+		try
+		{
+			component_loader::post_unpack();
+		}
+		catch (const std::exception& e)
+		{
+			MessageBoxA(nullptr, e.what(), "ERROR", MB_ICONERROR);
+			std::exit(1);
+		}
+	}
+
+	return GetProcAddress(hModule, lpProcName);
 }
 
 launcher::mode detect_mode_from_arguments()
@@ -33,18 +50,12 @@ launcher::mode detect_mode_from_arguments()
 		return launcher::mode::multiplayer;
 	}
 
-	if (utils::flags::has_flag("singleplayer"))
-	{
-		return launcher::mode::singleplayer;
-	}
-
 	return launcher::mode::none;
 }
 
 void apply_aslr_patch(std::string* data)
 {
-	// mp binary, sp binary
-	if (data->size() != 0x1B97788 && data->size() != 0x1346D88)
+	if (data->size() != 0x5D7E600)
 	{
 		throw std::runtime_error("File size mismatch, bad game files");
 	}
@@ -82,41 +93,24 @@ void get_aslr_patched_binary(std::string* binary, std::string* data)
 	*binary = patched_binary;
 }
 
-FARPROC load_binary(const launcher::mode mode, uint64_t* base_address)
+FARPROC load_binary(const launcher::mode mode)
 {
 	loader loader;
 	utils::nt::library self;
 
 	loader.set_import_resolver([self](const std::string& library, const std::string& function) -> void*
 	{
-		if (library == "steam_api64.dll"
-			&& function != "SteamAPI_GetSteamInstallPath") // Arxan requires one valid steam api import - maybe SteamAPI_Shutdown is better?
-		{
-			static bool check_for_steam_install = false;
-			if (!check_for_steam_install && !utils::nt::is_wine())
-			{
-				HKEY key;
-				if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam", 0, KEY_ALL_ACCESS, &key) == ERROR_SUCCESS)
-				{
-					RegCloseKey(key);
-				}
-				else
-				{
-					throw std::runtime_error("Could not find Steam in the registry. If Steam is not installed, you must install it for H1-Mod to work.");
-				}
-
-				check_for_steam_install = true;
-			}
-
-			return self.get_proc<FARPROC>(function);
-		}
-		else if (function == "ExitProcess")
+		if (function == "ExitProcess")
 		{
 			return exit_hook;
 		}
 		else if (function == "SystemParametersInfoA")
 		{
 			return system_parameters_info_a;
+		}
+		else if (function == "GetProcAddress")
+		{
+			return get_proc_address;
 		}
 
 		return component_loader::load_import(library, function);
@@ -127,10 +121,7 @@ FARPROC load_binary(const launcher::mode mode, uint64_t* base_address)
 	{
 	case launcher::mode::server:
 	case launcher::mode::multiplayer:
-		binary = "h1_mp64_ship.exe";
-		break;
-	case launcher::mode::singleplayer:
-		binary = "h1_sp64_ship.exe";
+		binary = "game_dx12_ship_replay.exe";
 		break;
 	case launcher::mode::none:
 	default:
@@ -144,21 +135,18 @@ FARPROC load_binary(const launcher::mode mode, uint64_t* base_address)
 			"Failed to read game binary (%s)!\nPlease copy the iw8-mod.exe into your Call of Duty: Modern Warfare Remastered installation folder and run it from there.",
 			binary.data()));
 	}
-
-	get_aslr_patched_binary(&binary, &data);
  
 #ifdef INJECT_HOST_AS_LIB
-	return loader.load_library(binary, base_address);
+	get_aslr_patched_binary(&binary, &data);
+	return loader.load_library(binary);
 #else
-	*base_address = 0x140000000;
 	return loader.load(self, data);
 #endif
 }
 
 void remove_crash_file()
 {
-	utils::io::remove_file("__h1Exe");
-	utils::io::remove_file("iw8-mod\\h1_mp64_ship.exe"); // remove this at some point
+	utils::io::remove_file("____game_dx12_ship_replay");
 }
 
 void enable_dpi_awareness()
@@ -230,7 +218,7 @@ void limit_parallel_dll_loading()
 
 int main()
 {
-	ShowWindow(GetConsoleWindow(), SW_HIDE);
+	ShowWindow(GetConsoleWindow(), SW_SHOW);
 
 	FARPROC entry_point;
 
@@ -259,25 +247,34 @@ int main()
 
 		try
 		{
-			if (!component_loader::post_start()) return 0;
+			if (!component_loader::post_start())
+			{
+				return 0;
+			}
 
 			auto mode = detect_mode_from_arguments();
 			if (mode == launcher::mode::none)
 			{
 				const launcher launcher;
 				mode = launcher.run();
-				if (mode == launcher::mode::none) return 0;
+				if (mode == launcher::mode::none)
+				{
+					return 0;
+				}
 			}
 
 			game::environment::set_mode(mode);
 
-			entry_point = load_binary(mode, &game::base_address);
+			entry_point = load_binary(mode);
 			if (!entry_point)
 			{
 				throw std::runtime_error("Unable to load binary into memory");
 			}
 
-			if (!component_loader::post_load()) return 0;
+			if (!component_loader::post_load())
+			{
+				return 0;
+			}
 
 			premature_shutdown = false;
 		}

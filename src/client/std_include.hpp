@@ -60,13 +60,9 @@
 #undef min
 #endif
 
-#ifdef DEBUG
-//#define DW_DEBUG
-#endif
-
-#define MSG_BOX_INFO(message) MessageBoxA(nullptr, message, "H1-Mod: INFORMATION", MB_ICONINFORMATION);
-#define MSG_BOX_WARN(message) MessageBoxA(nullptr, message, "H1-Mod: WARNING", MB_ICONWARNING);
-#define MSG_BOX_ERROR(message) MessageBoxA(nullptr, message, "H1-Mod: ERROR", MB_ICONERROR);
+#define MSG_BOX_INFO(message) MessageBoxA(nullptr, message, "iw8-mod: INFORMATION", MB_ICONINFORMATION);
+#define MSG_BOX_WARN(message) MessageBoxA(nullptr, message, "iw8-mod: WARNING", MB_ICONWARNING);
+#define MSG_BOX_ERROR(message) MessageBoxA(nullptr, message, "iw8-mod: ERROR", MB_ICONERROR);
 
 #include <map>
 #include <atomic>
@@ -106,9 +102,6 @@
 
 #include <asmjit/core/jitruntime.h>
 #include <asmjit/x86/x86assembler.h>
-
-#include <google/protobuf/stubs/logging.h>
-#include <proto/auth.pb.h>
 
 #pragma warning(pop)
 #pragma warning(disable: 4100)

@@ -70,11 +70,11 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "H1-Mod"
-            VALUE "FileDescription", "H1-Mod"
+            VALUE "CompanyName", "iw8-mod"
+            VALUE "FileDescription", "iw8-mod"
             VALUE "FileVersion", VERSION_FILE
-            VALUE "InternalName", "H1-Mod"
-            VALUE "LegalCopyright", "Copyright © 2022 H1-Mod. All rights reserved."
+            VALUE "InternalName", "iw8-mod"
+            VALUE "LegalCopyright", "Copyright © 2022 iw8-mod. All rights reserved."
             VALUE "Licence", "GPLv3"
             VALUE "Info", "https://h1.gg"
             VALUE "OriginalFilename", "iw8-mod.exe"
