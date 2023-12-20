@@ -1,6 +1,8 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
+#include "scheduler.hpp"
+
 #include "game/game.hpp"
 
 #include <utils/hook.hpp>
@@ -11,9 +13,11 @@ namespace patches
 {
 	namespace
 	{
+		int tick = 0;
+
 		const game::dvar_t* name_dvar = nullptr;
 
-		const char* live_bet_local_client_name()
+		const char* live_get_local_client_name_stub()
 		{
 			return name_dvar->current.string;
 		}
@@ -88,14 +92,10 @@ namespace patches
 			game::DvarFlags flags, game::DvarValue* value, void* domain, const char* desc)
 		{
 			if (strcmp(name, "MPSSOTQQPM") == 0		// force_offline_enabled
-				|| strcmp(name, "LSTQOKLTRN") == 0	// force_offline_menus
-				|| strcmp(name, "LKRTMSRPRO") == 0)	// online_check_online_data_fence_before_showing_signin_error
+				|| strcmp(name, "LSTQOKLTRN") == 0)	// force_offline_menus
 			{
-				const auto val1 = value->enabled;
-				const auto val2 = value->integer;
 				value->enabled = true;
 				value->integer = 1;
-				printf("dvar '%s' overrided with new values (old: %d-%d, new: %d-%d)\n", name, val1, val2, value->enabled, value->integer);
 			}
 
 			return dvar_register_hook.invoke<game::dvar_t*>(name, checksum, type, flags, value, domain, desc);
@@ -107,22 +107,61 @@ namespace patches
 	public:
 		void post_start() override
 		{
-			//utils::hook::set<uint8_t>(0x3061A0_b, 0xC3); // mystery function 1
+			// utils::hook::set<uint8_t>(0x3061A0_b, 0xC3); // mystery function 1??/
 
 			// name dvar
 			com_register_dvars_hook.create(0x12B0CD0_b, com_register_dvars_stub);
 
 			// force offline menus + text chat
 			dvar_register_hook.create(0x13E7D40_b, dvar_register_stub);
+
+			schedule([=]()
+			{
+				if (tick != 500)
+				{
+					tick += 1;
+					return scheduler::cond_continue;
+				}
+
+				// go straight to main menu
+				game::GamerProfile_SetDataByName(0, "acceptedEULA", 1);
+				game::GamerProfile_SetDataByName(0, "hasEverPlayed_MainMenu", 1);
+
+				// bunch of auth stuff copy & pasted from codUPLOADER (gets us in lobby)
+				game::XUID xuid{};
+				xuid.random_xuid();
+
+				utils::hook::set<int>(0x4622BE0_b, 1);
+
+				utils::hook::set<uintptr_t>(0xE5C07C0_b, 0x11CB1243B8D7C31E | xuid.m_id * xuid.m_id);
+				utils::hook::set<uintptr_t>(0xF05ACE8_b, 0x11CB1243B8D7C31E | xuid.m_id * xuid.m_id);
+
+				utils::hook::set<uintptr_t>(0xE5C07E8_b, 0x11CB1243B8D7C31E | (xuid.m_id * xuid.m_id) / 6); // s_presenceData
+
+				utils::hook::set<int>(0xE371231_b, 1);
+				utils::hook::set<int>(0x4622910_b, 2);
+				utils::hook::set<int>(0x4622BE0_b, 1);
+
+				utils::hook::set<char>(*reinterpret_cast<uintptr_t*>(0xEE560B0_b) + 0x28, 0); // dont disconnect if xp discreases
+				utils::hook::set(0xE5C0730_b, 2);
+
+				auto get_bnet_class = reinterpret_cast<uintptr_t(*)()>(0x1660280_b);
+				uintptr_t bnet_class = get_bnet_class();
+				*(DWORD*)(bnet_class + 0x2F4) = 0x795230F0;
+				*(DWORD*)(bnet_class + 0x2FC) = 0;
+				*(BYTE*)(bnet_class + 0x2F8) = 31;
+
+				return scheduler::cond_end;
+			}, scheduler::renderer);
 		}
 
 		void post_unpack() override
 		{
 			// use name dvar
-			utils::hook::jump(0x13FD3A0_b, live_bet_local_client_name);
+			utils::hook::jump(0x13FD3A0_b, live_get_local_client_name_stub);
 
-			// dw stuff
-			utils::hook::jump(0x1A04BD0_b, signin_state_stub); // LUI_CoD_LuaCall_GetSignInState
+			// dw
+			utils::hook::jump(0x1A04BD0_b, signin_state_stub); // LUI_CoD_LuaCall_betSignInState
 			utils::hook::jump(0x1AC2570_b, is_paid_user_stub); // LiveStorage_IsPaidUser
 
 			utils::hook::jump(0x1528470_b, live_is_offline_tool);				// Live_IsOfflineTool
@@ -130,9 +169,34 @@ namespace patches
 			utils::hook::jump(0x17EC930_b, dw_log_on_status_stub);				// dwGetLogOnStatus
 			utils::hook::jump(0x12A1EB0_b, get_activate_stats_source_stub);
 			utils::hook::jump(0x19B96A0_b, lui_is_demo_build_stub);				// LUI_IsDemoBuild
-			utils::hook::call(0x12AFAEA_b, bgs_init_jnz_stub);	// BGS init (Com_Init_Try_Block_Function)
-			utils::hook::set<uint8_t>(0x1665AC0_b, 0xC3);		// BGS connect
-			utils::hook::set<uint8_t>(0x165F300_b, 0xC3);		// BGS shutdown
+
+			// bgs
+			utils::hook::nop(0x12AFAE5_b, 40); // BGS init (Com_Init_Try_Block_Function)
+			utils::hook::set<uint8_t>(0x1665AC0_b, 0xC3); // BGS connect
+			utils::hook::set<uint8_t>(0x165F300_b, 0xC3); // BGS shutdown
+
+			// patch ui_maxclients limit
+			utils::hook::nop(0x0F30210_b, 5);
+			utils::hook::nop(0x119E51D_b, 5);
+			utils::hook::nop(0x136B8F8_b, 5);
+			utils::hook::nop(0x16029F0_b, 5);
+			utils::hook::nop(0x19E19A3_b, 5);
+
+			// patch party_maxplayers limit
+			utils::hook::nop(0x0F252EE_b, 5);
+			utils::hook::nop(0x119D23F_b, 5);
+			utils::hook::nop(0x10769B9_b, 5);
+			utils::hook::set(0x10769B9_b, 0xC3);
+			utils::hook::nop(0x0F24B4B_b, 5);
+			utils::hook::set(0x0F24B4B_b, 0xC3);
+			utils::hook::nop(0x16029E2_b, 5);
+			utils::hook::nop(0x119E52B_b, 5);
+			utils::hook::nop(0x0f252EE_b, 5);
+			utils::hook::nop(0x119F13A_b, 5);
+			utils::hook::nop(0x10D32E2_b, 5);
+
+			// removes "Services aren't ready yet." print
+			utils::hook::nop(0x1504374_b, 5);
 		}
 	};
 }

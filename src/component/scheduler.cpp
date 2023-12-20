@@ -86,12 +86,19 @@ namespace scheduler
 		volatile bool kill = false;
 		std::thread thread;
 		task_pipeline pipelines[pipeline::count];
+		utils::hook::detour r_end_frame_hook;
 		utils::hook::detour main_frame_hook;
 
 		void execute(const pipeline type)
 		{
 			assert(type >= 0 && type < pipeline::count);
 			pipelines[type].execute();
+		}
+
+		void r_end_frame_stub()
+		{
+			execute(pipeline::renderer);
+			r_end_frame_hook.invoke<void>();
 		}
 
 		void* main_frame_stub()
@@ -160,7 +167,6 @@ namespace scheduler
 	class component final : public component_interface
 	{
 	public:
-		/*
 		void post_start() override
 		{
 			thread = utils::thread::create_named_thread("Async Scheduler", []()
@@ -175,7 +181,8 @@ namespace scheduler
 
 		void post_unpack() override
 		{
-			main_frame_hook.create(0x0_b, scheduler::main_frame_stub);
+			r_end_frame_hook.create(0x1966950_b, r_end_frame_stub);
+			//main_frame_hook.create(0x0_b, scheduler::main_frame_stub);
 		}
 
 		void pre_destroy() override
@@ -186,8 +193,7 @@ namespace scheduler
 				thread.join();
 			}
 		}
-		*/
 	};
 }
 
-//REGISTER_COMPONENT(scheduler::component)
+REGISTER_COMPONENT(scheduler::component)

@@ -49,29 +49,27 @@ namespace console
 
 		void cl_keys_event_stub(const int local_client_num, const int key, const bool down, unsigned int time, int v_key, int index)
 		{
-			if (!down)
+			if (down)
 			{
-				return;
-			}
-
-			if (key == game::keyNum_t::K_GRAVE || key == game::keyNum_t::K_TILDE)
-			{
-				if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
+				if (key == game::K_GRAVE)
 				{
-					if (!game::Con_IsActive(local_client_num))
+					if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
+					{
+						if (!game::Con_IsActive(local_client_num))
+						{
+							game::Con_ToggleConsole();
+						}
+						game::Con_ToggleConsoleOutput();
+					}
+					else
 					{
 						game::Con_ToggleConsole();
 					}
-					game::Con_ToggleConsoleOutput();
 				}
-				else
+				else if (key == game::keyNum_t::K_F1)
 				{
-					game::Con_ToggleConsole();
+					game::DevGui_Toggle();
 				}
-			}
-			else if (key == game::keyNum_t::K_F1)
-			{
-				game::DevGui_Toggle();
 			}
 
 			cl_keys_event_hook.invoke<void>(local_client_num, key, down, time, v_key, index);

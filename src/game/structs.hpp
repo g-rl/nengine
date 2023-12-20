@@ -289,4 +289,36 @@ namespace game
 		K_INHERIT = 0xDE,
 		K_LAST_KEY = 0xDE,
 	};
+
+	struct msg_t
+	{
+		int overflowed;
+		int readOnly;
+		unsigned __int8* data;
+		unsigned __int8* splitData;
+		int maxsize;
+		int cursize;
+		int splitSize;
+		int readcount;
+		int bit;
+		int lastEntityRef;
+		int targetLocalNetID;
+		unsigned int compressionFlags;
+	};
+
+	struct XUID
+	{
+		unsigned __int64 m_id;
+
+		void deserialize(const game::msg_t* msg);
+		void serialize(const msg_t* msg);
+
+		unsigned __int64 get_id();
+
+		XUID* random_xuid();
+
+		bool operator !=(const XUID* xuid);
+		XUID* operator =(const XUID* xuid);
+		bool operator ==(const XUID* xuid);
+	};
 }
