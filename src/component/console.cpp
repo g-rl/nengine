@@ -47,12 +47,13 @@ namespace console
 
 		utils::hook::detour cl_keys_event_hook;
 
-		void cl_keys_event_stub(const int local_client_num, const int key, const bool down, unsigned int time, int v_key, int index)
+		void cl_keys_event_stub(int local_client_num, int key, bool down, unsigned int time, int v_key, int index)
 		{
 			if (down)
 			{
-				if (key == game::K_GRAVE)
+				switch (key)
 				{
+				case game::K_GRAVE:
 					if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
 					{
 						if (!game::Con_IsActive(local_client_num))
@@ -65,10 +66,12 @@ namespace console
 					{
 						game::Con_ToggleConsole();
 					}
-				}
-				else if (key == game::keyNum_t::K_F1)
-				{
+					return;
+				case game::K_F1:
 					game::DevGui_Toggle();
+					return;
+				default:
+					break;
 				}
 			}
 

@@ -80,25 +80,31 @@ namespace patches
 			game::lua_pushboolean(luaVM, 1);
 			return 1;
 		}
-
-		bool bgs_init_jnz_stub()
-		{
-			// no clue what this does, but it shouldn't initialize BGS stuff
-			return true;
-		}
 		
 		utils::hook::detour dvar_register_hook;
 		game::dvar_t* dvar_register_stub(const char* name, unsigned int checksum, unsigned __int8 type, 
 			game::DvarFlags flags, game::DvarValue* value, void* domain, const char* desc)
 		{
 			if (strcmp(name, "MPSSOTQQPM") == 0		// force_offline_enabled
-				|| strcmp(name, "LSTQOKLTRN") == 0)	// force_offline_menus
+				|| strcmp(name, "LSTQOKLTRN") == 0	// force_offline_menus
+				|| strcmp(name, "LSSRRSMNMR") == 0) // lui_dev_features_enabled
 			{
 				value->enabled = true;
 				value->integer = 1;
 			}
 
 			return dvar_register_hook.invoke<game::dvar_t*>(name, checksum, type, flags, value, domain, desc);
+		}
+
+		void set_transient_mode_stub(int mode) // CL_TransientsCollisionMP_SetTransientMode
+		{
+			if (strcmp(game::Dvar_GetStringSafe("NSQLTTMRMP"), "mp_donetsk") == 0)
+			{
+				*reinterpret_cast<int*>(0x5CC7534_b) = 1;
+			}
+			else {
+				*reinterpret_cast<int*>(0x5CC7534_b) = mode;
+			}
 		}
 	}
 
@@ -197,6 +203,13 @@ namespace patches
 
 			// removes "Services aren't ready yet." print
 			utils::hook::nop(0x1504374_b, 5);
+
+			// bypass wz collision (missing file)
+			utils::hook::jump(0xD6B7D0_b, set_transient_mode_stub);
+
+			// add commands
+			//game::Cmd_AddCommandInternal("addbot", Cmd_AddBot_f, &addbot_f_VAR);
+			//game::Cmd_AddCommandInternal("addtestclient", Cmd_AddTestClient_f, &addTestClient_f_VAR);
 		}
 	};
 }

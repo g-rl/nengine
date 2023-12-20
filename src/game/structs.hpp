@@ -321,4 +321,13 @@ namespace game
 		XUID* operator =(const XUID* xuid);
 		bool operator ==(const XUID* xuid);
 	};
+
+	struct cmd_function_s
+	{
+		cmd_function_s* next;
+		const char* name;
+		const char** autoCompleteList;
+		unsigned int autoCompleteListCount;
+		void(__fastcall* function)();
+	};
 }
