@@ -330,4 +330,49 @@ namespace game
 		unsigned int autoCompleteListCount;
 		void(__fastcall* function)();
 	};
+
+	struct ScriptFile
+	{
+		const char* name;
+		int compressedLen;
+		int len;
+		int bytecodeLen;
+		char* buffer;
+		char* bytecode;
+	};
+
+	struct RawFile
+	{
+		const char* name;
+		int compressedLen;
+		int len;
+		const char* buffer;
+	};
+
+	union XAssetHeader
+	{
+		RawFile* rawfile;
+		ScriptFile* scriptfile;
+	};
+
+	enum XAssetType : __int32
+	{
+		ASSET_TYPE_RAWFILE = 0x33,
+		ASSET_TYPE_SCRIPTFILE = 0x34
+	};
+
+	struct EntryLoadScript
+	{
+		int* func;
+		void* pScrContext;
+		char scriptfile[0x80];
+		const char* label;
+		int enforceExists;
+	};
+
+	struct EntryLoadScriptArray
+	{
+		int count;
+		EntryLoadScript entries[200];
+	};
 }

@@ -1,0 +1,244 @@
+#include <std_include.hpp>
+#include "loader/component_loader.hpp"
+
+#include "component/filesystem.hpp"
+
+#include "game/game.hpp"
+
+#include <utils/hook.hpp>
+#include <utils/memory.hpp>
+#include <utils/io.hpp>
+#include <utils/string.hpp>
+
+namespace gsc
+{
+	namespace
+	{
+		std::unordered_map<std::string, std::uint32_t> main_handles;
+
+		utils::memory::allocator scriptfile_allocator;
+		std::unordered_map<const char*, game::ScriptFile*> loaded_scripts;
+
+		void clear()
+		{
+			main_handles.clear();
+			loaded_scripts.clear();
+			scriptfile_allocator.clear();
+		}
+
+		bool read_raw_script_file(const std::string& name, std::string* data)
+		{
+			return filesystem::read_file(name, data);
+		}
+
+		game::ScriptFile* load_custom_script(const char* file_name, const std::string& real_name)
+		{
+			if (const auto itr = loaded_scripts.find(file_name); itr != loaded_scripts.end())
+			{
+				return itr->second;
+			}
+
+			if (game::Com_FrontEnd_IsInFrontEnd())
+			{
+				return nullptr;
+			}
+
+			std::string source_buffer{};
+			if (!read_raw_script_file(real_name, &source_buffer) || source_buffer.empty())
+			{
+				return nullptr;
+			}
+
+			// filter out "GSC rawfiles" that were used for development usage and are not meant for us.
+			// each "GSC rawfile" has a ScriptFile counterpart to be used instead
+			if (game::DB_XAssetExists(game::ASSET_TYPE_SCRIPTFILE, file_name) &&
+				!game::DB_IsXAssetDefault(game::ASSET_TYPE_SCRIPTFILE, file_name))
+			{
+				if ((real_name.starts_with("maps/createfx") || real_name.starts_with("maps/createart") || real_name.starts_with("maps/mp"))
+					&& (real_name.ends_with("_fx") || real_name.ends_with("_fog") || real_name.ends_with("_hdr")))
+				{
+					printf("Refusing to compile rawfile '%s'\n", real_name.data());
+					return game::DB_FindXAssetHeader(game::ASSET_TYPE_SCRIPTFILE, file_name, false).scriptfile;
+				}
+			}
+
+			printf("Loading custom gsc '%s'\n", real_name.data());
+
+			std::vector<std::uint8_t> data;
+			data.assign(source_buffer.begin(), source_buffer.end());
+
+			auto pos = std::size_t{0};
+
+			const auto script_file_ptr = static_cast<game::ScriptFile*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile)));
+
+			script_file_ptr->name = file_name;
+
+			const auto name = std::string{ reinterpret_cast<char const*>(data.data()) };
+			pos += name.size() + 1;
+
+			script_file_ptr->compressedLen = 0;
+			pos += 4;
+
+			script_file_ptr->len = *reinterpret_cast<std::uint32_t const*>(data.data() + pos);
+			pos += 4;
+
+			script_file_ptr->bytecodeLen = *reinterpret_cast<std::uint32_t const*>(data.data() + pos);
+			pos += 4;
+
+			const auto stack_size = static_cast<std::uint32_t>(static_cast<size_t>(script_file_ptr->len) + 1); // from h1-mod
+			const auto byte_code_size = static_cast<std::uint32_t>(static_cast<size_t>(script_file_ptr->bytecodeLen) + 1); // ^
+
+			script_file_ptr->buffer = static_cast<char*>(scriptfile_allocator.allocate(stack_size));
+			std::memcpy(script_file_ptr->buffer, data.data() + pos, script_file_ptr->len);
+			pos += script_file_ptr->len;
+
+			script_file_ptr->bytecode = static_cast<char*>(scriptfile_allocator.allocate(byte_code_size)); // no PMem in IW8...
+			std::memcpy(script_file_ptr->bytecode, data.data() + pos, script_file_ptr->bytecodeLen);
+
+			loaded_scripts[file_name] = script_file_ptr;
+
+			printf("[%s] script_file_ptr completed! returning\n", file_name);
+			return script_file_ptr;
+		}
+
+		void db_get_raw_buffer_stub(const game::RawFile* rawfile, char* buf, const int size)
+		{
+			if (rawfile->len > 0 && rawfile->compressedLen == 0)
+			{
+				std::memset(buf, 0, size);
+				std::memcpy(buf, rawfile->buffer, std::min(rawfile->len, size));
+				return;
+			}
+
+			game::DB_GetRawBuffer(rawfile, buf, size);
+		}
+
+		game::ScriptFile* find_script(game::XAssetType type, const char* name, int allow_create_default)
+		{
+			std::string real_name = name;
+			// TODO: convert ID to name via gsc-tool
+			/*
+			const auto id = static_cast<std::uint16_t>(std::atoi(name));
+			if (id)
+			{
+				real_name = gsc_ctx->token_name(id);
+			}
+			*/
+
+			auto* script = load_custom_script(name, real_name);
+			if (script)
+			{
+				return script;
+			}
+
+			return game::DB_FindXAssetHeader(type, name, allow_create_default).scriptfile;
+		}
+
+		void load_script(const std::string& name)
+		{
+			printf("load_script: calling Scr_LoadScript for '%s'\n", name.data());
+
+			const auto scr_context = game::ScriptContext_Server();
+			if (!game::Scr_LoadScript(scr_context, name.data()))
+			{
+				return;
+			}
+
+			const auto main_handle = game::Scr_GetFunctionHandle(scr_context, name.data(), 596);
+			if (main_handle)
+			{
+				printf("Loaded '%s::main'\n", name.data());
+				main_handles[name] = main_handle;
+			}
+		}
+
+		void load_scripts(const std::filesystem::path& root_dir, const std::filesystem::path& subfolder)
+		{
+			std::filesystem::path script_dir = root_dir / subfolder;
+			if (!utils::io::directory_exists(script_dir.generic_string()))
+			{
+				return;
+			}
+
+			printf("load_scripts: loading scripts from '%s'\n", script_dir.generic_string().data());
+
+			const auto scripts = utils::io::list_files(script_dir.generic_string());
+			for (const auto& script : scripts)
+			{
+				if (!script.ends_with(".gsc"))
+				{
+					continue;
+				}
+
+				std::filesystem::path path(script);
+				const auto relative = path.lexically_relative(root_dir).generic_string();
+				load_script(relative);
+			}
+		}
+
+		int db_is_x_asset_default(game::XAssetType type, const char* name)
+		{
+			if (loaded_scripts.contains(name))
+			{
+				return 0;
+			}
+
+			return game::DB_IsXAssetDefault(type, name);
+		}
+
+		utils::hook::detour load_scripts_hook;
+		void load_scripts_stub()
+		{
+			load_scripts_hook.invoke<void>();
+
+			for (const auto& path : filesystem::get_search_paths())
+			{
+				load_scripts(path, "scripts/");
+			}
+		}
+
+		utils::hook::detour g_load_structs_hook;
+		void g_load_structs_stub()
+		{
+			const auto scr_context = game::ScriptContext_Server();
+			for (auto& function_handle : main_handles)
+			{
+				printf("Executing '%s::main'\n", function_handle.first.data());
+				game::Scr_FreeThread(scr_context, game::Scr_ExecThread(scr_context, function_handle.second, 0));
+			}
+		}
+
+		utils::hook::detour g_shutdown_game_hook;
+		void g_shutdown_game_stub(bool full_clear)
+		{
+			clear();
+
+			g_shutdown_game_hook.invoke<void>(full_clear);
+		}
+	}
+
+	class loading final : public component_interface
+	{
+	public:
+		void post_unpack() override
+		{
+			// Load our scripts with an uncompressed stack
+			utils::hook::call(0x13223B6_b, db_get_raw_buffer_stub);
+
+			// ProcessScript: hook xasset functions to return our own custom scripts
+			utils::hook::call(0x132230E_b, find_script);
+			utils::hook::call(0x132231E_b, db_is_x_asset_default);
+
+			// GScr_LoadScripts: initial loading of scripts (now called GScr_MainMP_LoadScripts)
+			load_scripts_hook.create(0x12598A0_b, load_scripts_stub);
+
+			// execute main handle after G_LoadStructs (now called G_Spawn_LoadStructs)
+			g_load_structs_hook.create(0xFC80A5_b, g_load_structs_stub);
+
+			// clear memory
+			g_shutdown_game_hook.create(0x121F880_b, g_shutdown_game_stub);
+		}
+	};
+}
+
+REGISTER_COMPONENT(gsc::loading)
