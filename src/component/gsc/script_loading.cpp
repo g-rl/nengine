@@ -39,7 +39,7 @@ namespace gsc
 
 			if (script_memory.pos + size > script_memory.buf + script_memory.size)
 			{
-				game::Com_Error(0x0, "Out of custom script memory");
+				game::Com_Error(game::ERR_FATAL, "Out of custom script memory");
 			}
 
 			const auto pos = script_memory.pos;
@@ -160,7 +160,6 @@ namespace gsc
 
 			loaded_scripts[file_name] = script_file_ptr;
 
-			printf("[%s] script_file_ptr completed! returning\n", file_name);
 			return script_file_ptr;
 		}
 
@@ -225,8 +224,6 @@ namespace gsc
 
 		void load_script(const std::string& name)
 		{
-			printf("load_script: calling Scr_LoadScript for '%s'\n", name.data());
-
 			const auto scr_context = game::ScriptContext_Server();
 			if (!game::Scr_LoadScript(scr_context, name.data()))
 			{
@@ -248,8 +245,6 @@ namespace gsc
 			{
 				return;
 			}
-
-			printf("load_scripts: loading scripts from '%s'\n", script_dir.generic_string().data());
 
 			const auto scripts = utils::io::list_files(script_dir.generic_string());
 			for (const auto& script : scripts)
@@ -280,6 +275,11 @@ namespace gsc
 		{
 			load_scripts_hook.invoke<void>();
 
+			if (game::Com_FrontEnd_IsInFrontEnd())
+			{
+				return;
+			}
+
 			for (const auto& path : filesystem::get_search_paths())
 			{
 				load_scripts(path, "scripts/");
@@ -289,12 +289,20 @@ namespace gsc
 		utils::hook::detour g_load_structs_hook;
 		void g_load_structs_stub()
 		{
+			if (game::Com_FrontEnd_IsInFrontEnd())
+			{
+				g_load_structs_hook.invoke<void>();
+				return;
+			}
+
 			const auto scr_context = game::ScriptContext_Server();
 			for (auto& function_handle : main_handles)
 			{
 				printf("Executing '%s::main'\n", function_handle.first.data());
 				game::Scr_FreeThread(scr_context, game::Scr_ExecThread(scr_context, function_handle.second, 0));
 			}
+
+			g_load_structs_hook.invoke<void>();
 		}
 
 		utils::hook::detour g_shutdown_game_hook;
@@ -303,6 +311,11 @@ namespace gsc
 			clear();
 
 			g_shutdown_game_hook.invoke<void>(full_clear);
+		}
+
+		void unknown_func_stub(void*, void*, void*)
+		{
+			game::Com_Error(game::ERR_SCRIPT_DROP, "unknown function (misspelled function or include path is wrong)\n");
 		}
 	}
 
@@ -334,6 +347,11 @@ namespace gsc
 
 			// clear memory
 			g_shutdown_game_hook.create(0x121F880_b, g_shutdown_game_stub);
+
+			// TODO: move to proper class
+			// change Sys_Error -> Com_Error
+			utils::hook::call(0x13166DE_b, unknown_func_stub);
+			utils::hook::call(0x1316777_b, unknown_func_stub);
 		}
 	};
 }

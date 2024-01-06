@@ -10,7 +10,7 @@ namespace game
 
 	WEAK symbol<void(const char* name, void(__fastcall* function)(), cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{0x12965F0};
 
-	WEAK symbol<void(unsigned int code, const char* fmt, ...)> Com_Error{0x12AB1C0};
+	WEAK symbol<void(errorParm_t code, const char* fmt, ...)> Com_Error{0x12AB4A0};
 
 	WEAK symbol<bool()> Com_FrontEnd_IsInFrontEnd{0x10C67A0};
 	WEAK symbol<void(int localClientNum)> Con_DrawConsole{0x15AE0B0};
