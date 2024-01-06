@@ -361,18 +361,157 @@ namespace game
 		ASSET_TYPE_SCRIPTFILE = 0x34
 	};
 
-	struct EntryLoadScript
+	struct XBlock
 	{
-		int* func;
-		void* pScrContext;
-		char scriptfile[0x80];
-		const char* label;
-		int enforceExists;
+		char* data;
+		unsigned __int64 size;
 	};
 
-	struct EntryLoadScriptArray
+	enum Mem_PageID
 	{
-		int count;
-		EntryLoadScript entries[200];
+	};
+
+	struct Mem_PageRange
+	{
+		Mem_PageID firstPageID;
+		Mem_PageID lastPageID;
+	};
+
+	struct XZoneMemoryAllocation
+	{
+		Mem_PageRange pageRange;
+		char* alloc;
+		unsigned __int64 size;
+	};
+
+	struct XArchiveBlocks
+	{
+		XBlock blocks[11];
+	};
+
+	struct EncryptionHeader
+	{
+		unsigned int isEncrypted;
+		char IV[16];
+	};
+
+	struct __declspec(align(8)) XFile
+	{
+		unsigned __int64 size;
+		unsigned __int64 preloadWalkSize;
+		unsigned __int64 blockSize[11];
+		EncryptionHeader encryption;
+	};
+
+	struct DB_FFHeader
+	{
+		char magic[8];
+		unsigned int headerVersion;
+		unsigned int xfileVersion;
+		bool dashCompressBuild;
+		bool dashEncryptBuild;
+		BYTE transientFileType[1];
+		unsigned int residentPartSize;
+		unsigned int residentHash;
+		unsigned int alwaysLoadedPartSize;
+		XFile xfileHeader;
+	};
+
+	enum XAnimParameterType
+	{
+		INVALID = 0x0,
+		BOOL_VALUE = 0x1,
+		BYTE_VALUE = 0x2,
+		BYTE_POINTER = 0x3,
+		INT_VALUE = 0x4,
+		FLOAT_VALUE = 0x5,
+		FLOAT_POINTER = 0x6,
+		VEC3_VALUE = 0x7,
+		VEC3_POINTER = 0x8,
+		STRUCT_POINTER = 0x9,
+	};
+
+	typedef XAnimParameterType FileStreamFileID;
+
+	struct DBFileHandle
+	{
+		FileStreamFileID fileID;
+		unsigned __int64 dcacheFileID;
+	};
+
+	struct EncryptionInfo
+	{
+		EncryptionHeader header;
+		char privateKey[32];
+	};
+
+	struct DBFile
+	{
+		char name[64];
+		DBFileHandle dbFileHandle;
+		bool isSecured;
+		EncryptionInfo encryption;
+	};
+
+	struct BDiffWindowSizes
+	{
+		unsigned __int64 destWindow;
+		unsigned __int64 sourceWindow;
+		unsigned __int64 diffWindow;
+	};
+
+	struct DB_FDHeader
+	{
+		char magic[8];
+		unsigned int version;
+		unsigned int diffVersion;
+		BDiffWindowSizes residentWindowSizes;
+		unsigned __int64 residentDiffCompSize;
+		unsigned __int64 residentDiffUncompSize;
+		DB_FFHeader baseHeader;
+		DB_FFHeader newHeader;
+	};
+
+	struct DB_FFDiffData
+	{
+		DBFile file;
+		DB_FDHeader header;
+	};
+
+	struct __declspec(align(8)) DB_FFOpenData
+	{
+		DBFile baseFastfile;
+		DB_FFHeader baseHeader;
+		DB_FFHeader topHeader;
+		DB_FFDiffData diff[2];
+		unsigned int diffCount;
+	};
+
+	struct XZoneTemporaryLoadData
+	{
+		DB_FFOpenData openData;
+		XArchiveBlocks archiveBlocks;
+	};
+
+	struct XZoneMemory
+	{
+		XZoneMemoryAllocation alloc[6];
+		XZoneTemporaryLoadData* tempData;
+		// there's more data after this, be warned
+	};
+
+	enum XFileBlock
+	{
+		XFILE_BLOCK_TEMP_ADDITIONAL = 0x0,
+		XFILE_BLOCK_TEMP = 0x1,
+		XFILE_BLOCK_TEMP_PRELOAD = 0x2,
+		XFILE_BLOCK_CALLBACK = 0x3,
+		XFILE_BLOCK_RUNTIME = 0x4,
+		XFILE_BLOCK_RUNTIME_VIDEO = 0x5,
+		XFILE_BLOCK_CACHED_VIDEO = 0x6,
+		XFILE_BLOCK_PHYSICAL = 0x7,
+		XFILE_BLOCK_VIRTUAL = 0x8,
+		XFILE_BLOCK_SCRIPT = 0x9,
+		MAX_XFILE_COUNT = 0xA,
 	};
 }

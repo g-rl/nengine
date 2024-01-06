@@ -15,20 +15,84 @@ namespace gsc
 	namespace
 	{
 		std::unordered_map<std::string, std::uint32_t> main_handles;
+		//std::unordered_map<std::string, std::uint32_t> init_handles;
 
 		utils::memory::allocator scriptfile_allocator;
 		std::unordered_map<const char*, game::ScriptFile*> loaded_scripts;
 
+		char* script_mem_buf = nullptr;
+
+		struct
+		{
+			char* buf = nullptr;
+			char* pos = nullptr;
+			const std::uint64_t size = 0x100000i64;
+		} script_memory;
+
+		char* allocate_buffer(size_t size)
+		{
+			if (script_memory.buf == nullptr)
+			{
+				script_memory.buf = script_mem_buf;
+				script_memory.pos = script_memory.buf;
+			}
+
+			if (script_memory.pos + size > script_memory.buf + script_memory.size)
+			{
+				game::Com_Error(0x0, "Out of custom script memory");
+			}
+
+			const auto pos = script_memory.pos;
+			script_memory.pos += size;
+			return pos;
+		}
+
+		void free_script_memory()
+		{
+			if (script_memory.buf != nullptr)
+			{
+				memset(script_memory.buf, 0, reinterpret_cast<size_t>(script_memory.pos) - reinterpret_cast<size_t>(script_memory.buf));
+				script_memory.buf = nullptr;
+				script_memory.pos = nullptr;
+			}
+		}
+
 		void clear()
 		{
 			main_handles.clear();
+			//init_handles.clear();
 			loaded_scripts.clear();
 			scriptfile_allocator.clear();
+			free_script_memory();
 		}
 
 		bool read_raw_script_file(const std::string& name, std::string* data)
 		{
-			return filesystem::read_file(name, data);
+			if (filesystem::read_file(name, data))
+			{
+				return true;
+			}
+
+			// TODO: you can store rawfile assets and load them here
+			/*
+			const auto* name_str = name.data();
+			if (game::DB_XAssetExists(game::ASSET_TYPE_RAWFILE, name_str) &&
+				!game::DB_IsXAssetDefault(game::ASSET_TYPE_RAWFILE, name_str))
+			{
+				const auto asset = game::DB_FindXAssetHeader(game::ASSET_TYPE_RAWFILE, name_str, false);
+				const auto len = game::DB_GetRawFileLen(asset.rawfile);
+				data->resize(len);
+				game::DB_GetRawBuffer(asset.rawfile, data->data(), len);
+				if (len > 0)
+				{
+					data->pop_back();
+				}
+
+				return true;
+			}
+			*/
+
+			return false;
 		}
 
 		game::ScriptFile* load_custom_script(const char* file_name, const std::string& real_name)
@@ -49,6 +113,7 @@ namespace gsc
 				return nullptr;
 			}
 
+			/*
 			// filter out "GSC rawfiles" that were used for development usage and are not meant for us.
 			// each "GSC rawfile" has a ScriptFile counterpart to be used instead
 			if (game::DB_XAssetExists(game::ASSET_TYPE_SCRIPTFILE, file_name) &&
@@ -61,6 +126,7 @@ namespace gsc
 					return game::DB_FindXAssetHeader(game::ASSET_TYPE_SCRIPTFILE, file_name, false).scriptfile;
 				}
 			}
+			*/
 
 			printf("Loading custom gsc '%s'\n", real_name.data());
 
@@ -76,7 +142,7 @@ namespace gsc
 			const auto name = std::string{ reinterpret_cast<char const*>(data.data()) };
 			pos += name.size() + 1;
 
-			script_file_ptr->compressedLen = 0;
+			script_file_ptr->compressedLen = *reinterpret_cast<std::uint32_t const*>(data.data() + pos);
 			pos += 4;
 
 			script_file_ptr->len = *reinterpret_cast<std::uint32_t const*>(data.data() + pos);
@@ -92,7 +158,7 @@ namespace gsc
 			std::memcpy(script_file_ptr->buffer, data.data() + pos, script_file_ptr->len);
 			pos += script_file_ptr->len;
 
-			script_file_ptr->bytecode = static_cast<char*>(scriptfile_allocator.allocate(byte_code_size)); // no PMem in IW8...
+			script_file_ptr->bytecode = allocate_buffer(byte_code_size);
 			std::memcpy(script_file_ptr->bytecode, data.data() + pos, script_file_ptr->bytecodeLen);
 
 			loaded_scripts[file_name] = script_file_ptr;
@@ -111,6 +177,32 @@ namespace gsc
 			}
 
 			game::DB_GetRawBuffer(rawfile, buf, size);
+		}
+
+		utils::hook::detour db_alloc_x_zone_memory_internal_hook;
+		void db_alloc_x_zone_memory_internal_stub(unsigned __int64* blockSize, const char* filename, game::XZoneMemory* zoneMem, void* archiveBlocks, unsigned int type)
+		{
+			bool patch = false; // ugly fix for script memory allocation
+
+			if (!_stricmp(filename, "code_post_gfx") && type == 1) // 1 == DM_MEMORY_SCRIPT (used to be 2, thought it was 3..)
+			{
+				patch = true;
+				printf("patching memory for '%s'\n", filename);
+			}
+
+			// TODO: type is different all below this
+			if (patch)
+			{
+				blockSize[type] += script_memory.size;
+			}
+
+			db_alloc_x_zone_memory_internal_hook.invoke<void>(blockSize, filename, zoneMem, archiveBlocks, type);
+
+			if (patch)
+			{
+				blockSize[type] -= script_memory.size;
+				script_mem_buf = zoneMem->alloc[type].alloc + blockSize[type]; // this was changed around, but is 100% wrong
+			}
 		}
 
 		game::ScriptFile* find_script(game::XAssetType type, const char* name, int allow_create_default)
@@ -222,8 +314,16 @@ namespace gsc
 	public:
 		void post_unpack() override
 		{
+			// Allocate script memory (PMem doesn't work)
+			db_alloc_x_zone_memory_internal_hook.create(0x11A8C90_b, db_alloc_x_zone_memory_internal_stub);
+
+			// TODO: Increase allocated script memory
+			//utils::hook::set<uint32_t>(0xA75B5C_b + 1, 0x480000 + static_cast<std::uint32_t>(script_memory.size));
+			//utils::hook::set<uint32_t>(0xA75BAA_b + 4, 0x480 + (static_cast<std::uint32_t>(script_memory.size) >> 12));
+			//utils::hook::set<uint32_t>(0xA75BBE_b + 6, 0x480 + (static_cast<std::uint32_t>(script_memory.size) >> 12));
+
 			// Load our scripts with an uncompressed stack
-			utils::hook::call(0x13223B6_b, db_get_raw_buffer_stub);
+			//utils::hook::call(0x13223B6_b, db_get_raw_buffer_stub);
 
 			// ProcessScript: hook xasset functions to return our own custom scripts
 			utils::hook::call(0x132230E_b, find_script);
