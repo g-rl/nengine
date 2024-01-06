@@ -10,7 +10,6 @@ namespace console
 {
 	namespace
 	{
-
 		static volatile bool exit = false;
 
 		DWORD WINAPI console(LPVOID)

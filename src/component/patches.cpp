@@ -16,7 +16,6 @@ namespace patches
 		int tick = 0;
 
 		const game::dvar_t* name_dvar = nullptr;
-
 		const char* live_get_local_client_name_stub()
 		{
 			return name_dvar->current.string;
@@ -35,10 +34,9 @@ namespace patches
 		}
 
 		utils::hook::detour com_register_dvars_hook;
-
 		void com_register_dvars_stub()
 		{
-			// make name save
+			// make name save + default to login username
 			name_dvar = game::Dvar_RegisterString("name", get_login_username().data(), game::DVAR_FLAG_SAVED, "Player name.");
 
 			com_register_dvars_hook.invoke<void>();
@@ -85,9 +83,9 @@ namespace patches
 		game::dvar_t* dvar_register_stub(const char* name, unsigned int checksum, unsigned __int8 type, 
 			game::DvarFlags flags, game::DvarValue* value, void* domain, const char* desc)
 		{
-			if (strcmp(name, "MPSSOTQQPM") == 0		// force_offline_enabled
-				|| strcmp(name, "LSTQOKLTRN") == 0	// force_offline_menus
-				|| strcmp(name, "LSSRRSMNMR") == 0) // lui_dev_features_enabled
+			if (!strcmp(name, "MPSSOTQQPM")		// force_offline_enabled
+				|| !strcmp(name, "LSTQOKLTRN")	// force_offline_menus
+				|| !strcmp(name, "LSSRRSMNMR"))	// lui_dev_features_enabled
 			{
 				value->enabled = true;
 				value->integer = 1;
@@ -98,11 +96,12 @@ namespace patches
 
 		void set_transient_mode_stub(int mode) // CL_TransientsCollisionMP_SetTransientMode
 		{
-			if (strcmp(game::Dvar_GetStringSafe("NSQLTTMRMP"), "mp_donetsk") == 0)
+			if (!strcmp(game::Dvar_GetStringSafe("NSQLTTMRMP"), "mp_donetsk"))
 			{
 				*reinterpret_cast<int*>(0x5CC7534_b) = 1;
 			}
-			else {
+			else 
+			{
 				*reinterpret_cast<int*>(0x5CC7534_b) = mode;
 			}
 		}
@@ -113,16 +112,15 @@ namespace patches
 	public:
 		void post_start() override
 		{
-			// utils::hook::set<uint8_t>(0x3061A0_b, 0xC3); // mystery function 1??/
-
 			// name dvar
 			com_register_dvars_hook.create(0x12B0CD0_b, com_register_dvars_stub);
 
-			// force offline menus + text chat
+			// force offline menus + dev dvars
 			dvar_register_hook.create(0x13E7D40_b, dvar_register_stub);
 
 			schedule([=]()
 			{
+				// funny Donetsk workaround to get into menus lmfao
 				if (tick != 500)
 				{
 					tick += 1;
