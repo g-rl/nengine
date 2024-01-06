@@ -146,7 +146,7 @@ namespace
 				auto* system_parameters_info = utils::nt::library{}.get_iat_entry("user32.dll", "SystemParametersInfoA");
 				if (!system_parameters_info)
 				{
-					MSG_BOX_ERROR("could not find import InitializeCriticalSectionEx");
+					MSG_BOX_ERROR("could not find import SystemParametersInfoA");
 				}
 				utils::hook::set(system_parameters_info, system_parameters_info_a);
 

@@ -112,6 +112,8 @@ namespace patches
 	public:
 		void post_start() override
 		{
+			utils::hook::set<uint8_t>(0x3061A0_b, 0xC3); // mystery function 1??
+
 			// name dvar
 			com_register_dvars_hook.create(0x12B0CD0_b, com_register_dvars_stub);
 
