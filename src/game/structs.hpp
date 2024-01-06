@@ -361,6 +361,21 @@ namespace game
 		ASSET_TYPE_SCRIPTFILE = 0x34
 	};
 
+	enum DBMemoryType
+	{
+		DM_MEMORY_VIRTUAL = 0,
+		DM_MEMORY_SCRIPT = 1,
+		DM_MEMORY_TEMP = 2,
+		DM_MEMORY_GPUTEMP = 3,
+		DM_MEMORY_COUNT = 4,
+	};
+
+	enum XFileBlock
+	{
+		XFILE_BLOCK_SCRIPT = 6,
+		MAX_XFILE_COUNT = 8,
+	};
+
 	struct XBlock
 	{
 		char* data;
@@ -386,7 +401,7 @@ namespace game
 
 	struct XArchiveBlocks
 	{
-		XBlock blocks[11];
+		XBlock blocks[MAX_XFILE_COUNT];
 	};
 
 	struct EncryptionHeader
@@ -495,23 +510,8 @@ namespace game
 
 	struct XZoneMemory
 	{
-		XZoneMemoryAllocation alloc[6];
+		XZoneMemoryAllocation alloc[DM_MEMORY_COUNT];
 		XZoneTemporaryLoadData* tempData;
 		// there's more data after this, be warned
-	};
-
-	enum XFileBlock
-	{
-		XFILE_BLOCK_TEMP_ADDITIONAL = 0x0,
-		XFILE_BLOCK_TEMP = 0x1,
-		XFILE_BLOCK_TEMP_PRELOAD = 0x2,
-		XFILE_BLOCK_CALLBACK = 0x3,
-		XFILE_BLOCK_RUNTIME = 0x4,
-		XFILE_BLOCK_RUNTIME_VIDEO = 0x5,
-		XFILE_BLOCK_CACHED_VIDEO = 0x6,
-		XFILE_BLOCK_PHYSICAL = 0x7,
-		XFILE_BLOCK_VIRTUAL = 0x8,
-		XFILE_BLOCK_SCRIPT = 0x9,
-		MAX_XFILE_COUNT = 0xA,
 	};
 }

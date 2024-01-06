@@ -151,14 +151,11 @@ namespace gsc
 			script_file_ptr->bytecodeLen = *reinterpret_cast<std::uint32_t const*>(data.data() + pos);
 			pos += 4;
 
-			const auto stack_size = static_cast<std::uint32_t>(static_cast<size_t>(script_file_ptr->len) + 1); // from h1-mod
-			const auto byte_code_size = static_cast<std::uint32_t>(static_cast<size_t>(script_file_ptr->bytecodeLen) + 1); // ^
+			script_file_ptr->buffer = static_cast<char*>(scriptfile_allocator.allocate(script_file_ptr->compressedLen));
+			std::memcpy(script_file_ptr->buffer, data.data() + pos, script_file_ptr->compressedLen);
+			pos += script_file_ptr->compressedLen;
 
-			script_file_ptr->buffer = static_cast<char*>(scriptfile_allocator.allocate(stack_size));
-			std::memcpy(script_file_ptr->buffer, data.data() + pos, script_file_ptr->len);
-			pos += script_file_ptr->len;
-
-			script_file_ptr->bytecode = allocate_buffer(byte_code_size);
+			script_file_ptr->bytecode = allocate_buffer(script_file_ptr->bytecodeLen);
 			std::memcpy(script_file_ptr->bytecode, data.data() + pos, script_file_ptr->bytecodeLen);
 
 			loaded_scripts[file_name] = script_file_ptr;
@@ -180,11 +177,11 @@ namespace gsc
 		}
 
 		utils::hook::detour db_alloc_x_zone_memory_internal_hook;
-		void db_alloc_x_zone_memory_internal_stub(unsigned __int64* blockSize, const char* filename, game::XZoneMemory* zoneMem, void* archiveBlocks, unsigned int type)
+		void db_alloc_x_zone_memory_internal_stub(unsigned __int64* blockSize, const char* filename, game::XZoneMemory* zoneMem, game::XBlock* archiveBlocks, unsigned int type)
 		{
 			bool patch = false; // ugly fix for script memory allocation
 
-			if (!_stricmp(filename, "code_post_gfx") && type == 1) // 1 == DM_MEMORY_SCRIPT (used to be 2, thought it was 3..)
+			if (!_stricmp(filename, "code_post_gfx") && type == game::DM_MEMORY_SCRIPT)
 			{
 				patch = true;
 				printf("patching memory for '%s'\n", filename);
@@ -193,15 +190,15 @@ namespace gsc
 			// TODO: type is different all below this
 			if (patch)
 			{
-				blockSize[type] += script_memory.size;
+				blockSize[game::XFILE_BLOCK_SCRIPT] += script_memory.size;
 			}
 
 			db_alloc_x_zone_memory_internal_hook.invoke<void>(blockSize, filename, zoneMem, archiveBlocks, type);
 
 			if (patch)
 			{
-				blockSize[type] -= script_memory.size;
-				script_mem_buf = zoneMem->alloc[type].alloc + blockSize[type]; // this was changed around, but is 100% wrong
+				blockSize[game::XFILE_BLOCK_SCRIPT] -= script_memory.size;
+				script_mem_buf = archiveBlocks[game::XFILE_BLOCK_SCRIPT].data + blockSize[game::XFILE_BLOCK_SCRIPT]; // this was changed around, but is 100% wrong
 			}
 		}
 

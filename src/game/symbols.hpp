@@ -46,7 +46,7 @@ namespace game
 	//WEAK symbol<void*(const char* name, int pixelHeight)> R_RegisterFont{0x1419329B0};
 
 	WEAK symbol<void*()> ScriptContext_Server{0x12E0E70};
-	WEAK symbol<unsigned int(void* scr_context, const char* filename)> Scr_LoadScript{0x1317435};
+	WEAK symbol<unsigned int(void* scr_context, const char* filename)> Scr_LoadScript{0x1317400};
 	WEAK symbol<unsigned int(void* scr_context, const char* filename, unsigned int handle)> Scr_GetFunctionHandle{0x1317270};
 	WEAK symbol<unsigned int(void* scr_context, int handle, int num_param)> Scr_ExecThread{0x13238F0};
 	WEAK symbol<unsigned int(void* scr_context, unsigned int handle)> Scr_FreeThread{0x13242E0};
