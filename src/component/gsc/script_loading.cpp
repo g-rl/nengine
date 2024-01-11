@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 
 #include "component/filesystem.hpp"
+#include "component/gsc/script_loading.hpp"
 
 #include "game/game.hpp"
 
@@ -12,8 +13,22 @@
 
 namespace gsc
 {
+	/*
+	constexpr size_t func_table_count = 0x1000;
+	constexpr size_t meth_table_count = 0x1000;
+
+	std::uint16_t function_id_start = 1;
+	std::uint16_t function_id_count = func_table_count; // 1048 was count before
+	std::uint16_t function_id_end = function_id_start + function_id_count; // 1049 was old end
+	std::uint16_t method_id_start = 32768;
+	std::uint16_t method_id_count = meth_table_count; // 1927 was count before
+	std::uint16_t method_id_end = method_id_start + method_id_count; // 34695 was old end
+	*/
+
 	namespace
 	{
+		//std::unordered_map<std::uint16_t, script_function> functions;
+
 		std::unordered_map<std::string, std::uint32_t> main_handles;
 		//std::unordered_map<std::string, std::uint32_t> init_handles;
 
@@ -160,6 +175,8 @@ namespace gsc
 
 			loaded_scripts[file_name] = script_file_ptr;
 
+			printf("Loaded custom gsc '%s'\n", real_name.data());
+
 			return script_file_ptr;
 		}
 
@@ -197,7 +214,7 @@ namespace gsc
 			if (patch)
 			{
 				blockSize[game::XFILE_BLOCK_SCRIPT] -= script_memory.size;
-				script_mem_buf = archiveBlocks[game::XFILE_BLOCK_SCRIPT].data + blockSize[game::XFILE_BLOCK_SCRIPT]; // this was changed around, but is 100% wrong
+				script_mem_buf = archiveBlocks[game::XFILE_BLOCK_SCRIPT].data + blockSize[game::XFILE_BLOCK_SCRIPT];
 			}
 		}
 
@@ -236,6 +253,15 @@ namespace gsc
 				printf("Loaded '%s::main'\n", name.data());
 				main_handles[name] = main_handle;
 			}
+
+			/*
+			const auto init_handle = game::Scr_GetFunctionHandle(scr_context, name.data(), 596); // find init token id
+			if (init_handle)
+			{
+				printf("Loaded '%s::init'\n", name.data());
+				init_handles[name] = init_handle;
+			}
+			*/
 		}
 
 		void load_scripts(const std::filesystem::path& root_dir, const std::filesystem::path& subfolder)
@@ -317,6 +343,108 @@ namespace gsc
 		{
 			game::Com_Error(game::ERR_SCRIPT_DROP, "unknown function (misspelled function or include path is wrong)\n");
 		}
+
+		/*
+		utils::hook::detour begin_load_scripts_hook;
+		void begin_load_scripts_stub(game::scrContext_t* context, char thread_mode, unsigned int a3)
+		{
+			// modify scrContext here
+			//context->m_pFuncTable = 
+			context->m_funcCount = function_id_count;
+			context->m_methCount = method_id_count;
+			context->m_funcEnd = function_id_end;
+			context->m_methEnd = method_id_end;
+
+			// done in Scr_BeginLoadScripts
+			//const auto size = static_cast<size_t>(8);
+			//memset(context->m_pFuncTable, 0, size * context->m_funcCount);
+			//memset(context->m_pMethTable, 0, size * context->m_methCount);
+
+			printf("=====================================\n");
+			printf("begin_load_scripts_stub\n");
+			printf("m_funcBegin = %d\n", context->m_funcBegin);
+			printf("m_funcCount = %d\n", context->m_funcCount);
+			printf("m_funcEnd = %d\n", context->m_funcEnd);
+			printf("m_methBegin = %d\n", context->m_methBegin);
+			printf("m_methCount = %d\n", context->m_methCount);
+			printf("m_methEnd = %d\n", context->m_methEnd);
+			printf("=====================================\n");
+
+			begin_load_scripts_hook.invoke<void>(context, thread_mode, a3);
+		}
+
+		std::uint16_t get_function_id(game::scrContext_t* context)
+		{
+			const auto pos = context->pos.___u0.m_scriptPos;
+			return *reinterpret_cast<std::uint16_t*>(
+				reinterpret_cast<size_t>(pos - 2));
+		}
+
+		function_args get_arguments()
+		{
+			std::vector<scripting::script_value> args;
+
+			for (auto i = 0; static_cast<std::uint32_t>(i) < game::scr_VmPub->outparamcount; ++i)
+			{
+				const auto value = game::scr_VmPub->top[-i];
+				args.push_back(value);
+			}
+
+			return args;
+		}
+
+		void execute_custom_function(const std::uint16_t id)
+		{
+			try
+			{
+				const auto& function = functions[id];
+				const auto result = function(get_arguments());
+				const auto type = result.get_raw().type;
+
+				if (type)
+				{
+					return_value(result);
+				}
+			}
+			catch (const std::exception& ex)
+			{
+				scr_error(ex.what());
+			}
+		}
+
+		void vm_call_builtin_function_internal(int function_id)
+		{
+			const auto custom_function_id = static_cast<std::uint16_t>(function_id); // cast for gsc-tool & our custom method map
+			const auto custom = functions.contains(custom_function_id);
+			if (custom)
+			{
+				execute_custom_function(custom_function_id);
+				return;
+			}
+
+			builtin_function func = func_table[function_id - 1]; // game does this for the stock func table
+			if (func == nullptr)
+			{
+				scr_error(utils::string::va("builtin function \"%s\" doesn't exist", gsc_ctx->func_name(function_id).data()), true);
+				return;
+			}
+
+			func();
+		}
+
+		void vm_call_builtin_function_stub(utils::hook::assembler& a)
+		{
+			// lol
+			a.pushad64();
+			a.push(rcx);
+			a.mov(rcx, r14d); // function id is stored in r14d
+			a.call_aligned(vm_call_builtin_function_internal);
+			a.pop(rcx);
+			a.popad64();
+
+			a.jmp(0xC0E8F9_b);
+		}
+		*/
 	}
 
 	class loading final : public component_interface
@@ -348,10 +476,21 @@ namespace gsc
 			// clear memory
 			g_shutdown_game_hook.create(0x121F880_b, g_shutdown_game_stub);
 
-			// TODO: move to proper class
+			/*
+				TODO: move to proper class
+			*/
+
 			// change Sys_Error -> Com_Error
 			utils::hook::call(0x13166DE_b, unknown_func_stub);
 			utils::hook::call(0x1316777_b, unknown_func_stub);
+
+			/*
+			utils::hook::nop(0xC0E5CE_b, 7);
+			utils::hook::call(0xC0E5CE_b, vm_call_builtin_function_internal);
+			*/
+			//begin_load_scripts_hook.create(0x1316DE0_b, begin_load_scripts_stub);
+			//utils::hook::nop(0x1328EFE_b, 14);
+			//utils::hook::jump(0x1328EFE_b, utils::hook::assemble(vm_call_builtin_function_stub), true);
 		}
 	};
 }

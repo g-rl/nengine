@@ -49,8 +49,8 @@
 	url = https://github.com/nlohmann/json.git
 [submodule "deps/gsc-tool"]
 	path = deps/gsc-tool
-	url = https://github.com/xensik/gsc-tool.git
-	branch = dev
+	url = https://github.com/xensik/gsc-tool
+	branch = old_code
 [submodule "deps/stb"]
 	path = deps/stb
 	url = https://github.com/nothings/stb.git

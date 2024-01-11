@@ -355,11 +355,133 @@ namespace game
 		ScriptFile* scriptfile;
 	};
 
-	enum XAssetType : __int32
+	enum XAssetType : std::uint32_t
+	{
+		ASSET_TYPE_PHYSICSLIBRARY = 0x0,
+		ASSET_TYPE_PHYSICS_SFX_EVENT_ASSET = 0x1,
+		ASSET_TYPE_PHYSICS_VFX_EVENT_ASSET = 0x2,
+		ASSET_TYPE_PHYSICSASSET = 0x3,
+		ASSET_TYPE_PHYSICS_FX_PIPELINE = 0x4,
+		ASSET_TYPE_PHYSICS_FX_SHAPE = 0x5,
+		ASSET_TYPE_PHYSICS_DEBUG_DATA = 0x6,
+		ASSET_TYPE_XANIMPARTS = 0x7,
+		ASSET_TYPE_XMODEL_SURFS = 0x8,
+		ASSET_TYPE_XMODEL = 0x9,
+		ASSET_TYPE_MAYHEM = 0xA,
+		ASSET_TYPE_MATERIAL = 0xB,
+		ASSET_TYPE_COMPUTESHADER = 0xC,
+		ASSET_TYPE_SERIALIZEDSHADER = 0xD,
+		ASSET_TYPE_TECHNIQUE_SET = 0xE,
+		ASSET_TYPE_IMAGE = 0xF,
+		ASSET_TYPE_SOUND_GLOBALS = 0x10,
+		ASSET_TYPE_SOUND_BANK = 0x11,
+		ASSET_TYPE_SOUND_BANK_TRANSIENT = 0x12,
+		ASSET_TYPE_CLIPMAP = 0x13,
+		ASSET_TYPE_COMWORLD = 0x14,
+		ASSET_TYPE_GLASSWORLD = 0x15,
+		ASSET_TYPE_PATHDATA = 0x16,
+		ASSET_TYPE_NAVMESH = 0x17,
+		ASSET_TYPE_TACGRAPH = 0x18,
+		ASSET_TYPE_MAP_ENTS = 0x19,
+		ASSET_TYPE_FXWORLD = 0x1A,
+		ASSET_TYPE_GFXWORLD = 0x1B,
+		ASSET_TYPE_GFXWORLD_TRANSIENT_ZONE = 0x1C,
+		ASSET_TYPE_IESPROFILE = 0x1D,
+		ASSET_TYPE_LIGHT_DEF = 0x1E,
+		ASSET_TYPE_GRADING_CLUT = 0x1F,
+		ASSET_TYPE_UI_MAP = 0x20,
+		ASSET_TYPE_FOG_SPLINE = 0x21,
+		ASSET_TYPE_ANIMCLASS = 0x22,
+		ASSET_TYPE_PLAYERANIM = 0x23,
+		ASSET_TYPE_GESTURE = 0x24,
+		ASSET_TYPE_LOCALIZE_ENTRY = 0x25,
+		ASSET_TYPE_ATTACHMENT = 0x26,
+		ASSET_TYPE_WEAPON = 0x27,
+		ASSET_TYPE_VFX = 0x28,
+		ASSET_TYPE_IMPACT_FX = 0x29,
+		ASSET_TYPE_SURFACE_FX = 0x2A,
+		ASSET_TYPE_AITYPE = 0x2B,
+		ASSET_TYPE_MPTYPE = 0x2C,
+		ASSET_TYPE_CHARACTER = 0x2D,
+		ASSET_TYPE_XMODELALIAS = 0x2E,
+		ASSET_TYPE_RAWFILE = 0x2F,
+		ASSET_TYPE_SCRIPTFILE = 0x30,
+		ASSET_TYPE_SCRIPT_DEBUG_DATA = 0x31,
+		ASSET_TYPE_STRINGTABLE = 0x32,
+		ASSET_TYPE_LEADERBOARD = 0x33,
+		ASSET_TYPE_VIRTUAL_LEADERBOARD = 0x34,
+		ASSET_TYPE_DDL = 0x35,
+		ASSET_TYPE_TRACER = 0x36,
+		ASSET_TYPE_VEHICLE = 0x37,
+		ASSET_TYPE_ADDON_MAP_ENTS = 0x38,
+		ASSET_TYPE_NET_CONST_STRINGS = 0x39,
+		ASSET_TYPE_LUA_FILE = 0x3A,
+		ASSET_TYPE_SCRIPTABLE = 0x3B,
+		ASSET_TYPE_EQUIPMENT_SND_TABLE = 0x3C,
+		ASSET_TYPE_VECTORFIELD = 0x3D,
+		ASSET_TYPE_PARTICLE_SIM_ANIMATION = 0x3E,
+		ASSET_TYPE_STREAMING_INFO = 0x3F,
+		ASSET_TYPE_LASER = 0x40,
+		ASSET_TYPE_TTF = 0x41,
+		ASSET_TYPE_SUIT = 0x42,
+		ASSET_TYPE_SUITANIMPACKAGE = 0x43,
+		ASSET_TYPE_CAMERA = 0x44,
+		ASSET_TYPE_HUDOUTLINE = 0x45,
+		ASSET_TYPE_SPACESHIPTARGET = 0x46,
+		ASSET_TYPE_RUMBLE = 0x47,
+		ASSET_TYPE_RUMBLE_GRAPH = 0x48,
+		ASSET_TYPE_ANIM_PACKAGE = 0x49,
+		ASSET_TYPE_SFX_PACKAGE = 0x4A,
+		ASSET_TYPE_VFX_PACKAGE = 0x4B,
+		ASSET_TYPE_FOOTSTEP_VFX = 0x4C,
+		ASSET_TYPE_BEHAVIOR_TREE = 0x4D,
+		ASSET_TYPE_ANIMSET = 0x4E,
+		ASSET_TYPE_ASM = 0x4F,
+		ASSET_TYPE_XANIM_PROCEDURALBONES = 0x50,
+		ASSET_TYPE_XANIM_DYNAMICBONES = 0x51,
+		ASSET_TYPE_RETICLE = 0x52,
+		ASSET_TYPE_XANIMCURVE = 0x53,
+		ASSET_TYPE_COVERSELECTOR = 0x54,
+		ASSET_TYPE_ENEMYSELECTOR = 0x55,
+		ASSET_TYPE_CLIENTCHARACTER = 0x56,
+		ASSET_TYPE_CLOTHASSET = 0x57,
+		ASSET_TYPE_CINEMATICMOTION = 0x58,
+		ASSET_TYPE_ACCESSORY = 0x59,
+		ASSET_TYPE_LOCDMGTABLE = 0x5A,
+		ASSET_TYPE_BULLETPENETRATION = 0x5B,
+		ASSET_TYPE_SCRIPTBUNDLE = 0x5C,
+		ASSET_TYPE_BLENDSPACE2D = 0x5D,
+		ASSET_TYPE_XCAM = 0x5E,
+		ASSET_TYPE_CAMO = 0x5F,
+		ASSET_TYPE_XCOMPOSITEMODEL = 0x60,
+		ASSET_TYPE_XMODEL_DETAIL_COLLISION = 0x61,
+		ASSET_TYPE_STREAM_KEY = 0x62,
+		ASSET_TYPE_STREAM_TREE_OVERRIDE = 0x63,
+		ASSET_TYPE_KEYVALUEPAIRS = 0x64,
+		ASSET_TYPE_SUPER_TERRAIN = 0x65,
+		ASSET_TYPE_NATIVE_SCRIPT_PATCH = 0x66,
+		ASSET_TYPE_COLLISION_TILE = 0x67,
+		ASSET_TYPE_EXECUTION = 0x68,
+		ASSET_TYPE_CARRYOBJECT = 0x69,
+		ASSET_TYPE_SOUNDBANKLIST = 0x6A,
+		ASSET_TYPE_DECAL_VOLUME_MATERIAL = 0x6B,
+		ASSET_TYPE_DECAL_VOLUME_MASK = 0x6C,
+		ASSET_TYPE_DYNENTITY_LIST = 0x6D,
+		ASSET_TYPE_FXWORLD_TRANSIENT_ZONE = 0x6E,
+		ASSET_TYPE_DLOG_SCHEMA = 0x6F,
+		ASSET_TYPE_EDGE_LIST = 0x70,
+		ASSET_TYPE_COUNT = 0x71,
+		ASSET_TYPE_STRING = 0x71,
+		ASSET_TYPE_ASSETLIST = 0x72,
+	};
+
+	/*
+	enum XAssetType_old : __int32
 	{
 		ASSET_TYPE_RAWFILE = 0x33,
 		ASSET_TYPE_SCRIPTFILE = 0x34
 	};
+	*/
 
 	enum DBMemoryType
 	{
@@ -526,4 +648,85 @@ namespace game
 		ERR_LOCALIZATION = 0x6,
 		ERR_COUNT = 0x7,
 	};
+
+	/*
+	struct CmdArgs
+	{
+		int nesting;
+		int localClientNum[8];
+		int controllerIndex[8];
+		int argc[8];
+		const char** argv[8];
+	};
+	*/
+
+	struct CmdArgs
+	{
+		int nesting;
+		int localClientNum[8];
+		int controllerIndex[8];
+		int argc[8];
+		const char** argv[8];
+		char textPool[16384]; // new all below and here
+		const char* argvPool[512];
+		int usedTextPool[8];
+		int totalUsedArgvPool;
+		int totalUsedTextPool;
+	};
+
+	struct SvCommandInfo
+	{
+		const char* name;
+		void(__fastcall* function)();
+		cmd_function_s svvar;
+	};
+
+	struct gentity_s
+	{
+		__int16 s_number; // 0
+		char __pad0[0x8E]; // 2
+		__int16 client_num; // 144
+		//char __pad1[0x8E];// 146
+	};
+
+	union $19C82CA8BD5CE28553D0D27D79F0E3F3
+	{
+		const char* m_scriptPos;
+		unsigned __int64 m_genericPos;
+	};
+
+	/* 21413 */
+	struct ScriptCodePos
+	{
+		$19C82CA8BD5CE28553D0D27D79F0E3F3 ___u0;
+	};
+
+	struct scr_entref_t
+	{
+		unsigned short entnum;
+		unsigned short classnum;
+	};
+
+	using builtin_function = void(*)();
+	using builtin_method = void(*)(scr_entref_t);
+
+	struct scrContext_t
+	{
+		char __pad0[3184]; // 0
+		bool script_loading; // 3184
+		char __pad1[3]; // 3185
+		unsigned int m_funcBegin; // 3188
+		unsigned int m_funcEnd; // 3192
+		unsigned int m_funcCount; // 3196
+		//
+		unsigned int m_methBegin; // 3200
+		unsigned int m_methEnd; // 3204
+		unsigned int m_methCount; // 3208
+		char __pad2[4]; // 3212
+		builtin_function* m_pFuncTable; // 3216
+		builtin_method* m_pMethTable; // 3224
+		char __pad3[79688]; // 3232
+		ScriptCodePos pos; // 82920 // ScriptCodePos::GetScriptPos(scrContext + 82920);
+	};
+
 }

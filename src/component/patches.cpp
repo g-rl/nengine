@@ -105,6 +105,44 @@ namespace patches
 				*reinterpret_cast<int*>(0x5CC7534_b) = mode;
 			}
 		}
+
+		const char* invalid_map_references[24] = {
+			"LUA_MENU/MAPNAME_ANIYAH",		"LUA_MENU/MAPNAME_DEADZONE",	"LUA_MENU/MAPNAME_M_CAGE",
+			"LUA_MENU/MAPNAME_CAVE_AM",		"LUA_MENU/MAPNAME_CAVE",		"LUA_MENU/MAPNAME_M_CARGO",
+			"LUA_MENU/MAPNAME_CRASH2",		"LUA_MENU/MAPNAME_M_OVERUNDER", "LUA_MENU/MAPNAME_EUPHRATES",
+			"LUA_MENU/MAPNAME_RAID",		"LUA_MENU/MAPNAME_M_SHOWERS",	"LUA_MENU/MAPNAME_RUNNER_AM",
+			"LUA_MENU/MAPNAME_RUNNER",		"LUA_MENU/MAPNAME_HACKNEY_AM",	"LUA_MENU/MAPNAME_HACKNEY_YARD",
+			"LUA_MENU/MAPNAME_M_HILL",		"LUA_MENU/MAPNAME_PICCADILLY",	"LUA_MENU/MAPNAME_M_PINE",
+			"LUA_MENU/MAPNAME_SPEAR_AM",	"LUA_MENU/MAPNAME_SPEAR",		"LUA_MENU/MAPNAME_PETROGRAD",
+			"LUA_MENU/MAPNAME_M_STACK",		"LUA_MENU/MAPNAME_PICCADILLY",	"LUA_MENU/MAPNAME_VACANT"
+		};
+
+		utils::hook::detour seh_string_ed_get_string_hook;
+		const char* seh_string_ed_get_string_stub(const char* ref)
+		{
+			for (const char* invalid_ref : invalid_map_references)
+			{
+				if (!strcmp(ref, invalid_ref))
+				{
+					return "^1missing";
+				}
+			}
+
+			if (!strcmp(ref, "LUA_MENU/CAMPAIGN_DESC") || !strcmp(ref, "LUA_MENU/LOCAL_COOP_DESC"))
+			{
+				return "^1The required content is not available in this build.";
+			}
+			else if (!strcmp(ref, "MENU_SP/CAMPAIGN"))
+			{
+				return "^1CAMPAIGN"; // use red to show invalid
+			}
+			else if (!strcmp(ref, "LUA_MENU/LOCAL_COOP_CAPS"))
+			{
+				return "^1LOCAL CO-OP";
+			}
+
+			return seh_string_ed_get_string_hook.invoke<const char*>(ref);
+		}
 	}
 
 	class component final : public component_interface
@@ -210,6 +248,9 @@ namespace patches
 			// add commands
 			//game::Cmd_AddCommandInternal("addbot", Cmd_AddBot_f, &addbot_f_VAR);
 			//game::Cmd_AddCommandInternal("addtestclient", Cmd_AddTestClient_f, &addTestClient_f_VAR);
+
+			// modify strings to reveal maps not working
+			seh_string_ed_get_string_hook.create(0x13CC2A0_b, seh_string_ed_get_string_stub);
 		}
 	};
 }
