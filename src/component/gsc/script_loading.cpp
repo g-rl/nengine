@@ -196,14 +196,14 @@ namespace gsc
 
 				loaded_scripts[file_name] = script_file_ptr;
 
-				printf("Loaded custom gsc '%s'", real_name.data());
+				printf("Loaded custom gsc '%s'\n", real_name.data());
 
 				return script_file_ptr;
 			}
 			catch (const std::exception& e)
 			{
 				printf("*********** script compile error *************\n");
-				printf("failed to compile '%s':\n%s", real_name.data(), e.what());
+				printf("failed to compile '%s':\n%s\n", real_name.data(), e.what());
 				printf("**********************************************\n");
 				return nullptr;
 			}

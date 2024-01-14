@@ -175,12 +175,11 @@ namespace gsc
 			printf("**********************************************\n");
 		}
 
-		/*
-		void vm_error_stub(__int64 mark_pos)
+		void vm_error_stub(unsigned __int64 mark_pos)
 		{
 			vm_error_internal();
 
-			utils::hook::invoke<void>(0x510C80_b, mark_pos);
+			utils::hook::invoke<void>(0x1036900_b, mark_pos);
 		}
 
 		bool get_replaced_pos(const char* pos)
@@ -211,11 +210,13 @@ namespace gsc
 
 			a.bind(end);
 
-			a.movzx(r15d, byte_ptr(rsi));
-			a.inc(rsi);
-			a.mov(dword_ptr(rbp, 0x94), r15d);
+			a.prefetcht0(byte_ptr(rsi, 0x80));
+			a.movzx(r14d, byte_ptr(rsi));
+			a.mov(rcx, r12);
+			//a.inc(rsi);
+			//a.mov(dword_ptr(rbp, 0x94), r14d);
 
-			a.jmp(0xC0D0B2_b);
+			a.jmp(0x132742E_b);
 
 			a.bind(replace);
 
@@ -224,7 +225,6 @@ namespace gsc
 			a.mov(rsi, rax);
 			a.jmp(end);
 		}
-		*/
 
 		scripting::script_value get_argument(int index)
 		{
@@ -242,9 +242,8 @@ namespace gsc
 	{
 		force_error_print = force_print;
 		gsc_error_msg = error;
-		
-		printf("scr_error: %s\n", error);
-		//game::Scr_ErrorInternal();
+
+		game::Scr_ErrorInternal(game::ScriptContext_Server());
 	}
 
 	namespace function
@@ -315,19 +314,18 @@ namespace gsc
 			utils::hook::set<uint32_t>(0xBFD5B6_b + 2, sizeof(meth_table));
 			utils::hook::nop(0xC0E8EB_b, 14); // nop the lea & call at the end of call_builtin_method
 			utils::hook::jump(0xC0E8EB_b, utils::hook::assemble(vm_call_builtin_method_stub), true);
-
-			utils::hook::call(0xC0F8C1_b, vm_error_stub); // LargeLocalResetToMark
-
-			utils::hook::jump(0xC0D0A4_b, utils::hook::assemble(vm_execute_stub), true);
 			*/
+
+			utils::hook::call(0x132ACB9_b, vm_error_stub); // LargeLocalResetToMark
+
+			utils::hook::jump(0x1327420_b, utils::hook::assemble(vm_execute_stub), true);
 
 			function::add("print", [](game::scrContext_t* context) -> void
 			{
 				printf("%s\n", game::Scr_GetString(context, 0));
 			});
 
-			/*
-			function::add("replacefunc", []()
+			function::add("replacefunc", [](game::scrContext_t* context) -> void
 			{
 				const auto what = get_argument(0).get_raw();
 				const auto with = get_argument(1).get_raw();
@@ -339,7 +337,6 @@ namespace gsc
 
 				vm_execute_hooks[what.u.codePosValue] = with.u.codePosValue;
 			});
-			*/
 		}
 	};
 }

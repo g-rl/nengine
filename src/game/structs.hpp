@@ -911,8 +911,9 @@ namespace game
 		void* unk_0; // 13496
 		ChildVariableValue* childVariableValue; // 13504
 
-		char __pad3_1[34024]; // 13512
+		char __pad3_1[34016]; // 13512
 
+		unsigned int* localVars; // 47528
 		VariableValue* maxstack; // 47536 (scrVmPub_t->maxstack)
 		int function_count; // 47544
 		int __pad4; // 47548

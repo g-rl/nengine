@@ -102,7 +102,9 @@ namespace gsc
 		void compile_error_stub(game::scrContext_t* context, const char* code_pos, [[maybe_unused]] const char* msg)
 		{
 			get_unknown_function_error(code_pos);
-			game::Com_Error(game::ERR_SCRIPT_DROP, "script link error\n%s", unknown_function_error.data());
+			const auto error_msg = utils::string::va("script link error\n%s", unknown_function_error.data());
+			game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n");
+			printf("%s\n", error_msg);
 		}
 		
 		std::uint32_t find_variable_stub(game::scrContext_t* context, std::uint32_t parent_id, std::uint32_t thread_name)
@@ -111,7 +113,9 @@ namespace gsc
 			if (!res)
 			{
 				get_unknown_function_error(thread_name);
-				game::Com_Error(game::ERR_SCRIPT_DROP, "script link error\n%s", unknown_function_error.data());
+				const auto error_msg = utils::string::va("script link error\n%s", unknown_function_error.data());
+				game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n");
+				printf("%s\n", error_msg);
 			}
 			return res;
 		}

@@ -76,6 +76,7 @@ namespace game
 
 	WEAK symbol<scrContext_t*()> ScriptContext_Server{0x12E0E70};
 	WEAK symbol<void(scrContext_t* context)> Scr_ClearOutParams{0x1323410};
+	WEAK symbol<void(scrContext_t* context)> Scr_ErrorInternal{0x13237B0};
 	WEAK symbol<unsigned int(void* scr_context, int handle, int num_param)> Scr_ExecThread{0x13238F0};
 	WEAK symbol<const char*(scrContext_t* context, unsigned int index)> Scr_GetString{0x13254D0};
 	WEAK symbol<unsigned int(void* scr_context, unsigned int handle)> Scr_FreeThread{0x13242E0};

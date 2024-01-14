@@ -43,21 +43,6 @@ namespace scripting
 		}
 	}
 
-	std::uint32_t parse_token_id(const std::string& name)
-	{
-		if (name.starts_with("_ID"))
-		{
-			return static_cast<std::uint32_t>(std::strtol(name.substr(3).data(), nullptr, 10));
-		}
-
-		if (name.starts_with("_id_"))
-		{
-			return static_cast<std::uint32_t>(std::strtol(name.substr(4).data(), nullptr, 16));
-		}
-
-		return 0;
-	}
-
 	std::string find_token(std::uint32_t id)
 	{
 		return gsc::gsc_ctx->token_name(id);
@@ -66,23 +51,6 @@ namespace scripting
 	std::string find_token_single(std::uint32_t id)
 	{
 		return gsc::gsc_ctx->token_name(id);
-	}
-
-	unsigned int find_token_id(const std::string& name)
-	{
-		const auto id = gsc::gsc_ctx->token_id(name);
-		if (id)
-		{
-			return id;
-		}
-
-		const auto parsed_id = parse_token_id(name);
-		if (parsed_id)
-		{
-			return parsed_id;
-		}
-
-		return 0u;
 	}
 
 	script_function get_function_by_index(const std::uint32_t index)
