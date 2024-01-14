@@ -49,7 +49,7 @@ function gsc_tool.project()
         path.join(gsc_tool.source, "src/gsc/engine/iw8_func.cpp"),
         path.join(gsc_tool.source, "src/gsc/engine/iw8_meth.cpp"),
         path.join(gsc_tool.source, "src/gsc/engine/iw8_token.cpp"),
-        --path.join(gsc_tool.source, "src/gsc/*.cpp"),
+        path.join(gsc_tool.source, "src/gsc/*.cpp"),
 
         path.join(gsc_tool.source, "src/gsc/common/*.cpp"),
         path.join(gsc_tool.source, "include/xsk/gsc/common/*.hpp")

@@ -1,5 +1,5 @@
 #pragma once
-#include <d3d11.h>
+//#include <d3d11.h>
 
 #define PROTOCOL 1
 
@@ -17,6 +17,10 @@ namespace game
 	typedef vec_t vec2_t[2];
 	typedef vec_t vec3_t[3];
 	typedef vec_t vec4_t[4];
+
+	enum scr_string_t : std::int32_t
+	{
+	};
 
 	union DvarValue
 	{
@@ -355,8 +359,9 @@ namespace game
 		ScriptFile* scriptfile;
 	};
 
-	enum XAssetType : std::uint32_t
+	enum XAssetType_pdb : std::uint32_t
 	{
+		/*
 		ASSET_TYPE_PHYSICSLIBRARY = 0x0,
 		ASSET_TYPE_PHYSICS_SFX_EVENT_ASSET = 0x1,
 		ASSET_TYPE_PHYSICS_VFX_EVENT_ASSET = 0x2,
@@ -473,15 +478,14 @@ namespace game
 		ASSET_TYPE_COUNT = 0x71,
 		ASSET_TYPE_STRING = 0x71,
 		ASSET_TYPE_ASSETLIST = 0x72,
+		*/
 	};
 
-	/*
-	enum XAssetType_old : __int32
+	enum XAssetType : __int32
 	{
 		ASSET_TYPE_RAWFILE = 0x33,
 		ASSET_TYPE_SCRIPTFILE = 0x34
 	};
-	*/
 
 	enum DBMemoryType
 	{
@@ -695,20 +699,196 @@ namespace game
 		unsigned __int64 m_genericPos;
 	};
 
-	/* 21413 */
-	struct ScriptCodePos
-	{
-		$19C82CA8BD5CE28553D0D27D79F0E3F3 ___u0;
-	};
-
 	struct scr_entref_t
 	{
 		unsigned short entnum;
 		unsigned short classnum;
 	};
 
-	using builtin_function = void(*)();
-	using builtin_method = void(*)(scr_entref_t);
+	struct scrContext_t;
+
+	using builtin_function = void(*)(scrContext_t*);
+	using builtin_method = void(*)(scrContext_t*, scr_entref_t);
+
+	struct ScriptCodePos
+	{
+		$19C82CA8BD5CE28553D0D27D79F0E3F3 ___u0;
+	};
+
+	struct VariableStackBuffer
+	{
+		const char* pos;
+		unsigned __int16 size;
+		unsigned __int16 bufLen;
+		unsigned __int16 localId; // type unsigned int?
+		char time;
+		char buf[1];
+	};
+
+	union VariableUnion
+	{
+		int intValue;
+		unsigned int uintValue;
+		float floatValue;
+		unsigned int stringValue;
+		const float* vectorValue;
+		const char* codePosValue;
+		unsigned __int64 scriptCodePosValue;
+		unsigned int pointerValue;
+		VariableStackBuffer* stackValue;
+		unsigned int entityOffset;
+	};
+
+	struct VariableValue
+	{
+		VariableUnion u; // 0
+		int type; // 8
+	};
+
+	enum VariableType
+	{
+		VAR_UNDEFINED = 0x0,
+		VAR_BEGIN_REF = 0x1,
+		VAR_POINTER = 0x1,
+		VAR_STRING = 0x2,
+		VAR_ISTRING = 0x3,
+		VAR_VECTOR = 0x4,
+		VAR_END_REF = 0x5,
+		VAR_FLOAT = 0x5,
+		VAR_INTEGER = 0x6,
+		VAR_CODEPOS = 0x7,
+		VAR_PRECODEPOS = 0x8,
+		VAR_FUNCTION = 0x9,
+		VAR_BUILTIN_FUNCTION = 0xA,
+		VAR_BUILTIN_METHOD = 0xB,
+		VAR_STACK = 0xC,
+		VAR_ANIMATION = 0xD,
+		//VAR_DEVELOPER_CODEPOS = 0xE,
+		VAR_PRE_ANIMATION = 0xE,
+		VAR_ANIM_TREE = 0xF,
+		VAR_THREAD = 0x10,
+		VAR_NOTIFY_THREAD = 0x11,
+		VAR_TIME_THREAD = 0x12,
+		VAR_CHILD_THREAD = 0x13,
+		VAR_OBJECT = 0x14,
+		VAR_DEAD_ENTITY = 0x15,
+		VAR_ENTITY = 0x16,
+		VAR_ARRAY = 0x17,
+		VAR_DEAD_THREAD = 0x18,
+		VAR_COUNT = 0x19,
+		VAR_FREE = 0x19,
+		VAR_THREAD_LIST = 0x1A,
+		VAR_ENDON_LIST = 0x1B,
+		VAR_TOTAL_COUNT = 0x1C,
+
+		// idk what these are, but i'll keep them
+		VAR_FIRST_OBJECT = 0x11,
+		VAR_FIRST_CLEARABLE_OBJECT = 0x15,
+		VAR_LAST_NONENTITY_OBJECT = 0x15,
+		VAR_FIRST_ENTITY_OBJECT = 0x17,
+		VAR_FIRST_NONFIELD_OBJECT = 0x18,
+		VAR_FIRST_DEAD_OBJECT = 0x19,
+	};
+
+	struct ObjectVariableChildren
+	{
+		unsigned __int16 firstChild;
+		unsigned __int16 lastChild;
+	};
+
+	struct ObjectVariableValue_u_f
+	{
+		unsigned __int16 prev;
+		unsigned __int16 next;
+	};
+
+	union ObjectVariableValue_u_o_u
+	{
+		unsigned __int16 size;
+		unsigned __int16 entnum;
+		unsigned __int16 nextEntId;
+		unsigned __int16 self;
+	};
+
+	struct	ObjectVariableValue_u_o
+	{
+		unsigned __int16 refCount;
+		ObjectVariableValue_u_o_u u;
+	};
+
+	union ObjectVariableValue_w
+	{
+		unsigned int type;
+		unsigned int classnum;
+		unsigned int notifyName;
+		unsigned int waitTime;
+		unsigned int parentLocalId;
+	};
+
+	union ObjectVariableValue_u
+	{
+		ObjectVariableValue_u_f f;
+		ObjectVariableValue_u_o o;
+	};
+
+	struct ObjectVariableValue
+	{
+		ObjectVariableValue_u u;
+		ObjectVariableValue_w w;
+	};
+
+	/* 21481 */
+	struct ChildVariableValue_FreeListOrVariableUnion_f
+	{
+		unsigned int prev;
+		unsigned int next;
+	};
+
+	/* 21482 */
+	union ChildVariableValue_FreeListOrVariableUnion
+	{
+		ChildVariableValue_FreeListOrVariableUnion_f f;
+		VariableUnion u;
+	};
+
+	struct ChildBucketMatchKeys_keys
+	{
+		unsigned __int16 name_hi;
+		unsigned __int16 parentId;
+	};
+
+	/* 21485 */
+	union ChildBucketMatchKeys
+	{
+		ChildBucketMatchKeys_keys keys;
+		unsigned int match;
+	};
+
+	struct ChildVariableValue
+	{
+		ChildVariableValue_FreeListOrVariableUnion u;
+		unsigned int next;
+		char type;
+		char name_lo;
+		ChildBucketMatchKeys k;
+		unsigned int nextSibling;
+		unsigned int prevSibling;
+	};
+
+	struct function_stack_t
+	{
+		ScriptCodePos pos;
+		unsigned int localId;
+		unsigned int localVarCount;
+		VariableValue* top;
+		VariableValue* startTop;
+	};
+
+	struct function_frame_t
+	{
+		function_stack_t fs;
+		int topType;
+	};
 
 	struct scrContext_t
 	{
@@ -718,15 +898,34 @@ namespace game
 		unsigned int m_funcBegin; // 3188
 		unsigned int m_funcEnd; // 3192
 		unsigned int m_funcCount; // 3196
-		//
 		unsigned int m_methBegin; // 3200
 		unsigned int m_methEnd; // 3204
 		unsigned int m_methCount; // 3208
 		char __pad2[4]; // 3212
 		builtin_function* m_pFuncTable; // 3216
 		builtin_method* m_pMethTable; // 3224
-		char __pad3[79688]; // 3232
+		char __pad3[10248]; // 3232
+
+		ObjectVariableValue* objectVariableValue; // 13480
+		ObjectVariableChildren* objectVariableChildren; // 13488
+		void* unk_0; // 13496
+		ChildVariableValue* childVariableValue; // 13504
+
+		char __pad3_1[34024]; // 13512
+
+		VariableValue* maxstack; // 47536 (scrVmPub_t->maxstack)
+		int function_count; // 47544
+		int __pad4; // 47548
+		function_frame_t* function_frame; // 47552
+		VariableValue* top; // 47560
+		int __pad5; // 47568
+
+		// confirmed all below
+		unsigned int inparamcount; // 47572
+		unsigned int outparamcount; // 47576
+		function_frame_t function_frame_start[64]; // 47580
+		char __pad6[35376]; // 47644
+
 		ScriptCodePos pos; // 82920 // ScriptCodePos::GetScriptPos(scrContext + 82920);
 	};
-
 }

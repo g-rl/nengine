@@ -8,6 +8,13 @@ namespace game
 	 * Functions
 	 **************************************************************/
 
+	WEAK symbol<void(scrContext_t* context, int type, VariableUnion u)> AddRefToValue{0x131BD30};
+	WEAK symbol<void(scrContext_t* context, int type, VariableUnion u)> RemoveRefToValue{0x131D7C0};
+	WEAK symbol<void(scrContext_t* context, unsigned int id)> AddRefToObject{0x131BD00};
+	WEAK symbol<void(scrContext_t* context, unsigned int id)> RemoveRefToObject{0x131D6A0};
+	WEAK symbol<unsigned int(scrContext_t* context, unsigned int id)> AllocThread{0x131C120};
+	WEAK symbol<ObjectVariableValue*(scrContext_t* context, unsigned int* id)> AllocVariable{0x0};
+
 	//WEAK symbol<void(int localClientNum, int controllerIndex, const char* text)> Cmd_ExecuteSingleCommand{ 0xB7D040 };
 
 	WEAK symbol<void(const char* cmdName, void(), cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{0x12965F0};
@@ -45,8 +52,15 @@ namespace game
 	WEAK symbol<dvar_t*(const char* dvarName, const char* value, DvarFlags flags, const char* desc)> Dvar_RegisterString{0x13E7A70};
 	WEAK symbol<void(const char* dvarName, const char* string, bool isSuperUser)> Dvar_SetCommandByName{0x13E8FE0};
 
+	WEAK symbol<unsigned int(scrContext_t* context, int entnum, unsigned int classnum, int local_client_num)> FindEntityId{0x1320940}; // Scr_FindEntityId
+	WEAK symbol<unsigned int(scrContext_t* context, unsigned int parentId, unsigned int name)> FindVariable{0x131CB90};
+	WEAK symbol<void(scrContext_t* context, unsigned int parentId, unsigned int index)> RemoveVariableValue{0x131D8D0};
+
 	WEAK symbol<void(unsigned int index, const char* name, float value)> GamerProfile_SetDataByName{0x15D8BD0};
+	WEAK symbol<unsigned int(scrContext_t* context, unsigned int parentId, unsigned int unsignedValue)> GetNewArrayVariable{0x1322AB0};
+	WEAK symbol<unsigned int(scrContext_t* context, unsigned int parentId, unsigned int unsignedValue)> GetNewVariable{0x131CF20};
 	WEAK symbol<unsigned int*()> GetRandSeed{0x13DD630};
+	WEAK symbol<unsigned int(scrContext_t* context, unsigned int, unsigned int)> GetVariable{0x131D3D0};
 
 	WEAK symbol<int(int min, int max)> I_irand{0x13DD8B0};
 
@@ -60,11 +74,17 @@ namespace game
 
 	//WEAK symbol<void*(const char* name, int pixelHeight)> R_RegisterFont{0x1419329B0};
 
-	WEAK symbol<void*()> ScriptContext_Server{0x12E0E70};
-	WEAK symbol<unsigned int(void* scr_context, const char* filename)> Scr_LoadScript{0x1317400};
-	WEAK symbol<unsigned int(void* scr_context, const char* filename, unsigned int handle)> Scr_GetFunctionHandle{0x1317270};
+	WEAK symbol<scrContext_t*()> ScriptContext_Server{0x12E0E70};
+	WEAK symbol<void(scrContext_t* context)> Scr_ClearOutParams{0x1323410};
 	WEAK symbol<unsigned int(void* scr_context, int handle, int num_param)> Scr_ExecThread{0x13238F0};
+	WEAK symbol<const char*(scrContext_t* context, unsigned int index)> Scr_GetString{0x13254D0};
 	WEAK symbol<unsigned int(void* scr_context, unsigned int handle)> Scr_FreeThread{0x13242E0};
+	WEAK symbol<unsigned int(void* scr_context, const char* filename, unsigned int handle)> Scr_GetFunctionHandle{0x1317270};
+	WEAK symbol<unsigned int(void* scr_context, const char* filename)> Scr_LoadScript{0x1317400};
+	WEAK symbol<void(scrContext_t* context, unsigned int id, scr_string_t stringValue, 
+		unsigned int paramcount)> Scr_NotifyId{0x1325E20};
+
+	WEAK symbol<scr_string_t(const char* str, unsigned int user)> SL_GetString{0x131AE30};
 
 	WEAK symbol<void(const char* string)> SV_Cmd_TokenizeString{ 0x1298BD0 };
 	WEAK symbol<void()> SV_Cmd_EndTokenizedString{ 0x1298B90 };
@@ -84,11 +104,16 @@ namespace game
 	WEAK symbol<bool(int clientNum)> SV_BotIsBot{ 0xC3BC90 };
 	*/
 
+	WEAK symbol<const char*(scr_string_t stringValue)> SL_ConvertToString{0x131AA20};
+
 	WEAK symbol<bool()> Sys_IsDatabaseReady{0x12CF240};
 	WEAK symbol<unsigned __int64()> Sys_Microseconds{0x148FC10};
 
 	WEAK symbol<void(void* scrPlace, const char* text, void* rect, void* font, float x, float y,
 		float scale, const float* color, int style, int textAlignMode, void* textRect, char a12)> UI_DrawWrappedText{0x1DCE30};
+
+	WEAK symbol<unsigned int(scrContext_t* context, unsigned int localId, const char* pos, 
+		unsigned int paramcount)> VM_Execute{0x132BA60};
 
 	/***************************************************************
 	 * Variables

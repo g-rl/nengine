@@ -1,9 +1,8 @@
 #include <std_include.hpp>
-
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 
-//#include "script_extension.hpp"
+#include "script_extension.hpp"
 #include "script_error.hpp"
 
 #include "component/scripting.hpp"
@@ -23,7 +22,7 @@ namespace gsc
 
 		std::string unknown_function_error;
 
-		std::array<const char*, 27> var_typename =
+		std::array<const char*, 28> var_typename =
 		{
 			"undefined",
 			"object",
@@ -40,10 +39,11 @@ namespace gsc
 			"stack",
 			"animation",
 			"pre animation",
+			"anim tree",
 			"thread",
-			"thread",
-			"thread",
-			"thread",
+			"notify thread",
+			"time thread",
+			"child thread",
 			"struct",
 			"removed entity",
 			"entity",
@@ -52,12 +52,13 @@ namespace gsc
 			"<free>",
 			"thread list",
 			"endon list",
+			//"bad type",
 		};
 
-		void scr_emit_function_stub(std::uint32_t filename, std::uint32_t thread_name, char* code_pos)
+		void scr_emit_function_stub(game::scrContext_t* context, std::uint32_t filename, std::uint32_t thread_name, char* code_pos)
 		{
 			current_filename = filename;
-			scr_emit_function_hook.invoke<void>(filename, thread_name, code_pos);
+			scr_emit_function_hook.invoke<void>(context, filename, thread_name, code_pos);
 		}
 
 		std::string get_filename_name()
@@ -98,15 +99,15 @@ namespace gsc
 			);
 		}
 
-		void compile_error_stub(const char* code_pos, [[maybe_unused]] const char* msg)
+		void compile_error_stub(game::scrContext_t* context, const char* code_pos, [[maybe_unused]] const char* msg)
 		{
 			get_unknown_function_error(code_pos);
 			game::Com_Error(game::ERR_SCRIPT_DROP, "script link error\n%s", unknown_function_error.data());
 		}
 		
-		std::uint32_t find_variable_stub(std::uint32_t parent_id, std::uint32_t thread_name)
+		std::uint32_t find_variable_stub(game::scrContext_t* context, std::uint32_t parent_id, std::uint32_t thread_name)
 		{
-			const auto res = game::FindVariable(parent_id, thread_name);
+			const auto res = game::FindVariable(context, parent_id, thread_name);
 			if (!res)
 			{
 				get_unknown_function_error(thread_name);
@@ -115,11 +116,13 @@ namespace gsc
 			return res;
 		}
 
+		/*
 		unsigned int scr_get_object(unsigned int index)
 		{
-			if (index < game::scr_VmPub->outparamcount)
+			const auto context = game::ScriptContext_Server();
+			if (index < context->outparamcount)
 			{
-				auto* value = game::scr_VmPub->top - index;
+				auto* value = context->top - index;
 				if (value->type == game::VAR_POINTER)
 				{
 					return value->u.pointerValue;
@@ -134,9 +137,10 @@ namespace gsc
 
 		unsigned int scr_get_const_string(unsigned int index)
 		{
-			if (index < game::scr_VmPub->outparamcount)
+			const auto context = game::ScriptContext_Server();
+			if (index < context->outparamcount)
 			{
-				auto* value = game::scr_VmPub->top - index;
+				auto* value = context->top - index;
 				if (game::Scr_CastString(value))
 				{
 					assert(value->type == game::VAR_STRING);
@@ -152,9 +156,10 @@ namespace gsc
 
 		unsigned int scr_get_const_istring(unsigned int index)
 		{
-			if (index < game::scr_VmPub->outparamcount)
+			const auto context = game::ScriptContext_Server();
+			if (index < context->outparamcount)
 			{
-				auto* value = game::scr_VmPub->top - index;
+				auto* value = context->top - index;
 				if (value->type == game::VAR_ISTRING)
 				{
 					return value->u.stringValue;
@@ -188,9 +193,10 @@ namespace gsc
 
 		void scr_get_vector(unsigned int index, float* vector_value)
 		{
-			if (index < game::scr_VmPub->outparamcount)
+			const auto context = game::ScriptContext_Server();
+			if (index < context->outparamcount)
 			{
-				auto* value = game::scr_VmPub->top - index;
+				auto* value = context->top - index;
 				if (value->type == game::VAR_VECTOR)
 				{
 					std::memcpy(vector_value, value->u.vectorValue, sizeof(std::float_t[3]));
@@ -205,9 +211,10 @@ namespace gsc
 
 		int scr_get_int(unsigned int index)
 		{
-			if (index < game::scr_VmPub->outparamcount)
+			const auto context = game::ScriptContext_Server();
+			if (index < context->outparamcount)
 			{
-				auto* value = game::scr_VmPub->top - index;
+				auto* value = context->top - index;
 				if (value->type == game::VAR_INTEGER)
 				{
 					return value->u.intValue;
@@ -222,9 +229,10 @@ namespace gsc
 
 		float scr_get_float(unsigned int index)
 		{
-			if (index < game::scr_VmPub->outparamcount)
+			const auto context = game::ScriptContext_Server();
+			if (index < context->outparamcount)
 			{
-				auto* value = game::scr_VmPub->top - index;
+				auto* value = context->top - index;
 				if (value->type == game::VAR_FLOAT)
 				{
 					return value->u.floatValue;
@@ -244,14 +252,15 @@ namespace gsc
 
 		int scr_get_pointer_type(unsigned int index)
 		{
-			if (index < game::scr_VmPub->outparamcount)
+			const auto context = game::ScriptContext_Server();
+			if (index < context->outparamcount)
 			{
-				if ((game::scr_VmPub->top - index)->type == game::VAR_POINTER)
+				if ((context->top - index)->type == game::VAR_POINTER)
 				{
-					return static_cast<int>(game::GetObjectType((game::scr_VmPub->top - index)->u.uintValue));
+					return static_cast<int>(game::GetObjectType((context->top - index)->u.uintValue));
 				}
 
-				scr_error(va("Type %s is not an object", var_typename[(game::scr_VmPub->top - index)->type]));
+				scr_error(va("Type %s is not an object", var_typename[(context->top - index)->type]));
 			}
 
 			scr_error(va("Parameter %u does not exist", index + 1));
@@ -260,9 +269,10 @@ namespace gsc
 
 		int scr_get_type(unsigned int index)
 		{
-			if (index < game::scr_VmPub->outparamcount)
+			const auto context = game::ScriptContext_Server();
+			if (index < context->outparamcount)
 			{
-				return (game::scr_VmPub->top - index)->type;
+				return (context->top - index)->type;
 			}
 
 			scr_error(va("Parameter %u does not exist", index + 1));
@@ -271,14 +281,16 @@ namespace gsc
 
 		const char* scr_get_type_name(unsigned int index)
 		{
-			if (index < game::scr_VmPub->outparamcount)
+			const auto context = game::ScriptContext_Server();
+			if (index < context->outparamcount)
 			{
-				return var_typename[(game::scr_VmPub->top - index)->type];
+				return var_typename[(context->top - index)->type];
 			}
 
 			scr_error(va("Parameter %u does not exist", index + 1));
 			return nullptr;
 		}
+		*/
 	}
 
 	std::optional<std::pair<std::string, std::string>> find_function(const char* pos)
@@ -303,13 +315,15 @@ namespace gsc
 	public:
 		void post_unpack() override
 		{
-			scr_emit_function_hook.create(0xBFCF90_b, &scr_emit_function_stub);
+			scr_emit_function_hook.create(0x1316800_b, scr_emit_function_stub);
 
-			utils::hook::call(0xBFCF3A_b, compile_error_stub); // CompileError (LinkFile)
-			utils::hook::call(0xBFCF86_b, compile_error_stub); // ^
-			utils::hook::call(0xBFD06F_b, find_variable_stub); // Scr_EmitFunction
+			// change Sys_Error -> Com_Error + advanced messages
+			utils::hook::call(0x13166DE_b, compile_error_stub); // CompileError (LinkFile)
+			utils::hook::call(0x1316777_b, compile_error_stub); // ^
+			utils::hook::call(0x13168DD_b, find_variable_stub); // Scr_EmitFunction_Precompiled
 
 			// Restore basic error messages for commonly used scr functions
+			/*
 			utils::hook::jump(0xC0BA10_b, scr_get_object);
 			utils::hook::jump(0xC0B4C0_b, scr_get_const_string);
 			utils::hook::jump(0xC0B270_b, scr_get_const_istring);
@@ -321,6 +335,7 @@ namespace gsc
 			utils::hook::jump(0xC0BC00_b, scr_get_pointer_type);
 			utils::hook::jump(0xC0BDE0_b, scr_get_type);
 			utils::hook::jump(0xC0BE50_b, scr_get_type_name);
+			*/
 		}
 	};
 }
