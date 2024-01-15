@@ -243,7 +243,8 @@ namespace gsc
 		force_error_print = force_print;
 		gsc_error_msg = error;
 
-		game::Scr_ErrorInternal(game::ScriptContext_Server());
+		printf("scr_error: %s\n", error);
+		//game::Scr_ErrorInternal(game::ScriptContext_Server());
 	}
 
 	namespace function

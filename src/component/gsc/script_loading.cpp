@@ -207,6 +207,8 @@ namespace gsc
 				printf("**********************************************\n");
 				return nullptr;
 			}
+
+			return nullptr;
 		}
 
 		std::string get_raw_script_file_name(const std::string& name)
@@ -308,13 +310,13 @@ namespace gsc
 			const auto scr_context = game::ScriptContext_Server();
 			for (auto& function_handle : main_handles)
 			{
-				printf("Executing '%s::main'\n", function_handle.first.data());
+				//printf("Executing '%s::main'\n", function_handle.first.data());
 				game::Scr_FreeThread(scr_context, game::Scr_ExecThread(scr_context, function_handle.second, 0));
 			}
 
 			for (auto& function_handle : init_handles)
 			{
-				printf("Executing '%s::init'\n", function_handle.first.data());
+				//printf("Executing '%s::init'\n", function_handle.first.data());
 				game::Scr_FreeThread(scr_context, game::Scr_ExecThread(scr_context, function_handle.second, 0));
 			}
 
@@ -405,12 +407,12 @@ namespace gsc
 			load_scripts();
 		}
 
-		void scr_end_load_scripts_stub(game::scrContext_t* context, const char* a1)
+		void scr_end_load_scripts_stub(game::scrContext_t* context)
 		{
 			// cleanup the compiler
 			gsc_ctx->cleanup();
 
-			scr_end_load_scripts_hook.invoke<void>(context, a1);
+			scr_end_load_scripts_hook.invoke<void>(context);
 		}
 	}
 
@@ -465,9 +467,9 @@ namespace gsc
 			g_load_structs_hook.create(0xFC80A0_b, g_load_structs_stub);
 
 			// clear memory (SV_GameMP_ShutdownGameVM)
-			scripting::on_shutdown([](bool a1, bool a2)
+			scripting::on_shutdown([](bool free_scripts, bool is_post_shutdown)
 			{
-				if (!a2)
+				if (!is_post_shutdown)
 				{
 					clear();
 				}

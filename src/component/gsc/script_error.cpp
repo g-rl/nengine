@@ -103,7 +103,7 @@ namespace gsc
 		{
 			get_unknown_function_error(code_pos);
 			const auto error_msg = utils::string::va("script link error\n%s", unknown_function_error.data());
-			game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n");
+			game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n", error_msg);
 			printf("%s\n", error_msg);
 		}
 		

@@ -139,7 +139,7 @@ namespace scripting
 			scr_set_thread_position_hook.invoke<void>(context, thread_name, code_pos);
 		}
 
-		void shutdown_game_pre(const int free_scripts)
+		void shutdown_game_pre(const bool free_scripts)
 		{
 			if (free_scripts)
 			{
@@ -156,7 +156,7 @@ namespace scripting
 			//scripting::notify(*game::levelEntityId, "shutdownGame_called", { 1 });
 		}
 
-		void shutdown_game_post(const int free_scripts)
+		void shutdown_game_post(const bool free_scripts)
 		{
 			for (const auto& callback : shutdown_callbacks)
 			{
@@ -167,9 +167,9 @@ namespace scripting
 		namespace mp
 		{
 			utils::hook::detour sv_initgame_vm_hook;
-			utils::hook::detour sv_shutdowngame_vm_hook;
+			utils::hook::detour g_main_mp_shutdowngame_hook;
 
-			void sv_shutdowngame_vm_stub(int full_clear)
+			void g_main_mp_shutdowngame_stub(const int full_clear)
 			{
 				if (!game::Com_FrontEnd_IsInFrontEnd())
 				{
@@ -180,7 +180,7 @@ namespace scripting
 				}
 
 				shutdown_game_pre(full_clear);
-				sv_shutdowngame_vm_hook.invoke<void>(full_clear);
+				g_main_mp_shutdowngame_hook.invoke<void>(full_clear);
 				shutdown_game_post(full_clear);
 			}
 		}
@@ -188,12 +188,12 @@ namespace scripting
 		/*
 		namespace sp
 		{
-			utils::hook::detour sv_shutdowngame_vm_hook;
+			utils::hook::detour g_main_mp_shutdowngame_hook;
 
-			void sv_shutdowngame_vm_stub(int full_clear, int a2)
+			void g_main_mp_shutdowngame_stub(int full_clear, int a2)
 			{
 				shutdown_game_pre(full_clear);
-				sv_shutdowngame_vm_hook.invoke<void>(full_clear, a2);
+				g_main_mp_shutdowngame_hook.invoke<void>(full_clear, a2);
 				shutdown_game_post(full_clear);
 			}
 		}
@@ -223,8 +223,8 @@ namespace scripting
 			process_script_hook.create(0x13222F0_b, process_script_stub);
 			//sl_get_canonical_string_hook.create(game::SL_GetCanonicalString, sl_get_canonical_string_stub); // all hardcoded in IW8, but we have gsc-tool
 
-			mp::sv_shutdowngame_vm_hook.create(0x121F880_b, mp::sv_shutdowngame_vm_stub);
-			//sp::sv_shutdowngame_vm_hook.create(0x12159B6_b, sp::sv_shutdowngame_vm_stub);
+			mp::g_main_mp_shutdowngame_hook.create(0x121F880_b, mp::g_main_mp_shutdowngame_stub);
+			//sp::g_main_mp_shutdowngame_hook.create(0x12159B6_b, sp::g_main_mp_shutdowngame_stub);
 		}
 	};
 }
