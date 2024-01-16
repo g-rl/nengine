@@ -105,7 +105,7 @@ namespace game
 	WEAK symbol<bool(int clientNum)> SV_BotIsBot{ 0xC3BC90 };
 	*/
 
-	WEAK symbol<const char*(scr_string_t stringValue)> SL_ConvertToString{0x131AA20};
+	WEAK symbol<const char*(scr_string_t stringalue)> SL_ConvertToString{0x131AA20};
 
 	WEAK symbol<bool()> Sys_IsDatabaseReady{0x12CF240};
 	WEAK symbol<unsigned __int64()> Sys_Microseconds{0x148FC10};
@@ -126,4 +126,10 @@ namespace game
 	WEAK symbol<DWORD> threadIds{0xD57F420};
 
 	WEAK symbol<gentity_s> g_entities{ 0xBC20F00 };
+
+	/*
+		zone porting
+	*/
+	WEAK symbol<void(const bool streamStart, void* varAsset, int size)> Load_Stream{0x11B2A20};
+	WEAK symbol<char**> varXModelPtr{0x5D44D68};
 }

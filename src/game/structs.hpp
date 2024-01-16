@@ -359,9 +359,9 @@ namespace game
 		ScriptFile* scriptfile;
 	};
 
+	/*
 	enum XAssetType_pdb : std::uint32_t
 	{
-		/*
 		ASSET_TYPE_PHYSICSLIBRARY = 0x0,
 		ASSET_TYPE_PHYSICS_SFX_EVENT_ASSET = 0x1,
 		ASSET_TYPE_PHYSICS_VFX_EVENT_ASSET = 0x2,
@@ -478,13 +478,16 @@ namespace game
 		ASSET_TYPE_COUNT = 0x71,
 		ASSET_TYPE_STRING = 0x71,
 		ASSET_TYPE_ASSETLIST = 0x72,
-		*/
 	};
+	*/
 
 	enum XAssetType : __int32
 	{
-		ASSET_TYPE_RAWFILE = 0x33,
-		ASSET_TYPE_SCRIPTFILE = 0x34
+		ASSET_TYPE_XMODEL = 9,
+		ASSET_TYPE_GFXWORLD = 31,
+		ASSET_TYPE_WEAPON = 0x2B,		// 0x27 maybe? (weapon???)
+		ASSET_TYPE_RAWFILE = 0x33,		// 0x2F
+		ASSET_TYPE_SCRIPTFILE = 0x34	// 0x30 on PDB
 	};
 
 	enum DBMemoryType
@@ -546,10 +549,10 @@ namespace game
 
 	struct DB_FFHeader
 	{
-		char magic[8];
-		unsigned int headerVersion;
-		unsigned int xfileVersion;
-		bool dashCompressBuild;
+		char magic[8]; // 0
+		unsigned int headerVersion; // 8
+		unsigned int xfileVersion; // 12
+		bool dashCompressBuild; // 16
 		bool dashEncryptBuild;
 		BYTE transientFileType[1];
 		unsigned int residentPartSize;
@@ -929,4 +932,97 @@ namespace game
 
 		ScriptCodePos pos; // 82920 // ScriptCodePos::GetScriptPos(scrContext + 82920);
 	};
+
+	/*
+		
+		zone research
+	
+	*/
+	struct WeaponAnimPackage
+	{
+		const char* name; // 0
+		char __pad0[56]; // 8
+	};
+	static_assert(sizeof(WeaponAnimPackage) == 64);
+
+	struct WeaponDef
+	{
+		const char* szOverlayName; // 0
+		char __pad0[112]; // 8
+
+		// new to 1.20
+		void* playerShadowModel; // 120
+		void* playerShadowModelLeftHand; // 128
+		void* playerShadowModelRightHand; // 136
+
+		WeaponAnimPackage* szXAnims; // 144
+		WeaponAnimPackage* szXAnimsRightHanded; // 152
+		WeaponAnimPackage* szXAnimsLeftHanded; // 160
+
+		char __pad1[5128]; // 168
+	};
+	static_assert(sizeof(WeaponDef) == 5296);
+	
+	struct GfxWorld
+	{
+		const char* name; // 0
+		const char* baseName; // 8
+		int bspVersion; // 16
+		// data in here??
+		unsigned int lastSunPrimaryLightIndex;
+
+		unsigned int primaryLightCount;
+		unsigned int firstMutablePrimaryLight;
+		unsigned int mutablePrimaryLightCount;
+		unsigned int firstStaticScriptablesPrimaryLight;
+		unsigned int staticScriptablesPrimaryLightCount;
+		unsigned int firstStaticScriptablePrimaryLight;
+		unsigned int staticScriptablePrimaryLightCount;
+		unsigned int firstMovingScriptablePrimaryLight;
+		unsigned int movingScriptablePrimaryLightCount;
+		unsigned int sortKeyLitDecal;
+		unsigned int sortKeyEffectDecal;
+		unsigned int sortKeyTopDecal;
+		unsigned int sortKeyEffectAuto;
+		unsigned int sortKeyDistortion;
+		unsigned int sortKeyEffectDistortion;
+		unsigned int sortKey2D;
+		unsigned int sortKeyOpaqueBegin;
+		unsigned int sortKeyOpaqueEnd;
+		unsigned int sortKeyDecalBegin;
+		unsigned int sortKeyDecalEnd;
+		unsigned int sortKeyTransBegin;
+		unsigned int sortKeyTransEnd;
+		unsigned int sortKeyEmissiveBegin;
+		unsigned int sortKeyEmissiveEnd;
+
+
+		char __pad0[17792];
+	};
+	//static_assert(sizeof(GfxWorld) == 17808);
+
+	namespace iw8_1_19
+	{
+		struct WeaponDef
+		{
+			const char* szOverlayName; // 0
+			char __pad0[112]; // 8
+
+			WeaponAnimPackage* szXAnims; // 120
+			WeaponAnimPackage* szXAnimsRightHanded; // 128
+			WeaponAnimPackage* szXAnimsLeftHanded; // 136
+
+			char __pad1[5128]; // 144
+		};
+		static_assert(sizeof(iw8_1_19::WeaponDef) == 5272);
+
+		struct GfxWorld
+		{
+			const char* name;
+			const char* baseName;
+
+			char __pad0[17760];
+		};
+		//static_assert(sizeof(iw8_1_19::GfxWorld) == 17776);
+	}
 }
