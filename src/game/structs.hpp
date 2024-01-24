@@ -962,44 +962,53 @@ namespace game
 		char __pad1[5128]; // 168
 	};
 	static_assert(sizeof(WeaponDef) == 5296);
-	
+
+	/*
+	struct GfxShaderBufferView
+	{
+		void* resource; // 0
+		unsigned int view; // 8
+		// 12
+	};
+	*/
+
+	struct GfxWrappedBuffer
+	{
+		void* buffer; // 0
+		char view[48]; // 8
+		void* data; // 56
+	};
+	static_assert(sizeof(GfxWrappedBuffer) == 64);
+
+	struct GfxFrustumLights
+	{
+		char __pad0[64]; // 0
+		GfxWrappedBuffer indexBuffer;		// 64
+		GfxWrappedBuffer vertexBuffer;		// 128
+	};
+	static_assert(sizeof(GfxFrustumLights) == 192);
+
 	struct GfxWorld
 	{
 		const char* name; // 0
 		const char* baseName; // 8
 		int bspVersion; // 16
-		// data in here??
-		unsigned int lastSunPrimaryLightIndex;
 
-		unsigned int primaryLightCount;
-		unsigned int firstMutablePrimaryLight;
-		unsigned int mutablePrimaryLightCount;
-		unsigned int firstStaticScriptablesPrimaryLight;
-		unsigned int staticScriptablesPrimaryLightCount;
-		unsigned int firstStaticScriptablePrimaryLight;
-		unsigned int staticScriptablePrimaryLightCount;
-		unsigned int firstMovingScriptablePrimaryLight;
-		unsigned int movingScriptablePrimaryLightCount;
-		unsigned int sortKeyLitDecal;
-		unsigned int sortKeyEffectDecal;
-		unsigned int sortKeyTopDecal;
-		unsigned int sortKeyEffectAuto;
-		unsigned int sortKeyDistortion;
-		unsigned int sortKeyEffectDistortion;
-		unsigned int sortKey2D;
-		unsigned int sortKeyOpaqueBegin;
-		unsigned int sortKeyOpaqueEnd;
-		unsigned int sortKeyDecalBegin;
-		unsigned int sortKeyDecalEnd;
-		unsigned int sortKeyTransBegin;
-		unsigned int sortKeyTransEnd;
-		unsigned int sortKeyEmissiveBegin;
-		unsigned int sortKeyEmissiveEnd;
+		char __pad0[14460]; // 20
+		char dynamicLightset[928]; // 14480
+		char mayhemSelfVis[112]; // 15408
 
+		GfxFrustumLights frustumLights; // 15520 (160 on 1.19, 32 byte difference)
 
-		char __pad0[17792];
+		// this can all be stored into the pad but im using it for debugging
+		void* lightViewFrustums; // 15712
+		void* primaryLights; // 15720
+		__int64 voxelTreeCount; // 15728
+		void* voxelTree; // 15736
+
+		char __pad1[2064]; // 15744
 	};
-	//static_assert(sizeof(GfxWorld) == 17808);
+	static_assert(sizeof(GfxWorld) == 17808);
 
 	namespace iw8_1_19
 	{
@@ -1016,13 +1025,39 @@ namespace game
 		};
 		static_assert(sizeof(iw8_1_19::WeaponDef) == 5272);
 
+		struct GfxWrappedBuffer
+		{
+			void* buffer; // 0
+			char __pad0[24]; // 8
+		};
+
+		struct GfxFrustumLights
+		{
+			char __pad0[64]; // 0
+			iw8_1_19::GfxWrappedBuffer indexBuffer; // 64
+			game::GfxWrappedBuffer vertexBuffer; // 96
+		};
+		static_assert(sizeof(iw8_1_19::GfxFrustumLights) == 160);
+
 		struct GfxWorld
 		{
-			const char* name;
-			const char* baseName;
+			const char* name; // 0
+			const char* baseName; // 8
+			int bspVersion; // 16
 
-			char __pad0[17760];
+			char __pad0[14460]; // 20
+			char dynamicLightset[928]; // 14480
+
+			// this can all be stored into the pad but im using it for debugging
+			char mayhemSelfVis[112]; // 15408
+			iw8_1_19::GfxFrustumLights frustumLights; // 15520
+			void* lightViewFrustums; // 15680
+			void* primaryLights; // 15688
+			__int64 voxelTreeCount; // 15696
+			void* voxelTree; // 15704
+
+			char __pad1[2064]; // 15712
 		};
-		//static_assert(sizeof(iw8_1_19::GfxWorld) == 17776);
+		static_assert(sizeof(iw8_1_19::GfxWorld) == 17776);
 	}
 }

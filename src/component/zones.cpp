@@ -44,6 +44,8 @@ namespace zones
 			return true;
 		}
 
+#define COPY_NEW_VALUE(new_value_ptr, old_value_ptr) new_value_ptr = old_value_ptr;
+
 		void weapondef_load_stream_stuib(const int streamStart, void* ptr, std::uint64_t size)
 		{
 			if (current_zone_version <= IW8_1_19_XFILE_VERSION)
@@ -59,17 +61,17 @@ namespace zones
 
 				auto new_weapon_def_var = static_cast<game::WeaponDef*>(asset_allocator.allocate(sizeof(game::WeaponDef)));
 
-				new_weapon_def_var->szOverlayName = varWeaponDef->szOverlayName;	// 0
-				memcpy(new_weapon_def_var->__pad0, varWeaponDef->__pad0, 112);		// 8
-				new_weapon_def_var->playerShadowModel = nullptr;					// 120
-				new_weapon_def_var->playerShadowModelLeftHand = nullptr;			// 128
-				new_weapon_def_var->playerShadowModelRightHand = nullptr;			// 136
-				new_weapon_def_var->szXAnims = varWeaponDef->szXAnims;				// 144
-				new_weapon_def_var->szXAnimsRightHanded = varWeaponDef->szXAnimsRightHanded;	// 152
-				new_weapon_def_var->szXAnimsLeftHanded = varWeaponDef->szXAnimsLeftHanded;		// 160
-				memcpy(new_weapon_def_var->__pad1, varWeaponDef->__pad1, 5128);		// 168
+				COPY_NEW_VALUE(new_weapon_def_var->szOverlayName, varWeaponDef->szOverlayName)	// 0
+				memcpy(new_weapon_def_var->__pad0, varWeaponDef->__pad0, 112);					// 8
+				COPY_NEW_VALUE(new_weapon_def_var->playerShadowModel, nullptr)					// 120
+				COPY_NEW_VALUE(new_weapon_def_var->playerShadowModelLeftHand, nullptr)			// 128
+				COPY_NEW_VALUE(new_weapon_def_var->playerShadowModelRightHand, nullptr)			// 136
+				COPY_NEW_VALUE(new_weapon_def_var->szXAnims, varWeaponDef->szXAnims)			// 144
+				COPY_NEW_VALUE(new_weapon_def_var->szXAnimsRightHanded, varWeaponDef->szXAnimsRightHanded)	// 152
+				COPY_NEW_VALUE(new_weapon_def_var->szXAnimsLeftHanded, varWeaponDef->szXAnimsLeftHanded)	// 160
+				memcpy(new_weapon_def_var->__pad1, varWeaponDef->__pad1, 5128);					// 168
 
-				size += 24; // fixed struct size
+				size += 24; // actual struct size
 				memcpy(ptr, new_weapon_def_var, size);
 				asset_allocator.clear();
 				//game::Load_Stream(streamStart, ptr, size);
@@ -80,7 +82,7 @@ namespace zones
 		{
 			if (current_zone_version <= IW8_1_19_XFILE_VERSION)
 			{
-				size -= 32; // 32 byte difference from 4085 -> 4087
+				size -= 32; // 32 byte difference in GfxWorld::frustumLights from 4085 -> 4087
 			}
 
 			game::Load_Stream(streamStart, ptr, size);
@@ -90,8 +92,38 @@ namespace zones
 				game::iw8_1_19::GfxWorld* varGfxWorld = *reinterpret_cast<game::iw8_1_19::GfxWorld**>(0x5D40D00_b);
 
 				auto new_gfx_world_var = static_cast<game::GfxWorld*>(asset_allocator.allocate(sizeof(game::GfxWorld)));
-				new_gfx_world_var->name = varGfxWorld->name;
-				new_gfx_world_var->baseName = varGfxWorld->baseName;
+
+				COPY_NEW_VALUE(new_gfx_world_var->name, varGfxWorld->name)				// 0
+				COPY_NEW_VALUE(new_gfx_world_var->baseName, varGfxWorld->baseName)		// 8
+				COPY_NEW_VALUE(new_gfx_world_var->bspVersion, varGfxWorld->bspVersion)	// 16
+				memcpy(new_gfx_world_var->__pad0, varGfxWorld->__pad0, 14460);			// 20
+				memcpy(new_gfx_world_var->dynamicLightset, varGfxWorld->dynamicLightset, 928); // 14480
+				memcpy(new_gfx_world_var->mayhemSelfVis, varGfxWorld->mayhemSelfVis, 112); // 15408
+
+				// TODO: fix up frustumLights??????
+				/*
+				memcpy(new_gfx_world_var->frustumLights.__pad0, varGfxWorld->frustumLights.__pad0, 64); // 15520
+
+				// this is NOT the right way to do it, i know. spare me
+				new_gfx_world_var->frustumLights.indexBuffer.buffer = nullptr; // 15584
+				strcpy_s(new_gfx_world_var->frustumLights.indexBuffer.view, 48, ""); // 15592
+				new_gfx_world_var->frustumLights.indexBuffer.data = nullptr; // 15640
+				// 
+
+				COPY_NEW_VALUE(new_gfx_world_var->frustumLights.vertexBuffer, varGfxWorld->frustumLights.vertexBuffer);
+				*/
+
+				memcpy(new_gfx_world_var->lightViewFrustums, varGfxWorld->lightViewFrustums, 8);
+				memcpy(new_gfx_world_var->primaryLights, varGfxWorld->primaryLights, 8);
+				COPY_NEW_VALUE(new_gfx_world_var->voxelTreeCount, varGfxWorld->voxelTreeCount)
+				memcpy(new_gfx_world_var->voxelTree, varGfxWorld->voxelTree, 8);
+
+				memcpy(new_gfx_world_var->__pad1, varGfxWorld->__pad1, 2064);
+
+				size += 32; // actual struct size
+				memcpy(ptr, new_gfx_world_var, size);
+				asset_allocator.clear();
+				//game::Load_Stream(streamStart, ptr, size);
 			}
 		}
 	}
@@ -114,7 +146,7 @@ namespace zones
 			utils::hook::call(0xD9A5A1_b, weapondef_load_stream_stuib); // Load_WeaponDef
 
 			// GfxWorld
-			//utils::hook::call(0xDAF4F8_b, gfxworld_load_stream_stub); // Preload_GfxWorld
+			utils::hook::call(0xDAF4F8_b, gfxworld_load_stream_stub); // Preload_GfxWorld
 		}
 	};
 }
