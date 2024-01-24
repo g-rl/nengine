@@ -106,11 +106,10 @@ namespace zones
 
 			check_xfile_version_hook.create(0xD8A180_b, check_xfile_version_stub);
 
-			utils::hook::nop(0xD89091_b, 5); // prevent Dirty disk error from occuring on bad assets (remove)
-
-			// TODO: Postload_WeaponDef
+			//utils::hook::nop(0xD89091_b, 5); // prevent Dirty disk error from occuring on bad assets (kj)
 
 			// WeaponDef
+			// TODO: Postload_WeaponDef
 			utils::hook::call(0xDB647F_b, weapondef_load_stream_stuib); // Preload_WeaponDef
 			utils::hook::call(0xD9A5A1_b, weapondef_load_stream_stuib); // Load_WeaponDef
 

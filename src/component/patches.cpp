@@ -85,10 +85,15 @@ namespace patches
 		{
 			if (!strcmp(name, "MPSSOTQQPM")		// force_offline_enabled
 				|| !strcmp(name, "LSTQOKLTRN")	// force_offline_menus
-				|| !strcmp(name, "LSSRRSMNMR"))	// lui_dev_features_enabled
+				|| !strcmp(name, "LSSRRSMNMR")	// lui_dev_features_enabled
+				|| !strcmp(name, "NRSSTQQSKK"))	// r_preloadShaders = 0
 			{
 				value->enabled = true;
-				value->integer = 1;
+
+				if (strcmp(name, "NRSSTQQSKK"))
+					value->integer = 1;
+				else
+					value->integer = 0;
 			}
 
 			return dvar_register_hook.invoke<game::dvar_t*>(name, checksum, type, flags, value, domain, desc);
