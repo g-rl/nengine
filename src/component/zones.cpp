@@ -133,9 +133,7 @@ namespace zones
 	public:
 		void post_unpack() override
 		{
-			//utils::hook::nop(0x12AFB62_b, 0x11); // init for CASC
-			//utils::hook::set<byte>(get_pattern("E8 ? ? ? ? 80 78 08 00 ? 27", 9), 0xEB); // TODO: disable Bink reading from CASC
-
+			/*
 			check_xfile_version_hook.create(0xD8A180_b, check_xfile_version_stub);
 
 			//utils::hook::nop(0xD89091_b, 5); // prevent Dirty disk error from occuring on bad assets (kj)
@@ -147,8 +145,10 @@ namespace zones
 
 			// GfxWorld
 			utils::hook::call(0xDAF4F8_b, gfxworld_load_stream_stub); // Preload_GfxWorld
+			*/
 		}
 	};
 }
 
-REGISTER_COMPONENT(zones::component)
+// TODO: do this component in the future maybe lmfao
+//REGISTER_COMPONENT(zones::component)
