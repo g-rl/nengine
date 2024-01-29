@@ -99,7 +99,7 @@ namespace patches
 			return dvar_register_hook.invoke<game::dvar_t*>(name, checksum, type, flags, value, domain, desc);
 		}
 
-		void set_transient_mode_stub(int mode) // CL_TransientsCollisionMP_SetTransientMode
+		void set_transient_mode_stub(int mode)
 		{
 			if (!strcmp(game::Dvar_GetStringSafe("NSQLTTMRMP"), "mp_donetsk"))
 			{
@@ -148,6 +148,19 @@ namespace patches
 
 			return seh_string_ed_get_string_hook.invoke<const char*>(ref);
 		}
+
+		std::string current_event_name = "none";
+		void set_table_string_stub(const char* name, const char* value, void* lua_vm)
+		{
+			current_event_name = value;
+			utils::hook::invoke<void>(0x19B7840_b, name, value, lua_vm);
+		}
+
+		void report_error_with_info_stub(const char* error, const char* error_info, void* lua_vm)
+		{
+			error = utils::string::va("Error processing event '%s'\n", current_event_name.data());
+			utils::hook::invoke<void>(0x19CDD30_b, error, error_info, lua_vm);
+		}
 	}
 
 	class component final : public component_interface
@@ -155,7 +168,7 @@ namespace patches
 	public:
 		void post_start() override
 		{
-			utils::hook::set<uint8_t>(0x3061A0_b, 0xC3); // mystery function 1??
+			utils::hook::set<uint8_t>(0x3061A0_b, 0xC3); // mystery function for Windows 11 users
 
 			// name dvar
 			com_register_dvars_hook.create(0x12B0CD0_b, com_register_dvars_stub);
@@ -248,7 +261,7 @@ namespace patches
 			utils::hook::nop(0x1504374_b, 5);
 
 			// bypass wz collision (missing file)
-			utils::hook::jump(0xD6B7D0_b, set_transient_mode_stub);
+			utils::hook::jump(0xD6B7D0_b, set_transient_mode_stub); // CL_TransientsCollisionMP_SetTransientMode
 
 			// add commands
 			//game::Cmd_AddCommandInternal("addbot", Cmd_AddBot_f, &addbot_f_VAR);
@@ -256,6 +269,10 @@ namespace patches
 
 			// modify strings to reveal maps not working
 			seh_string_ed_get_string_hook.create(0x13CC2A0_b, seh_string_ed_get_string_stub);
+
+			// debug LUI errors more in depth
+			utils::hook::call(0x19BCD56_b, set_table_string_stub); // get name for event in LuaShared_SetTableString
+			utils::hook::call(0x19BD9C4_b, report_error_with_info_stub); // LUI_ReportErrorWithInfo
 		}
 	};
 }
