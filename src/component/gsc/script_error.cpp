@@ -22,39 +22,6 @@ namespace gsc
 
 		std::string unknown_function_error;
 
-		std::array<const char*, 28> var_typename =
-		{
-			"undefined",
-			"object",
-			"string",
-			"localized string",
-			"vector",
-			"float",
-			"int",
-			"codepos",
-			"precodepos",
-			"function",
-			"builtin function",
-			"builtin method",
-			"stack",
-			"animation",
-			"pre animation",
-			"anim tree",
-			"thread",
-			"notify thread",
-			"time thread",
-			"child thread",
-			"struct",
-			"removed entity",
-			"entity",
-			"array",
-			"removed thread",
-			"<free>",
-			"thread list",
-			"endon list",
-			//"bad type",
-		};
-
 		void scr_emit_function_stub(game::scrContext_t* context, std::uint32_t filename, std::uint32_t thread_name, char* code_pos)
 		{
 			current_filename = filename;
@@ -120,10 +87,8 @@ namespace gsc
 			return res;
 		}
 
-		/*
-		unsigned int scr_get_object(unsigned int index)
+		unsigned int scr_get_object(game::scrContext_t* context, unsigned int index)
 		{
-			const auto context = game::ScriptContext_Server();
 			if (index < context->outparamcount)
 			{
 				auto* value = context->top - index;
@@ -132,35 +97,34 @@ namespace gsc
 					return value->u.pointerValue;
 				}
 
-				scr_error(va("Type %s is not an object", var_typename[value->type]));
+				scr_error(va("type %s is not an object", game::Scr_GetNameForType(value->type)));
 			}
 
-			scr_error(va("Parameter %u does not exist", index + 1));
+			scr_error(va("parameter %u does not exist", index + 1));
 			return 0;
 		}
 
-		unsigned int scr_get_const_string(unsigned int index)
+		unsigned int scr_get_const_string(game::scrContext_t* context, unsigned int index)
 		{
-			const auto context = game::ScriptContext_Server();
 			if (index < context->outparamcount)
 			{
 				auto* value = context->top - index;
-				if (game::Scr_CastString(value))
+				if (utils::hook::invoke<bool>(0x131E480_b, context, value)) // Scr_CastString
 				{
 					assert(value->type == game::VAR_STRING);
 					return value->u.stringValue;
 				}
 
-				game::Scr_ErrorInternal();
+				//game::Scr_ErrorInternal(context);
+				scr_error(va("type %s is not a string", game::Scr_GetNameForType(value->type)));
 			}
 
-			scr_error(va("Parameter %u does not exist", index + 1));
+			scr_error(va("parameter %u does not exist", index + 1));
 			return 0;
 		}
 
-		unsigned int scr_get_const_istring(unsigned int index)
+		unsigned int scr_get_const_istring(game::scrContext_t* context, unsigned int index)
 		{
-			const auto context = game::ScriptContext_Server();
 			if (index < context->outparamcount)
 			{
 				auto* value = context->top - index;
@@ -169,14 +133,14 @@ namespace gsc
 					return value->u.stringValue;
 				}
 
-				scr_error(va("Type %s is not a localized string", var_typename[value->type]));
+				scr_error(va("type %s is not a localized string", game::Scr_GetNameForType(value->type)));
 			}
 
-			scr_error(va("Parameter %u does not exist", index + 1));
+			scr_error(va("parameter %u does not exist", index + 1));
 			return 0;
 		}
 
-		void scr_validate_localized_string_ref(int parm_index, const char* token, int token_len)
+		void scr_validate_localized_string_ref(game::scrContext_t* context, int parm_index, const char* token, int token_len)
 		{
 			assert(token);
 			assert(token_len >= 0);
@@ -190,14 +154,13 @@ namespace gsc
 			{
 				if (!std::isalnum(static_cast<unsigned char>(token[char_iter])) && token[char_iter] != '_')
 				{
-					scr_error(va("Illegal localized string reference: %s must contain only alpha-numeric characters and underscores", token));
+					scr_error(va("Illegal localized string reference: %s must contain only alpha-numeric characters and underscore or '/'", token));
 				}
 			}
 		}
 
-		void scr_get_vector(unsigned int index, float* vector_value)
+		void scr_get_vector(game::scrContext_t* context, unsigned int index, float* vector_value)
 		{
-			const auto context = game::ScriptContext_Server();
 			if (index < context->outparamcount)
 			{
 				auto* value = context->top - index;
@@ -207,15 +170,14 @@ namespace gsc
 					return;
 				}
 
-				scr_error(va("Type %s is not a vector", var_typename[value->type]));
+				scr_error(va("type %s is not a vector", game::Scr_GetNameForType(value->type)));
 			}
 
-			scr_error(va("Parameter %u does not exist", index + 1));
+			scr_error(va("parameter %u does not exist", index + 1));
 		}
 
-		int scr_get_int(unsigned int index)
+		int scr_get_int(game::scrContext_t* context, unsigned int index)
 		{
-			const auto context = game::ScriptContext_Server();
 			if (index < context->outparamcount)
 			{
 				auto* value = context->top - index;
@@ -224,16 +186,15 @@ namespace gsc
 					return value->u.intValue;
 				}
 
-				scr_error(va("Type %s is not an int", var_typename[value->type]));
+				scr_error(va("type %s is not an int", game::Scr_GetNameForType(value->type)));
 			}
 
-			scr_error(va("Parameter %u does not exist", index + 1));
+			scr_error(va("parameter %u does not exist", index + 1));
 			return 0;
 		}
 
-		float scr_get_float(unsigned int index)
+		float scr_get_float(game::scrContext_t* context, unsigned int index)
 		{
-			const auto context = game::ScriptContext_Server();
 			if (index < context->outparamcount)
 			{
 				auto* value = context->top - index;
@@ -247,54 +208,50 @@ namespace gsc
 					return static_cast<float>(value->u.intValue);
 				}
 
-				scr_error(va("Type %s is not a float", var_typename[value->type]));
+				scr_error(va("type %s is not a float", game::Scr_GetNameForType(value->type)));
 			}
 
-			scr_error(va("Parameter %u does not exist", index + 1));
+			scr_error(va("parameter %u does not exist", index + 1));
 			return 0.0f;
 		}
 
-		int scr_get_pointer_type(unsigned int index)
+		int scr_get_pointer_type(game::scrContext_t* context, unsigned int index)
 		{
-			const auto context = game::ScriptContext_Server();
 			if (index < context->outparamcount)
 			{
 				if ((context->top - index)->type == game::VAR_POINTER)
 				{
-					return static_cast<int>(game::GetObjectType((context->top - index)->u.uintValue));
+					return utils::hook::invoke<int>(0x131D2C0_b, context, (context->top - index)->u.uintValue); // GetObjectType
 				}
 
-				scr_error(va("Type %s is not an object", var_typename[(context->top - index)->type]));
+				scr_error(va("type %s is not an object", game::Scr_GetNameForType((context->top - index)->type)));
 			}
 
-			scr_error(va("Parameter %u does not exist", index + 1));
+			scr_error(va("parameter %u does not exist", index + 1));
 			return 0;
 		}
 
-		int scr_get_type(unsigned int index)
+		int scr_get_type(game::scrContext_t* context, unsigned int index)
 		{
-			const auto context = game::ScriptContext_Server();
 			if (index < context->outparamcount)
 			{
 				return (context->top - index)->type;
 			}
 
-			scr_error(va("Parameter %u does not exist", index + 1));
+			scr_error(va("parameter %u does not exist", index + 1));
 			return 0;
 		}
 
-		const char* scr_get_type_name(unsigned int index)
+		const char* scr_get_type_name(game::scrContext_t* context, unsigned int index)
 		{
-			const auto context = game::ScriptContext_Server();
 			if (index < context->outparamcount)
 			{
-				return var_typename[(context->top - index)->type];
+				return game::Scr_GetNameForType((context->top - index)->type);
 			}
 
-			scr_error(va("Parameter %u does not exist", index + 1));
+			scr_error(va("parameter %u does not exist", index + 1));
 			return nullptr;
 		}
-		*/
 	}
 
 	std::optional<std::pair<std::string, std::string>> find_function(const char* pos)
@@ -328,17 +285,17 @@ namespace gsc
 
 			// Restore basic error messages for commonly used scr functions
 			/*
-			utils::hook::jump(0xC0BA10_b, scr_get_object);
-			utils::hook::jump(0xC0B4C0_b, scr_get_const_string);
-			utils::hook::jump(0xC0B270_b, scr_get_const_istring);
-			utils::hook::jump(0xB52210_b, scr_validate_localized_string_ref);
-			utils::hook::jump(0xC0BF40_b, scr_get_vector);
-			utils::hook::jump(0xC0B950_b, scr_get_int);
-			utils::hook::jump(0xC0B7E0_b, scr_get_float);
+			utils::hook::jump(0x1325005_b, scr_get_object);
+			utils::hook::jump(0x13247F0_b, scr_get_const_string);
+			utils::hook::jump(0x1324E10_b, scr_get_const_istring);
+			utils::hook::jump(0x125CDA0_b, scr_validate_localized_string_ref);
+			utils::hook::jump(0x1325740_b, scr_get_vector);
+			utils::hook::jump(0x1324F00_b, scr_get_int);
+			utils::hook::jump(0x1324C00_b, scr_get_float);
 
-			utils::hook::jump(0xC0BC00_b, scr_get_pointer_type);
-			utils::hook::jump(0xC0BDE0_b, scr_get_type);
-			utils::hook::jump(0xC0BE50_b, scr_get_type_name);
+			utils::hook::jump(0x1325220_b, scr_get_pointer_type);
+			utils::hook::jump(0x1325580_b, scr_get_type);
+			utils::hook::jump(0x1325610_b, scr_get_type_name);
 			*/
 		}
 	};

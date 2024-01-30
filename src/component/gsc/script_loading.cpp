@@ -161,8 +161,6 @@ namespace gsc
 			}
 			*/
 
-			printf("Loading custom gsc '%s'\n", real_name.data());
-
 			try
 			{
 				auto& compiler = gsc_ctx->compiler();

@@ -696,12 +696,6 @@ namespace game
 		//char __pad1[0x8E];// 146
 	};
 
-	union $19C82CA8BD5CE28553D0D27D79F0E3F3
-	{
-		const char* m_scriptPos;
-		unsigned __int64 m_genericPos;
-	};
-
 	struct scr_entref_t
 	{
 		unsigned short entnum;
@@ -715,7 +709,8 @@ namespace game
 
 	struct ScriptCodePos
 	{
-		$19C82CA8BD5CE28553D0D27D79F0E3F3 ___u0;
+		char* m_scriptPos;
+		unsigned __int64 m_genericPos;
 	};
 
 	struct VariableStackBuffer
@@ -914,7 +909,10 @@ namespace game
 		void* unk_0; // 13496
 		ChildVariableValue* childVariableValue; // 13504
 
-		char __pad3_1[34016]; // 13512
+		function_stack_t m_fs;	// 13512
+		char __pad3_1[34984];	// 13544
+		//int m_errorLevel;		// 31088
+		//int startTime;		// 31108
 
 		unsigned int* localVars; // 47528
 		VariableValue* maxstack; // 47536 (scrVmPub_t->maxstack)
@@ -927,7 +925,8 @@ namespace game
 		// confirmed all below
 		unsigned int inparamcount; // 47572
 		unsigned int outparamcount; // 47576
-		function_frame_t function_frame_start[64]; // 47580
+		unsigned int breakpointOutparamcount; // 47580 (PDB says this)
+		function_frame_t function_frame_start[64]; // 47584
 		char __pad6[35376]; // 47644
 
 		ScriptCodePos pos; // 82920 // ScriptCodePos::GetScriptPos(scrContext + 82920);
@@ -962,15 +961,6 @@ namespace game
 		char __pad1[5128]; // 168
 	};
 	static_assert(sizeof(WeaponDef) == 5296);
-
-	/*
-	struct GfxShaderBufferView
-	{
-		void* resource; // 0
-		unsigned int view; // 8
-		// 12
-	};
-	*/
 
 	struct GfxWrappedBuffer
 	{

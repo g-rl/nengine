@@ -6,6 +6,9 @@
 #include <utils/hook.hpp>
 #include <utils/memory.hpp>
 
+// TODO: this is NOT a solution lol
+//#define APE_SHIT_MODE
+
 namespace zones
 {
 	namespace
@@ -113,10 +116,25 @@ namespace zones
 				COPY_NEW_VALUE(new_gfx_world_var->frustumLights.vertexBuffer, varGfxWorld->frustumLights.vertexBuffer);
 				*/
 
+#ifdef APE_SHIT_MODE
+				memcpy(new_gfx_world_var->frustumLights.__pad0, varGfxWorld->frustumLights.__pad0, 64);
+
+				game::GfxWrappedBuffer blank_buffer{};
+				new_gfx_world_var->frustumLights.indexBuffer = blank_buffer;
+				new_gfx_world_var->frustumLights.vertexBuffer = varGfxWorld->frustumLights.vertexBuffer;
+#endif
+
+#ifdef APE_SHIT_MODE
+				new_gfx_world_var->lightViewFrustums = nullptr;
+				new_gfx_world_var->primaryLights = nullptr;
+				new_gfx_world_var->voxelTreeCount = 0;
+				new_gfx_world_var->voxelTree = nullptr;
+#else
 				memcpy(new_gfx_world_var->lightViewFrustums, varGfxWorld->lightViewFrustums, 8);
 				memcpy(new_gfx_world_var->primaryLights, varGfxWorld->primaryLights, 8);
 				COPY_NEW_VALUE(new_gfx_world_var->voxelTreeCount, varGfxWorld->voxelTreeCount)
 				memcpy(new_gfx_world_var->voxelTree, varGfxWorld->voxelTree, 8);
+#endif
 
 				memcpy(new_gfx_world_var->__pad1, varGfxWorld->__pad1, 2064);
 
@@ -133,7 +151,6 @@ namespace zones
 	public:
 		void post_unpack() override
 		{
-			/*
 			check_xfile_version_hook.create(0xD8A180_b, check_xfile_version_stub);
 
 			//utils::hook::nop(0xD89091_b, 5); // prevent Dirty disk error from occuring on bad assets (kj)
@@ -145,10 +162,11 @@ namespace zones
 
 			// GfxWorld
 			utils::hook::call(0xDAF4F8_b, gfxworld_load_stream_stub); // Preload_GfxWorld
-			*/
 		}
 	};
 }
 
 // TODO: do this component in the future maybe lmfao
-//REGISTER_COMPONENT(zones::component)
+#ifdef APE_SHIT_MODE
+REGISTER_COMPONENT(zones::component)
+#endif

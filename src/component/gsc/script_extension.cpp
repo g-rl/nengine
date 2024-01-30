@@ -38,7 +38,9 @@ namespace gsc
 
 		std::uint32_t get_function_id()
 		{
-			return game::ScriptContext_Server()->top->u.uintValue;
+			const auto pos = game::ScriptContext_Server()->m_fs.pos.m_scriptPos;
+			return *reinterpret_cast<std::uint16_t*>(
+				reinterpret_cast<size_t>(pos - 2));
 		}
 
 		void execute_custom_function(const std::uint16_t id)
@@ -90,7 +92,7 @@ namespace gsc
 
 		void builtin_call_error(const std::string& error)
 		{
-			const auto custom_function_id = static_cast<std::uint16_t>(get_function_id()); // cast for gsc-tool & our custom func map
+			const auto custom_function_id = get_function_id(); // cast for gsc-tool & our custom func map
 
 			if (custom_function_id > func_table_count)
 			{
@@ -117,11 +119,12 @@ namespace gsc
 
 		void print_callstack()
 		{
+			/*
 			const auto context = game::ScriptContext_Server();
 			for (auto frame = context->function_frame; frame != context->function_frame_start; --frame)
 			{
-				const auto pos = frame == context->function_frame ? context->pos.___u0.m_scriptPos : frame->fs.pos.___u0.m_scriptPos;
-				const auto function = find_function(frame->fs.pos.___u0.m_scriptPos);
+				const auto pos = frame == context->function_frame ? context->pos.m_scriptPos : frame->fs.pos.m_scriptPos;
+s				const auto function = find_function(frame->fs.pos.m_scriptPos);
 
 				if (function.has_value())
 				{
@@ -130,6 +133,45 @@ namespace gsc
 				else
 				{
 					printf("\tat unknown location %p\n", pos);
+				}
+			}
+			*/
+
+			const auto context = game::ScriptContext_Server();
+			const auto function_count = context->function_count;
+			if (function_count)
+			{
+				auto function_count_index = function_count - 1;
+				if (function_count_index >= 1)
+				{
+					auto frame = &context->function_frame_start[function_count_index];
+					while (function_count_index)
+					{
+						const auto pos = frame->fs.pos.m_scriptPos;
+						const auto function = find_function(pos);
+						if (function.has_value())
+						{
+							printf("\tat function \"%s\" in file \"%s.gsc\"\n", function.value().first.data(), function.value().second.data());
+						}
+						else
+						{
+							printf("\tat unknown location %p\n", pos);
+						}
+
+						--frame;
+						--function_count_index;
+					}
+				}
+
+				const auto pos = context->function_frame_start[0].fs.pos.m_scriptPos;
+				const auto function = find_function(pos);
+				if (function.has_value())
+				{
+					printf("\tstarted at function \"%s\" in file \"%s.gsc\"\n", function.value().first.data(), function.value().second.data());
+				}
+				else
+				{
+					printf("\tstarted at unknown location %p\n", pos);
 				}
 			}
 		}
@@ -177,7 +219,9 @@ namespace gsc
 
 		void vm_error_stub(unsigned __int64 mark_pos)
 		{
+#ifndef DEBUG
 			vm_error_internal();
+#endif
 
 			utils::hook::invoke<void>(0x1036900_b, mark_pos);
 		}
