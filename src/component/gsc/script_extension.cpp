@@ -25,6 +25,8 @@ namespace gsc
 
 	const game::dvar_t* developer_script = nullptr;
 
+	std::uint16_t current_function_id = 0;
+
 	namespace
 	{
 		std::unordered_map<std::uint16_t, builtin_function> functions;
@@ -32,16 +34,10 @@ namespace gsc
 
 		bool force_error_print = false;
 		std::optional<std::string> gsc_error_msg;
+		game::scr_entref_t saved_ent_ref;
 
 		std::unordered_map<const char*, const char*> vm_execute_hooks;
 		const char* target_function = nullptr;
-
-		std::uint32_t get_function_id()
-		{
-			const auto pos = game::ScriptContext_Server()->m_fs.pos.m_scriptPos;
-			return *reinterpret_cast<std::uint16_t*>(
-				reinterpret_cast<size_t>(pos - 2));
-		}
 
 		void execute_custom_function(const std::uint16_t id)
 		{
@@ -52,26 +48,26 @@ namespace gsc
 			}
 			catch (const std::exception& ex)
 			{
-				scr_error(ex.what());
+				scr_error(ex.what(), true);
 			}
 		}
 
 		void vm_call_builtin_function_internal(int function_id)
 		{
-			const auto custom_function_id = static_cast<std::uint16_t>(function_id); // cast for gsc-tool & our custom func map
-			const auto custom = functions.contains(custom_function_id);
+			current_function_id = static_cast<std::uint16_t>(function_id); // cast for gsc-tool, custom func map, & errors
+
+			const auto custom = functions.contains(current_function_id);
 			if (custom)
 			{
-				execute_custom_function(custom_function_id);
+				execute_custom_function(current_function_id);
 				return;
 			}
 
 			const auto context = game::ScriptContext_Server();
-
 			builtin_function func = func_table[function_id - context->m_funcBegin]; // game does this for the stock func table
 			if (func == nullptr)
 			{
-				scr_error(utils::string::va("builtin function \"%s\" doesn't exist", gsc_ctx->func_name(custom_function_id).data()), true);
+				scr_error(utils::string::va("builtin function \"%s\" doesn't exist", gsc_ctx->func_name(current_function_id).data()), true);
 				return;
 			}
 
@@ -81,26 +77,79 @@ namespace gsc
 		void vm_call_builtin_function_stub(utils::hook::assembler& a)
 		{
 			a.pushad64();
-			a.push(ecx);
+			//a.push(ecx);
 			a.mov(ecx, r14d); // function id is in r14d
 			a.call_aligned(vm_call_builtin_function_internal);
-			a.pop(ecx);
+			//a.pop(ecx);
 			a.popad64();
 
 			a.jmp(0x1329329_b);
 		}
 
+		void execute_custom_method(const std::uint16_t id, game::scr_entref_t ent_ref)
+		{
+			try
+			{
+				const auto& method = methods[id];
+				method(game::ScriptContext_Server(), ent_ref);
+			}
+			catch (const std::exception& ex)
+			{
+				scr_error(ex.what(), true);
+			}
+		}
+
+		void vm_call_builtin_method_internal(int function_id)
+		{
+			current_function_id = static_cast<std::uint16_t>(function_id); // cast for gsc-tool, custom func map, & errors
+
+			const auto custom = methods.contains(current_function_id);
+			if (custom)
+			{
+				execute_custom_method(current_function_id, saved_ent_ref);
+				return;
+			}
+			
+			const auto context = game::ScriptContext_Server();
+			builtin_method meth = meth_table[function_id - context->m_methBegin];
+			if (meth == nullptr)
+			{
+				scr_error(utils::string::va("builtin method \"%s\" doesn't exist", gsc_ctx->meth_name(current_function_id).data()), true);
+				return;
+			}
+
+			meth(context, saved_ent_ref);
+		}
+
+		game::scr_entref_t get_entity_id_stub(game::scrContext_t* context, std::uint32_t ent_id)
+		{
+			const auto ref = utils::hook::invoke<game::scr_entref_t>(0x1321070_b, context, ent_id);
+			saved_ent_ref = ref;
+			return ref;
+		}
+
+		void vm_call_builtin_method_stub(utils::hook::assembler& a)
+		{
+			//a.pushad64();
+			a.push(ecx);
+			a.mov(ecx, r14d); // function id is in r14d
+			// ent ref is used from a Scr_GetEntityRef call (asmjit is weird)
+			a.call(vm_call_builtin_method_internal);
+			a.pop(ecx);
+			//a.popad64();
+
+			a.jmp(0x132931E_b);
+		}
+
 		void builtin_call_error(const std::string& error)
 		{
-			const auto custom_function_id = get_function_id(); // cast for gsc-tool & our custom func map
-
-			if (custom_function_id > func_table_count)
+			if (current_function_id > func_table_count)
 			{
-				printf("in call to builtin method \"%s\"%s", gsc_ctx->meth_name(custom_function_id).data(), error.data());
+				printf("in call to builtin method \"%s\"%s\n", gsc_ctx->meth_name(current_function_id).data(), error.data());
 			}
 			else
 			{
-				printf("in call to builtin function \"%s\"%s", gsc_ctx->func_name(custom_function_id).data(), error.data());
+				printf("in call to builtin function \"%s\"%s\n", gsc_ctx->func_name(current_function_id).data(), error.data());
 			}
 		}
 
@@ -124,7 +173,7 @@ namespace gsc
 			for (auto frame = context->function_frame; frame != context->function_frame_start; --frame)
 			{
 				const auto pos = frame == context->function_frame ? context->pos.m_scriptPos : frame->fs.pos.m_scriptPos;
-s				const auto function = find_function(frame->fs.pos.m_scriptPos);
+				const auto function = find_function(frame->fs.pos.m_scriptPos);
 
 				if (function.has_value())
 				{
@@ -219,7 +268,7 @@ s				const auto function = find_function(frame->fs.pos.m_scriptPos);
 
 		void vm_error_stub(unsigned __int64 mark_pos)
 		{
-#ifndef DEBUG
+#ifdef DEBUG
 			vm_error_internal();
 #endif
 
@@ -287,8 +336,8 @@ s				const auto function = find_function(frame->fs.pos.m_scriptPos);
 		force_error_print = force_print;
 		gsc_error_msg = error;
 
-		printf("scr_error: %s\n", error);
-		//game::Scr_ErrorInternal(game::ScriptContext_Server());
+		//printf("scr_error: %s\n", error);
+		game::Scr_ErrorInternal(game::ScriptContext_Server());
 	}
 
 	namespace function
@@ -309,6 +358,24 @@ s				const auto function = find_function(frame->fs.pos.m_scriptPos);
 		}
 	}
 
+	namespace method
+	{
+		void add(const std::string& name, builtin_method method)
+		{
+			if (gsc_ctx->meth_exists(name))
+			{
+				const auto id = gsc_ctx->meth_id(name);
+				methods[id] = method;
+			}
+			else
+			{
+				const auto id = ++method_id_start;
+				gsc_ctx->meth_add(name, id);
+				methods[id] = method;
+			}
+		}
+	}
+
 	class extension final : public component_interface
 	{
 	public:
@@ -316,50 +383,24 @@ s				const auto function = find_function(frame->fs.pos.m_scriptPos);
 		{
 			developer_script = game::Dvar_RegisterBool("developer_script", true, game::DVAR_FLAG_NONE, "Enable developer script comments"); // enable by default for now
 
+			// use our own tables & counts instead of stock values
 			gsc::on_begin_scripts([&]()
 			{
 				const auto context = game::ScriptContext_Server();
 				context->m_pFuncTable = func_table;
 				context->m_pMethTable = meth_table;
-				/*
-				funcCount = 1048;
-				funcEnd = 1049; (1048 + 1)
-				methCount = 1927;
-				methEnd = 34695 (1927 + 0x8000)
-				*/
-				context->m_funcCount = func_table_count;						// 0x1000
-				context->m_funcEnd = func_table_count + context->m_funcBegin;	// (0x1000 + 1)
-				context->m_methCount = meth_table_count;						// 0x1000
-				context->m_methEnd = meth_table_count + context->m_methBegin;	// (0x1000 + 0x8000)
-
-				// done in Scr_BeginLoadScripts when original runs
-				//const auto size = static_cast<size_t>(8);
-				//memset(context->m_pFuncTable, 0, size * context->m_funcCount);
-				//memset(context->m_pMethTable, 0, size * context->m_methCount);
-
-				/*
-				printf("=====================================\n");
-				printf("begin_load_scripts_stub\n");
-				printf("m_funcBegin = %d\n", context->m_funcBegin);
-				printf("m_funcCount = %d\n", context->m_funcCount);
-				printf("m_funcEnd = %d\n", context->m_funcEnd);
-				printf("m_methBegin = %d\n", context->m_methBegin);
-				printf("m_methCount = %d\n", context->m_methCount);
-				printf("m_methEnd = %d\n", context->m_methEnd);
-				printf("=====================================\n");
-				*/
+				context->m_funcCount = func_table_count;						// 0x1000				(1048)
+				context->m_funcEnd = func_table_count + context->m_funcBegin;	// (0x1000 + 1)			(1049)
+				context->m_methCount = meth_table_count;						// 0x1000				(1927)
+				context->m_methEnd = meth_table_count + context->m_methBegin;	// (0x1000 + 0x8000)	(34695)
 			});
 
 			utils::hook::nop(0x1328EF0_b, 23);
 			utils::hook::jump(0x1328EF0_b, utils::hook::assemble(vm_call_builtin_function_stub), true);
 
-			/*
-			utils::hook::set<uint32_t>(0xBFD182_b + 4, static_cast<uint32_t>(reverse_b((&meth_table))));
-			utils::hook::inject(0xBFD5AF_b + 3, &meth_table);
-			utils::hook::set<uint32_t>(0xBFD5B6_b + 2, sizeof(meth_table));
-			utils::hook::nop(0xC0E8EB_b, 14); // nop the lea & call at the end of call_builtin_method
-			utils::hook::jump(0xC0E8EB_b, utils::hook::assemble(vm_call_builtin_method_stub), true);
-			*/
+			utils::hook::nop(0x132930D_b, 17);
+			utils::hook::call(0x13292EB_b, get_entity_id_stub);
+			utils::hook::jump(0x132930D_b, utils::hook::assemble(vm_call_builtin_method_stub), true);
 
 			utils::hook::call(0x132ACB9_b, vm_error_stub); // LargeLocalResetToMark
 
@@ -381,6 +422,11 @@ s				const auto function = find_function(frame->fs.pos.m_scriptPos);
 				}
 
 				vm_execute_hooks[what.u.codePosValue] = with.u.codePosValue;
+			});
+
+			method::add("test_custom_method", [](game::scrContext_t* context, game::scr_entref_t ent) -> void
+			{
+				printf("test_custom_method called from %hu\n", ent.entnum);
 			});
 		}
 	};

@@ -86,14 +86,15 @@ namespace patches
 			if (!strcmp(name, "MPSSOTQQPM")		// force_offline_enabled
 				|| !strcmp(name, "LSTQOKLTRN")	// force_offline_menus
 				|| !strcmp(name, "LSSRRSMNMR")	// lui_dev_features_enabled
-				|| !strcmp(name, "NRSSTQQSKK"))	// r_preloadShaders = 0
+				|| !strcmp(name, "NRSSTQQSKK")	// r_preloadShaders
+				|| !strcmp(name, "intro"))
 			{
 				value->enabled = true;
 
-				if (strcmp(name, "NRSSTQQSKK"))
-					value->integer = 1;
+				if (!strcmp(name, "NRSSTQQSKK") || !strcmp(name, "intro")) // r_preloadShaders
+					value->integer = 0; // set to 0 to allow fast load in times
 				else
-					value->integer = 0;
+					value->integer = 1;
 			}
 
 			return dvar_register_hook.invoke<game::dvar_t*>(name, checksum, type, flags, value, domain, desc);

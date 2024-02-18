@@ -130,14 +130,14 @@ namespace gsc
 
 		game::ScriptFile* load_custom_script(const char* file_name, const std::string& real_name)
 		{
-			if (const auto itr = loaded_scripts.find(file_name); itr != loaded_scripts.end())
-			{
-				return itr->second;
-			}
-
 			if (game::Com_FrontEnd_IsInFrontEnd())
 			{
 				return nullptr;
+			}
+
+			if (loaded_scripts.contains(file_name))
+			{
+				return loaded_scripts[file_name];
 			}
 
 			std::string source_buffer{};
@@ -146,20 +146,18 @@ namespace gsc
 				return nullptr;
 			}
 
-			/*
 			// filter out "GSC rawfiles" that were used for development usage and are not meant for us.
 			// each "GSC rawfile" has a ScriptFile counterpart to be used instead
 			if (game::DB_XAssetExists(game::ASSET_TYPE_SCRIPTFILE, file_name) &&
 				!game::DB_IsXAssetDefault(game::ASSET_TYPE_SCRIPTFILE, file_name))
 			{
-				if ((real_name.starts_with("maps/createfx") || real_name.starts_with("maps/createart") || real_name.starts_with("maps/mp"))
+				if ((real_name.starts_with("scripts/createfx") || real_name.starts_with("scripts/createart") || real_name.starts_with("scripts/mp"))
 					&& (real_name.ends_with("_fx") || real_name.ends_with("_fog") || real_name.ends_with("_hdr")))
 				{
 					printf("Refusing to compile rawfile '%s'\n", real_name.data());
 					return game::DB_FindXAssetHeader(game::ASSET_TYPE_SCRIPTFILE, file_name, false).scriptfile;
 				}
 			}
-			*/
 
 			try
 			{
