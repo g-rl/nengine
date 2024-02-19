@@ -15,8 +15,8 @@ namespace game
 	WEAK symbol<unsigned int(scrContext_t* context, unsigned int id)> AllocThread{0x131C120};
 	WEAK symbol<ObjectVariableValue*(scrContext_t* context, unsigned int* id)> AllocVariable{0x0};
 
+	WEAK symbol<void(int localClientNum, int controllerIndex, const char* buffer, const bool isSuperUser)> Cbuf_ExecuteBufferInternal{ 0xB7C3C0 };
 	//WEAK symbol<void(int localClientNum, int controllerIndex, const char* text)> Cmd_ExecuteSingleCommand{ 0xB7D040 };
-
 	WEAK symbol<void(const char* cmdName, void(), cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{0x12965F0};
 
 	//WEAK symbol<void(const char* cmdName)> Cmd_RemoveCommand{ 0xB7D630 };
@@ -90,6 +90,10 @@ namespace game
 
 	WEAK symbol<void(const char* string)> SV_Cmd_TokenizeString{ 0x1298BD0 };
 	WEAK symbol<void()> SV_Cmd_EndTokenizedString{ 0x1298B90 };
+
+	WEAK symbol<void(GameModeType gamemode, bool wasGameRunning)> Com_GameMode_SetDesiredGameMode{0x10C88F0};
+	WEAK symbol<GameModeType()> Com_GameMode_GetActiveGameMode{0x10C86E0};
+
 	/*
 	WEAK symbol<void(const char* map, const char* gameType, int clientCount, int agentCount, bool hardcore,
 		bool mapIsPreloaded, bool migrate)> SV_CmdsMP_StartMapForParty{ 0xC4D150 };
@@ -127,6 +131,8 @@ namespace game
 	WEAK symbol<DWORD> threadIds{0xD57F420};
 
 	WEAK symbol<gentity_s> g_entities{ 0xBC20F00 };
+
+	WEAK symbol<GameStateInfo> s_gameStateInfo{ 0xEE5A720 };
 
 	/*
 		zone porting

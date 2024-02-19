@@ -168,5 +168,5 @@ namespace zones
 
 // TODO: do this component in the future maybe lmfao
 #ifdef APE_SHIT_MODE
-REGISTER_COMPONENT(zones::component)
+//REGISTER_COMPONENT(zones::component)
 #endif

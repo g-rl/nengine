@@ -1050,4 +1050,17 @@ namespace game
 		};
 		static_assert(sizeof(iw8_1_19::GfxWorld) == 17776);
 	}
+
+	struct __declspec(align(8)) GameStateInfo
+	{
+		bool usingRecipe;
+	};
+
+	enum GameModeType : std::uint32_t
+	{
+		GAME_MODE_NONE = 0x0,
+		GAME_MODE_SP = 0x1,
+		GAME_MODE_MP = 0x2,
+		GAME_MODE_CP = 0x3,
+	};
 }

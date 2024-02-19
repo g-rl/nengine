@@ -301,4 +301,4 @@ namespace gsc
 	};
 }
 
-REGISTER_COMPONENT(gsc::error)
+//REGISTER_COMPONENT(gsc::error)

@@ -474,4 +474,4 @@ namespace gsc
 	};
 }
 
-REGISTER_COMPONENT(gsc::loading)
+//REGISTER_COMPONENT(gsc::loading)

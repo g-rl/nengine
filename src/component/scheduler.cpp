@@ -101,14 +101,14 @@ namespace scheduler
 			r_end_frame_hook.invoke<void>();
 		}
 
-		void* main_frame_stub()
+		void main_frame_stub()
 		{
 			const auto _0 = gsl::finally([]()
 			{
 				execute(pipeline::main);
 			});
 
-			return main_frame_hook.invoke<void*>();
+			main_frame_hook.invoke<void>();
 		}
 	}
 
@@ -182,7 +182,7 @@ namespace scheduler
 		void post_unpack() override
 		{
 			r_end_frame_hook.create(0x1966950_b, r_end_frame_stub);
-			//main_frame_hook.create(0x0_b, scheduler::main_frame_stub);
+			main_frame_hook.create(0x12AB830_b, scheduler::main_frame_stub);
 		}
 
 		void pre_destroy() override

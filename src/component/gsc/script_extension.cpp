@@ -77,10 +77,10 @@ namespace gsc
 		void vm_call_builtin_function_stub(utils::hook::assembler& a)
 		{
 			a.pushad64();
-			//a.push(ecx);
+			a.push(ecx);
 			a.mov(ecx, r14d); // function id is in r14d
 			a.call_aligned(vm_call_builtin_function_internal);
-			//a.pop(ecx);
+			a.pop(ecx);
 			a.popad64();
 
 			a.jmp(0x1329329_b);
@@ -395,14 +395,14 @@ namespace gsc
 				context->m_methEnd = meth_table_count + context->m_methBegin;	// (0x1000 + 0x8000)	(34695)
 			});
 
-			utils::hook::nop(0x1328EF0_b, 23);
-			utils::hook::jump(0x1328EF0_b, utils::hook::assemble(vm_call_builtin_function_stub), true);
+			//utils::hook::nop(0x1328EF0_b, 23);
+			//utils::hook::jump(0x1328EF0_b, utils::hook::assemble(vm_call_builtin_function_stub), true);
 
-			utils::hook::nop(0x132930D_b, 17);
-			utils::hook::call(0x13292EB_b, get_entity_id_stub);
-			utils::hook::jump(0x132930D_b, utils::hook::assemble(vm_call_builtin_method_stub), true);
+			//utils::hook::nop(0x132930D_b, 17);
+			//utils::hook::call(0x13292EB_b, get_entity_id_stub);
+			//utils::hook::jump(0x132930D_b, utils::hook::assemble(vm_call_builtin_method_stub), true);
 
-			utils::hook::call(0x132ACB9_b, vm_error_stub); // LargeLocalResetToMark
+			//utils::hook::call(0x132ACB9_b, vm_error_stub); // LargeLocalResetToMark
 
 			utils::hook::jump(0x1327420_b, utils::hook::assemble(vm_execute_stub), true);
 
@@ -432,4 +432,4 @@ namespace gsc
 	};
 }
 
-REGISTER_COMPONENT(gsc::extension)
+//REGISTER_COMPONENT(gsc::extension)

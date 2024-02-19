@@ -91,10 +91,33 @@ namespace patches
 			{
 				value->enabled = true;
 
-				if (!strcmp(name, "NRSSTQQSKK") || !strcmp(name, "intro")) // r_preloadShaders
-					value->integer = 0; // set to 0 to allow fast load in times
-				else
-					value->integer = 1;
+				// dedicated server dvar patches
+				if (game::environment::is_dedi())
+				{
+					if (!strcmp(name, "NRSSTQQSKK")		// r_preloadShaders
+						|| !strcmp(name, "NPQTOLNKQK"))	// Enable/Disable sharing of shaders/PSOs during warmup on boot (uses more memory)
+						//|| !strcmp(name, "NRSSTQQSKK")
+					{
+						value->integer = 0;
+					}
+
+					// skip splash screen dvar
+					if (!strcmp(name, "NPLRKNKKOP"))
+					{
+						value->enabled = true;
+					}
+
+					// frontEndSceneEnabled & frontEndScenePreload
+					if (!strcmp(name, "LOTLQRLOMK") || !strcmp(name, "MOKLQNMLMS"))
+					{
+						value->enabled = false;
+					}
+				}
+			}
+
+			if (!strcmp(name, "frontEndSceneEnabled")) // frontEndSceneEnabled
+			{
+				value->enabled = false;
 			}
 
 			return dvar_register_hook.invoke<game::dvar_t*>(name, checksum, type, flags, value, domain, desc);
@@ -177,6 +200,12 @@ namespace patches
 			// force offline menus + dev dvars
 			dvar_register_hook.create(0x13E7D40_b, dvar_register_stub);
 
+			auto pipeline = scheduler::renderer;
+			if (game::environment::is_dedi())
+			{
+				pipeline = scheduler::main;
+			}
+
 			schedule([=]()
 			{
 				// funny Donetsk workaround to get into menus lmfao
@@ -185,6 +214,8 @@ namespace patches
 					tick += 1;
 					return scheduler::cond_continue;
 				}
+
+				printf("running authentication and profile hooks\n");
 
 				// go straight to main menu
 				game::GamerProfile_SetDataByName(0, "acceptedEULA", 1);
@@ -215,7 +246,7 @@ namespace patches
 				*(BYTE*)(bnet_class + 0x2F8) = 31;
 
 				return scheduler::cond_end;
-			}, scheduler::renderer);
+			}, pipeline);
 		}
 
 		void post_unpack() override
@@ -272,8 +303,8 @@ namespace patches
 			seh_string_ed_get_string_hook.create(0x13CC2A0_b, seh_string_ed_get_string_stub);
 
 			// debug LUI errors more in depth
-			utils::hook::call(0x19BCD56_b, set_table_string_stub); // get name for event in LuaShared_SetTableString
-			utils::hook::call(0x19BD9C4_b, report_error_with_info_stub); // LUI_ReportErrorWithInfo
+			//utils::hook::call(0x19BCD56_b, set_table_string_stub); // get name for event in LuaShared_SetTableString
+			//utils::hook::call(0x19BD9C4_b, report_error_with_info_stub); // LUI_ReportErrorWithInfo
 		}
 	};
 }

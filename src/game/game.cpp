@@ -1,6 +1,8 @@
 #include <std_include.hpp>
 #include "game.hpp"
 
+#include <utils/flags.hpp>
+
 namespace game
 {
 	uint64_t base_address;
@@ -9,6 +11,15 @@ namespace game
 	{
 		const auto module = GetModuleHandle(NULL);
 		base_address = uint64_t(module);
+	}
+
+	namespace environment
+	{
+		bool is_dedi()
+		{
+			static const auto dedicated = utils::flags::has_flag("dedicated");
+			return dedicated;
+		}
 	}
 }
 
