@@ -251,6 +251,11 @@ namespace patches
 				pipeline = scheduler::main;
 			}
 
+			// go straight to main menu
+			game::GamerProfile_SetDataByName(0, "acceptedEULA", 1);
+			game::GamerProfile_SetDataByName(0, "hasEverPlayed_MainMenu", 1);
+
+			/*
 			schedule([=]()
 			{
 				// funny Donetsk workaround to get into menus lmfao
@@ -286,12 +291,13 @@ namespace patches
 
 				auto get_bnet_class = reinterpret_cast<uintptr_t(*)()>(0x1660280_b);
 				uintptr_t bnet_class = get_bnet_class();
-				*(DWORD*)(bnet_class + 0x2F4) = 0x795230F0;
-				*(DWORD*)(bnet_class + 0x2FC) = 0;
-				*(BYTE*)(bnet_class + 0x2F8) = 31;
+				*(DWORD*)(bnet_class + 756) = 0x795230F0;
+				*(BYTE*)(bnet_class + 760) = 31;
+				*(DWORD*)(bnet_class + 764) = 0;
 
 				return scheduler::cond_end;
 			}, pipeline);
+			*/
 		}
 
 		void post_unpack() override
