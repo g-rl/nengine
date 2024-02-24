@@ -8,6 +8,7 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/flags.hpp>
+#include <utils/io.hpp>
 
 namespace patches
 {
@@ -89,8 +90,16 @@ namespace patches
 				|| !strcmp(name, "NRSSTQQSKK")	// r_preloadShaders
 				|| !strcmp(name, "intro"))
 			{
-				value->enabled = true;
+				if (!strcmp(name, "NRSSTQQSKK")) // r_preloadShaders
+				{
+					value->enabled = false;
+				}
+				else
+				{
+					value->enabled = true;
+				}
 
+				/*
 				// dedicated server dvar patches
 				if (game::environment::is_dedi())
 				{
@@ -113,11 +122,7 @@ namespace patches
 						value->enabled = false;
 					}
 				}
-			}
-
-			if (!strcmp(name, "frontEndSceneEnabled")) // frontEndSceneEnabled
-			{
-				value->enabled = false;
+				*/
 			}
 
 			return dvar_register_hook.invoke<game::dvar_t*>(name, checksum, type, flags, value, domain, desc);
@@ -185,6 +190,46 @@ namespace patches
 			error = utils::string::va("Error processing event '%s'\n", current_event_name.data());
 			utils::hook::invoke<void>(0x19CDD30_b, error, error_info, lua_vm);
 		}
+
+		utils::hook::detour g_find_config_string_index_hook;
+		unsigned int g_find_config_string_index_stub(const char* name, unsigned int start, unsigned int max, int create, const char* errormsg)
+		{
+			create = 1;
+			return g_find_config_string_index_hook.invoke<unsigned int>(name, start, max, create, errormsg);
+		}
+
+		static_assert(sizeof(char) == 1);
+
+		struct LuaFile
+		{
+			const char* name;	// 0
+			int len;			// 8
+			char strippingType;	// 12
+			const char* buffer;	// 16
+		}; static_assert(sizeof(LuaFile) == 24);
+
+		void dump_lua_file(LuaFile** lua_file_)
+		{
+			auto lua_file = *lua_file_;
+
+			std::string buffer;
+			if (lua_file->len > 0)
+			{
+				buffer.append(lua_file->buffer, lua_file->len);
+			}
+
+			const auto out_name = utils::string::va("lua_dump/%s", lua_file->name);
+			utils::io::write_file(out_name, buffer);
+
+			printf("Dumped %s\n", lua_file->name);
+		}
+
+		utils::hook::detour load_luafileasset_hook;
+		void load_luafileasset_stub(LuaFile** lua_file)
+		{
+			dump_lua_file(lua_file);
+			load_luafileasset_hook.invoke<void>(lua_file);
+		}
 	}
 
 	class component final : public component_interface
@@ -251,6 +296,9 @@ namespace patches
 
 		void post_unpack() override
 		{
+			// allows settext method to work with strings that are not localized
+			//g_find_config_string_index_hook.create(0x10E9140_b, g_find_config_string_index_stub);
+
 			// use name dvar
 			utils::hook::jump(0x13FD3A0_b, live_get_local_client_name_stub);
 
@@ -303,8 +351,10 @@ namespace patches
 			seh_string_ed_get_string_hook.create(0x13CC2A0_b, seh_string_ed_get_string_stub);
 
 			// debug LUI errors more in depth
-			//utils::hook::call(0x19BCD56_b, set_table_string_stub); // get name for event in LuaShared_SetTableString
-			//utils::hook::call(0x19BD9C4_b, report_error_with_info_stub); // LUI_ReportErrorWithInfo
+			utils::hook::call(0x19BCD56_b, set_table_string_stub); // get name for event in LuaShared_SetTableString
+			utils::hook::call(0x19BD9C4_b, report_error_with_info_stub); // LUI_ReportErrorWithInfo
+
+			//load_luafileasset_hook.create(0xF61630_b, load_luafileasset_stub);
 		}
 	};
 }

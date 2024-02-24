@@ -487,7 +487,9 @@ namespace game
 		ASSET_TYPE_GFXWORLD = 31,
 		ASSET_TYPE_WEAPON = 0x2B,		// 0x27 maybe? (weapon???)
 		ASSET_TYPE_RAWFILE = 0x33,		// 0x2F
-		ASSET_TYPE_SCRIPTFILE = 0x34	// 0x30 on PDB
+		ASSET_TYPE_SCRIPTFILE = 0x34,	// 0x30 on PDB
+
+		ASSET_TYPE_LUA_FILE = 62		// 0x3A
 	};
 
 	enum DBMemoryType
