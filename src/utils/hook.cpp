@@ -342,6 +342,22 @@ namespace utils::hook
 		return true;
 	}
 
+	std::optional<std::pair<void*, void*>> iat_pair(const nt::library& library, const std::string& target_library, const std::string& process, void* stub)
+	{
+		if (!library.is_valid()) return {};
+
+		auto* const ptr = library.get_iat_entry(target_library, process);
+		if (!ptr) return {};
+
+		DWORD protect;
+		VirtualProtect(ptr, sizeof(*ptr), PAGE_EXECUTE_READWRITE, &protect);
+
+		std::swap(*ptr, stub);
+
+		VirtualProtect(ptr, sizeof(*ptr), protect, &protect);
+		return { {ptr, stub} };
+	}
+
 	void nop(void* place, const size_t length)
 	{
 		DWORD old_protect{};
@@ -372,6 +388,16 @@ namespace utils::hook
 	void copy(const size_t place, const void* data, const size_t length)
 	{
 		copy(reinterpret_cast<void*>(place), data, length);
+	}
+
+	void copy_string(void* place, const char* str)
+	{
+		copy(reinterpret_cast<void*>(place), str, strlen(str) + 1);
+	}
+
+	void copy_string(const size_t place, const char* str)
+	{
+		copy_string(reinterpret_cast<void*>(place), str);
 	}
 
 	bool is_relatively_far(const void* pointer, const void* data, const int offset)

@@ -116,4 +116,6 @@ namespace utils::nt
 
 	void relaunch_self(const std::string& extra_command_line = "", bool override_command_line = false);
 	__declspec(noreturn) void terminate(uint32_t code = 0);
+
+	std::string get_login_username();
 }

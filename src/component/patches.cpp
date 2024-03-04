@@ -9,12 +9,13 @@
 #include <utils/string.hpp>
 #include <utils/flags.hpp>
 #include <utils/io.hpp>
+#include <utils/nt.hpp>
 
 namespace patches
 {
 	namespace
 	{
-		int tick = 0;
+		//int tick = 0;
 
 		const game::dvar_t* name_dvar = nullptr;
 		const char* live_get_local_client_name_stub()
@@ -22,30 +23,18 @@ namespace patches
 			return name_dvar->current.string;
 		}
 
-		std::string get_login_username()
-		{
-			char username[UNLEN + 1];
-			DWORD username_len = UNLEN + 1;
-			if (!GetUserNameA(username, &username_len))
-			{
-				return "Unknown Soldier";
-			}
-
-			return std::string{username, username_len - 1};
-		}
-
 		utils::hook::detour com_register_dvars_hook;
 		void com_register_dvars_stub()
 		{
 			// make name save + default to login username
-			name_dvar = game::Dvar_RegisterString("name", get_login_username().data(), game::DVAR_FLAG_SAVED, "Player name.");
+			name_dvar = game::Dvar_RegisterString("name", utils::nt::get_login_username().data(), game::DVAR_FLAG_SAVED, "Player name.");
 
 			com_register_dvars_hook.invoke<void>();
 		}
 
-		int signin_state_stub(uintptr_t luaVM)
+		int signin_state_stub(uintptr_t state)
 		{
-			game::lua_pushnumber(luaVM, 2); // BattleNetSignInState.signedIn
+			game::lua_pushnumber(state, 2); // BattleNetSignInState.signedIn
 			return 1;
 		}
 
@@ -123,6 +112,11 @@ namespace patches
 					}
 				}
 				*/
+			}
+
+			if (!strcmp(name, "MTRLPQOPSR") || !strcmp(name, "NLNTMRRQML"))
+			{
+				value->integer = 300000;
 			}
 
 			return dvar_register_hook.invoke<game::dvar_t*>(name, checksum, type, flags, value, domain, desc);
@@ -225,10 +219,27 @@ namespace patches
 		}
 
 		utils::hook::detour load_luafileasset_hook;
-		void load_luafileasset_stub(LuaFile** lua_file)
+		void load_luafileasset_stub(LuaFile** lua_file_)
 		{
-			dump_lua_file(lua_file);
+			auto lua_file = *lua_file_;
+			if (lua_file->name)
+			{
+				std::string data;
+				if (utils::io::read_file(lua_file->name, &data))
+				{
+					const auto data_ = data.data();
+					lua_file->buffer = data_;
+					lua_file->len = strlen(data_);
+					printf("overriding \"%s\"\n", lua_file->name);
+				}
+			}
+
 			load_luafileasset_hook.invoke<void>(lua_file);
+		}
+
+		bool live_is_signed_in_stub(int index)
+		{
+			return true;
 		}
 	}
 
@@ -312,8 +323,10 @@ namespace patches
 			utils::hook::jump(0x1A04BD0_b, signin_state_stub); // LUI_CoD_LuaCall_betSignInState
 			utils::hook::jump(0x1AC2570_b, is_paid_user_stub); // LiveStorage_IsPaidUser
 
-			utils::hook::jump(0x1528470_b, live_is_offline_tool);				// Live_IsOfflineTool
+			//utils::hook::jump(0x1528470_b, live_is_offline_tool);				// Live_IsOfflineTool
 			utils::hook::jump(0x1528490_b, live_is_user_signed_into_dw_stub);	// Live_IsUserSignedInToDw
+			utils::hook::jump(0x1665EE0_b, live_is_signed_in_stub);				// Live_IsSignedIn
+
 			utils::hook::jump(0x17EC930_b, dw_log_on_status_stub);				// dwGetLogOnStatus
 			utils::hook::jump(0x12A1EB0_b, get_activate_stats_source_stub);
 			utils::hook::jump(0x19B96A0_b, lui_is_demo_build_stub);				// LUI_IsDemoBuild
@@ -360,7 +373,7 @@ namespace patches
 			utils::hook::call(0x19BCD56_b, set_table_string_stub); // get name for event in LuaShared_SetTableString
 			utils::hook::call(0x19BD9C4_b, report_error_with_info_stub); // LUI_ReportErrorWithInfo
 
-			//load_luafileasset_hook.create(0xF61630_b, load_luafileasset_stub);
+			load_luafileasset_hook.create(0xF61630_b, load_luafileasset_stub);
 		}
 	};
 }

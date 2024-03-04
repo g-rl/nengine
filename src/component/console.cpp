@@ -38,7 +38,8 @@ namespace console
 		{
 			if (output_console != nullptr && output_console->current.enabled)
 			{
-				printf("%s", text);
+				if (channel == 1 || channel == 25)
+					printf("%s", text);
 			}
 
 			print_message_hook.invoke<void>(channel, text, unk);
