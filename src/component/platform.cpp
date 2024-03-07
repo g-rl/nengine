@@ -52,4 +52,4 @@ namespace platform
 	};
 }
 
-REGISTER_COMPONENT(platform::component)
+//REGISTER_COMPONENT(platform::component)

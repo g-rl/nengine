@@ -15,7 +15,7 @@ namespace patches
 {
 	namespace
 	{
-		//int tick = 0;
+		int tick = 0;
 
 		const game::dvar_t* name_dvar = nullptr;
 		const char* live_get_local_client_name_stub()
@@ -263,10 +263,9 @@ namespace patches
 			}
 
 			// go straight to main menu
-			game::GamerProfile_SetDataByName(0, "acceptedEULA", 1);
-			game::GamerProfile_SetDataByName(0, "hasEverPlayed_MainMenu", 1);
+			//game::GamerProfile_SetDataByName(0, "acceptedEULA", 1);
+			//game::GamerProfile_SetDataByName(0, "hasEverPlayed_MainMenu", 1);
 
-			/*
 			schedule([=]()
 			{
 				// funny Donetsk workaround to get into menus lmfao
@@ -308,7 +307,6 @@ namespace patches
 
 				return scheduler::cond_end;
 			}, pipeline);
-			*/
 		}
 
 		void post_unpack() override
@@ -373,7 +371,7 @@ namespace patches
 			utils::hook::call(0x19BCD56_b, set_table_string_stub); // get name for event in LuaShared_SetTableString
 			utils::hook::call(0x19BD9C4_b, report_error_with_info_stub); // LUI_ReportErrorWithInfo
 
-			load_luafileasset_hook.create(0xF61630_b, load_luafileasset_stub);
+			//load_luafileasset_hook.create(0xF61630_b, load_luafileasset_stub);
 		}
 	};
 }
