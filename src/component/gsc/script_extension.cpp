@@ -395,8 +395,8 @@ namespace gsc
 				context->m_methEnd = meth_table_count + context->m_methBegin;	// (0x1000 + 0x8000)	(34695)
 			});
 
-			//utils::hook::nop(0x1328EF0_b, 23);
-			//utils::hook::jump(0x1328EF0_b, utils::hook::assemble(vm_call_builtin_function_stub), true);
+			utils::hook::nop(0x1328EF0_b, 23);
+			utils::hook::jump(0x1328EF0_b, utils::hook::assemble(vm_call_builtin_function_stub), true);
 
 			//utils::hook::nop(0x132930D_b, 17);
 			//utils::hook::call(0x13292EB_b, get_entity_id_stub);
@@ -424,12 +424,14 @@ namespace gsc
 				vm_execute_hooks[what.u.codePosValue] = with.u.codePosValue;
 			});
 
+			/*
 			method::add("test_custom_method", [](game::scrContext_t* context, game::scr_entref_t ent) -> void
 			{
 				printf("test_custom_method called from %hu\n", ent.entnum);
 			});
+			*/
 		}
 	};
 }
 
-//REGISTER_COMPONENT(gsc::extension)
+REGISTER_COMPONENT(gsc::extension)
