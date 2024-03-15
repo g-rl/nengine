@@ -10,6 +10,8 @@
 #include <utils/flags.hpp>
 #include <utils/string.hpp>
 
+//#define REMOVE_RENDERER
+
 namespace dedicated
 {
 	namespace
@@ -39,10 +41,10 @@ namespace dedicated
 		utils::hook::detour sync_gpu_hook;
 		void sync_gpu_stub()
 		{
-			std::this_thread::sleep_for(1ms);
+			// R_SyncGpu_Full (R_SyncGpu renamed)
+			sync_gpu_hook.invoke<void>();
 
-			// R_SyncGpu
-			//sync_gpu_hook.invoke<void>();
+			std::this_thread::sleep_for(1ms);
 		}
 
 		void init_dedicated_server()
@@ -56,7 +58,7 @@ namespace dedicated
 			utils::hook::invoke<void>(0x18E3D70_b);
 
 			// RB_Tonemap_RegisterDvars
-			utils::hook::invoke<void>(0x1876C20_b);
+			//utils::hook::invoke<void>(0x1876C20_b);
 
 			static bool initialized = false;
 			if (initialized) return;
@@ -154,9 +156,10 @@ namespace dedicated
 			// Disable frontend
 			utils::hook::set<uint8_t>(0x10B29C0_b, 0xC3); // Com_FastFile_Frame_FrontEnd
 
-			/*
+#ifdef REMOVE_RENDERER
 			// Disable load for renderer
-			//dvars::override::register_bool("r_loadForRenderer", false, game::DVAR_FLAG_READ); // NOT FOUND!!! :(
+			game::Dvar_RegisterBool("r_loadForRenderer", false, game::DVAR_FLAG_READ, "Disable dx allocations (not on IW8?)"); // NOT FOUND!!! :(
+#endif
 
 			// Is party dedicated
 			utils::hook::jump(0x118EC70_b, party_is_server_dedicated_stub);
@@ -165,25 +168,52 @@ namespace dedicated
 			//utils::hook::jump(0xB53950_b, gscr_is_using_match_rules_data_stub);
 			game_state_info_hook.create(0x15990E0_b, game_state_info_stub);
 
+#ifdef REMOVE_RENDERER
 			// Hook R_SyncGpu
-			sync_gpu_hook.create(0x15C5940_b, sync_gpu_stub);
+			sync_gpu_hook.create(0x1946240_b, sync_gpu_stub);
+
+			utils::hook::nop(0x193E33B_b, 5); // R_CreateWindow
+#endif
 
 			utils::hook::jump(0x15C35C0_b, init_dedicated_server, true);
 
 			// TODO: delay startup commands until the initialization is done
-			utils::hook::call(0x12AA329_b, execute_startup_command);
+			//utils::hook::call(0x12AA329_b, execute_startup_command);
 
+			/*
 			utils::hook::nop(0x13DAC88_b, 5);			// don't load config file
 			//utils::hook::nop(0xB7CE46_b, 5);			// ^
 			utils::hook::call(0x1297644_b, ret_true);	// ^ (new version of above)
 			utils::hook::set<uint8_t>(0x12B58D0_b, 0xC3); // don't save config file
+			*/
 
 			utils::hook::set<uint8_t>(0x11977A0_b, 0xC3);	// disable self-registration (PartyHost_AddLocalPlayer)
-			utils::hook::set<uint8_t>(0x199B830_b, 0xC3);	// render thread
-			utils::hook::set<uint8_t>(0x15CAA50_b, 0xC3);	// called from Com_Frame, seems to do renderer stuff
-			utils::hook::set<uint8_t>(0x15E4FC0_b, 0xC3);	// CL_CheckForResend, which tries to connect to the local server constantly
-			//utils::hook::set<uint8_t>(0xD2EBB0_b, 0xC3);	// recommended settings check
+			//utils::hook::set<uint8_t>(0x199B830_b, 0xC3);	// render thread
+			//utils::hook::set<uint8_t>(0x15CAA50_b, 0xC3);	// called from Com_Frame, seems to do renderer stuff
+			//utils::hook::set<uint8_t>(0x15E4FC0_b, 0xC3);	// CL_CheckForResend, which tries to connect to the local server constantly
+			//utils::hook::set<uint8_t>(0x13FCA00_b, 0xC3);	// recommended settings check
 
+			scheduler::schedule([=]()
+			{
+				const auto data_flags = game::Live_SyncOnlineDataFlags(0);
+				//printf("data_flags: %d\n", data_flags);
+				const auto initial_lobby_ready = data_flags == 994934;
+				if (initial_lobby_ready && game::Sys_IsDatabaseReady())
+				{
+					static auto lobby_msg_showed = false;
+					if (!lobby_msg_showed)
+					{
+						printf("game initialized completed\n");
+						lobby_msg_showed = true;
+					}
+
+					return scheduler::cond_end;
+				}
+
+				return scheduler::cond_continue;
+			}, scheduler::pipeline::main);
+
+			/*
 			utils::hook::nop(0x136FFC6_b, 2);	// unknown check in SV_ExecuteClientMessage
 			//utils::hook::nop(0xC4F407_b, 3);	// allow first slot to be occupied (can't find???)
 			utils::hook::nop(0x15C52D3_b, 2);	// properly shut down dedicated servers
@@ -218,7 +248,7 @@ namespace dedicated
 			//utils::hook::set(0xE05B80_b, 0xC3C033); //utils::hook::set<uint8_t>(0xE05B80_b, 0xC3); // ^
 			//utils::hook::set(0xDD2760_b, 0xC3C033); //utils::hook::set<uint8_t>(0xDD2760_b, 0xC3); // ^
 			//utils::hook::set(0xE05E20_b, 0xC3C033); //utils::hook::set<uint8_t>(0xE05E20_b, 0xC3); // ^ buffer
-			utils::hook::set(0x194BB80_b, 0xC3C033); //utils::hook::set<uint8_t>(0xE11270_b, 0xC3); // ^
+			//utils::hook::set(0x194BB80_b, 0xC3C033); //utils::hook::set<uint8_t>(0xE11270_b, 0xC3); // ^
 			//utils::hook::set(0xDD3C50_b, 0xC3C033); //utils::hook::set<uint8_t>(0xDD3C50_b, 0xC3); // ^
 			//utils::hook::set(0x0C1210_b, 0xC3C033); //utils::hook::set<uint8_t>(0x0C1210_b, 0xC3); // ^ idk
 			//utils::hook::set(0x0C12B0_b, 0xC3C033); //utils::hook::set<uint8_t>(0x0C12B0_b, 0xC3); // ^ idk
