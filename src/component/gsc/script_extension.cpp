@@ -172,9 +172,9 @@ namespace gsc
 			for (auto frame = context->function_frame; frame != context->function_frame_start; --frame)
 			{
 				const auto pos = frame == context->function_frame ? context->m_fs_real.pos.m_scriptPos : frame->fs.pos.m_scriptPos;
-				const auto function = find_function(pos);
+				const auto script_info = find_function(pos);
 
-				if (!function.has_value())
+				if (!script_info.has_value())
 				{
 					printf("\tat unknown location %p\n", pos);
 					continue;
@@ -206,7 +206,7 @@ namespace gsc
 					{
 						const auto& info = pos_map.at(position);
 
-						console::warn("\tat function \"%s\" in file \"%s.gsc\" (line %d, col %d)\n",
+						printf("\tat function \"%s\" in file \"%s\" (line %d, col %d)\n",
 							function.data(), file.data(), info.line, info.column);
 					}
 					else
@@ -217,7 +217,8 @@ namespace gsc
 				else
 				{
 				NO_DEVMAP:
-					c
+					printf("\tat function \"%s\" in file \"%s\"\n", function.data(), file.data());
+				}
 			}
 
 			/*
@@ -304,8 +305,6 @@ namespace gsc
 
 		void vm_error_stub(void* mark_pos)
 		{
-			printf("vm_error_stub\n");
-
 #ifdef DEBUG
 			vm_error_internal();
 #endif
@@ -451,7 +450,7 @@ namespace gsc
 
 			utils::hook::jump(0x1327420_b, utils::hook::assemble(vm_execute_stub), true);
 
-			utils::hook::call(0x132ACB9_b, vm_error_stub); // LargeLocalResetToMark
+			//utils::hook::call(0x132ACB9_b, vm_error_stub); // LargeLocalResetToMark
 
 			function::add("print", [](game::scrContext_t* context) -> void
 			{

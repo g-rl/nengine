@@ -168,9 +168,9 @@ namespace gsc
 				return nullptr;
 			}
 
-			if (loaded_scripts.contains(file_name))
+			if (const auto itr = loaded_scripts.find(file_name); itr != loaded_scripts.end())
 			{
-				return loaded_scripts[file_name];
+				return itr->second.ptr;
 			}
 
 			std::string source_buffer{};
@@ -201,10 +201,7 @@ namespace gsc
 				data.assign(source_buffer.begin(), source_buffer.end());
 
 				const auto assembly_ptr = compiler.compile(real_name, data);
-				const auto output_script = assembler.assemble(*assembly_ptr);
-
-				const auto bytecode = get<0>(output_script);
-				const auto stack = get<1>(output_script);
+				const auto& [bytecode, stack, devmap] = assembler.assemble(*assembly_ptr);
 
 				const auto script_file_ptr = static_cast<game::ScriptFile*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile)));
 				script_file_ptr->name = file_name;
@@ -342,13 +339,13 @@ namespace gsc
 			const auto scr_context = game::ScriptContext_Server();
 			for (auto& function_handle : main_handles)
 			{
-				//printf("Executing '%s::main'\n", function_handle.first.data());
+				printf("Executing '%s::main'\n", function_handle.first.data());
 				game::Scr_FreeThread(scr_context, game::Scr_ExecThread(scr_context, function_handle.second, 0));
 			}
 
 			for (auto& function_handle : init_handles)
 			{
-				//printf("Executing '%s::init'\n", function_handle.first.data());
+				printf("Executing '%s::init'\n", function_handle.first.data());
 				game::Scr_FreeThread(scr_context, game::Scr_ExecThread(scr_context, function_handle.second, 0));
 			}
 
