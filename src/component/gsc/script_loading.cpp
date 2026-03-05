@@ -18,6 +18,7 @@
 namespace gsc
 {
 	std::unique_ptr<xsk::gsc::iw8::context> gsc_ctx = std::make_unique<xsk::gsc::iw8::context>();
+	std::unordered_map<std::string, loaded_script_t> loaded_scripts;
 
 	namespace
 	{
@@ -28,7 +29,6 @@ namespace gsc
 		std::unordered_map<std::string, std::uint32_t> init_handles;
 
 		utils::memory::allocator scriptfile_allocator;
-		std::unordered_map<const char*, game::ScriptFile*> loaded_scripts;
 
 		char* script_mem_buf = nullptr;
 
@@ -128,6 +128,39 @@ namespace gsc
 			return filesystem::read_file(name, data);
 		}
 
+		std::map<std::uint32_t, col_line_t> parse_devmap(const xsk::gsc::buffer& devmap)
+		{
+			auto data = devmap.data;
+
+			const auto read_32 = [&]()
+			{
+				const auto val = *reinterpret_cast<const std::uint32_t*>(data);
+				data += sizeof(std::uint32_t);
+				return val;
+			};
+
+			const auto read_16 = [&]()
+			{
+				const auto val = *reinterpret_cast<const std::uint16_t*>(data);
+				data += sizeof(std::uint16_t);
+				return val;
+			};
+
+			std::map<std::uint32_t, col_line_t> pos_map;
+
+			const auto devmap_count = read_32();
+			for (auto i = 0u; i < devmap_count; i++)
+			{
+				const auto script_pos = read_32();
+				const auto line = read_16();
+				const auto col = read_16();
+
+				pos_map[script_pos] = { line, col };
+			}
+
+			return pos_map;
+		}
+
 		game::ScriptFile* load_custom_script(const char* file_name, const std::string& real_name)
 		{
 			if (game::Com_FrontEnd_IsInFrontEnd())
@@ -190,7 +223,10 @@ namespace gsc
 
 				script_file_ptr->compressedLen = 0;
 
-				loaded_scripts[file_name] = script_file_ptr;
+				loaded_script_t loaded_script{};
+				loaded_script.ptr = script_file_ptr;
+				loaded_script.devmap = parse_devmap(devmap);
+				loaded_scripts.insert(std::make_pair(file_name, loaded_script));
 
 				printf("Loaded custom gsc '%s'\n", real_name.data());
 
@@ -428,6 +464,15 @@ namespace gsc
 		}
 
 		return game::DB_FindXAssetHeader(type, name, allow_create_default).scriptfile;
+	}
+
+	loaded_script_t* get_loaded_script(const std::string& name)
+	{
+		if (loaded_scripts.contains(name))
+		{
+			return &loaded_scripts[name];
+		}
+		return nullptr;
 	}
 
 	void on_begin_scripts(const std::function<void()>& callback)

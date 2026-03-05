@@ -75,7 +75,7 @@ namespace patches
 		{
 			if (!strcmp(name, "MPSSOTQQPM")		// force_offline_enabled
 				|| !strcmp(name, "LSTQOKLTRN")	// force_offline_menus
-				|| !strcmp(name, "LSSRRSMNMR")	// lui_dev_features_enabled
+				//|| !strcmp(name, "LSSRRSMNMR")	// lui_dev_features_enabled
 				|| !strcmp(name, "NRSSTQQSKK")	// r_preloadShaders
 				|| !strcmp(name, "intro"))
 			{

@@ -6,9 +6,6 @@
 #include <utils/hook.hpp>
 #include <utils/memory.hpp>
 
-// TODO: this is NOT a solution lol
-//#define APE_SHIT_MODE
-
 namespace zones
 {
 	namespace
@@ -36,7 +33,7 @@ namespace zones
 
 			if (current_zone_version == IW8_1_19_XFILE_VERSION) // mp_m_cargo is 4085 (1.19.3.7547737_pc)
 			{
-				return IW8_1_19_XFILE_VERSION; // expects 4085 to load, so we're just gonna force it to pass the checks
+				return IW8_1_19_XFILE_VERSION; // expects 4085 to load now
 			}
 
 			return check_xfile_version_hook.invoke<unsigned int>(header);
@@ -83,7 +80,7 @@ namespace zones
 
 		void gfxworld_load_stream_stub(const int streamStart, void* ptr, std::uint64_t size)
 		{
-			if (current_zone_version <= IW8_1_19_XFILE_VERSION)
+			if (current_zone_version == IW8_1_19_XFILE_VERSION)
 			{
 				size -= 32; // 32 byte difference in GfxWorld::frustumLights from 4085 -> 4087
 			}
@@ -166,7 +163,4 @@ namespace zones
 	};
 }
 
-// TODO: do this component in the future maybe lmfao
-#ifdef APE_SHIT_MODE
-//REGISTER_COMPONENT(zones::component)
-#endif
+REGISTER_COMPONENT(zones::component)

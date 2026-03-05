@@ -139,4 +139,6 @@ namespace game
 	*/
 	WEAK symbol<void(const bool streamStart, void* varAsset, std::uint64_t size)> Load_Stream{0x11B2A20};
 	WEAK symbol<char**> varXModelPtr{0x5D44D68};
+
+	WEAK symbol<char[1024]> error_message{0xE17E9D0};
 }

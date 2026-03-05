@@ -87,6 +87,17 @@ namespace gsc
 			return res;
 		}
 
+		utils::hook::detour scr_get_object_hook;
+		utils::hook::detour scr_get_const_string_hook;
+		utils::hook::detour scr_get_const_istring_hook;
+		utils::hook::detour scr_validate_localized_string_ref_hook;
+		utils::hook::detour scr_get_vector_hook;
+		utils::hook::detour scr_get_int_hook;
+		utils::hook::detour scr_get_float_hook;
+		utils::hook::detour scr_get_pointer_type_hook;
+		utils::hook::detour scr_get_type_hook;
+		utils::hook::detour scr_get_type_name_hook;
+
 		unsigned int scr_get_object(game::scrContext_t* context, unsigned int index)
 		{
 			if (index < context->outparamcount)
@@ -97,10 +108,10 @@ namespace gsc
 					return value->u.pointerValue;
 				}
 
-				scr_error(va("type %s is not an object", game::Scr_GetNameForType(value->type)));
+				scr_error(va(__FUNCTION__ ": type %s is not an object", game::Scr_GetNameForType(value->type)));
 			}
 
-			scr_error(va("parameter %u does not exist", index + 1));
+			scr_error(va(__FUNCTION__ ": parameter %u does not exist", index + 1));
 			return 0;
 		}
 
@@ -116,27 +127,30 @@ namespace gsc
 				}
 
 				//game::Scr_ErrorInternal(context);
-				scr_error(va("type %s is not a string", game::Scr_GetNameForType(value->type)));
+				*(DWORD*)(context + 13536) = index + 1;
+				scr_error(va(__FUNCTION__ ": type %s is not a string", game::Scr_GetNameForType(value->type)));
 			}
 
-			scr_error(va("parameter %u does not exist", index + 1));
+			*(DWORD*)(context + 13536) = index + 1;
+			scr_error(va(__FUNCTION__ ": parameter %u does not exist", index + 1));
 			return 0;
 		}
 
-		unsigned int scr_get_const_istring(game::scrContext_t* context, unsigned int index)
+		__int64 scr_get_const_istring(game::scrContext_t* context, unsigned int index)
 		{
 			if (index < context->outparamcount)
 			{
 				auto* value = context->top - index;
 				if (value->type == game::VAR_ISTRING)
 				{
-					return value->u.stringValue;
+					return value->u.uintValue;
 				}
 
-				scr_error(va("type %s is not a localized string", game::Scr_GetNameForType(value->type)));
+				*(DWORD*)(context + 13536) = index + 1;
+				scr_error(va(__FUNCTION__ ": type %s is not a localized string", game::Scr_GetNameForType(value->type)));
 			}
 
-			scr_error(va("parameter %u does not exist", index + 1));
+			scr_error(va(__FUNCTION__ ": parameter %u does not exist", index + 1));
 			return 0;
 		}
 
@@ -152,9 +166,9 @@ namespace gsc
 
 			for (auto char_iter = 0; char_iter < token_len; ++char_iter)
 			{
-				if (!std::isalnum(static_cast<unsigned char>(token[char_iter])) && token[char_iter] != '_')
+				if (!std::isalnum(static_cast<unsigned char>(token[char_iter])) && token[char_iter] != '_' && token[char_iter] != '/')
 				{
-					scr_error(va("Illegal localized string reference: %s must contain only alpha-numeric characters and underscore or '/'", token));
+					scr_error(va(__FUNCTION__ ": Illegal localized string reference: %s must contain only alpha-numeric characters and underscore or '/'", token));
 				}
 			}
 		}
@@ -170,14 +184,16 @@ namespace gsc
 					return;
 				}
 
-				scr_error(va("type %s is not a vector", game::Scr_GetNameForType(value->type)));
+				*(DWORD*)(context + 13536) = index + 1;
+				scr_error(va(__FUNCTION__ ": type %s is not a vector", game::Scr_GetNameForType(value->type)));
 			}
 
-			scr_error(va("parameter %u does not exist", index + 1));
+			scr_error(va(__FUNCTION__ ": parameter %u does not exist", index + 1));
 		}
 
 		int scr_get_int(game::scrContext_t* context, unsigned int index)
 		{
+			printf("scr_get_int: %d < %d\n", index, context->outparamcount);
 			if (index < context->outparamcount)
 			{
 				auto* value = context->top - index;
@@ -186,10 +202,11 @@ namespace gsc
 					return value->u.intValue;
 				}
 
-				scr_error(va("type %s is not an int", game::Scr_GetNameForType(value->type)));
+				*(DWORD*)(context + 13536) = index + 1;
+				scr_error(va(__FUNCTION__ ": type %s is not an int", game::Scr_GetNameForType(value->type)));
 			}
 
-			scr_error(va("parameter %u does not exist", index + 1));
+			scr_error(va(__FUNCTION__ ": parameter %u does not exist", index + 1));
 			return 0;
 		}
 
@@ -208,10 +225,11 @@ namespace gsc
 					return static_cast<float>(value->u.intValue);
 				}
 
-				scr_error(va("type %s is not a float", game::Scr_GetNameForType(value->type)));
+				*(DWORD*)(context + 13536) = index + 1;
+				scr_error(va(__FUNCTION__ ": type %s is not a float", game::Scr_GetNameForType(value->type)));
 			}
 
-			scr_error(va("parameter %u does not exist", index + 1));
+			scr_error(va(__FUNCTION__ ": parameter %u does not exist", index + 1));
 			return 0.0f;
 		}
 
@@ -224,10 +242,11 @@ namespace gsc
 					return utils::hook::invoke<int>(0x131D2C0_b, context, (context->top - index)->u.uintValue); // GetObjectType
 				}
 
-				scr_error(va("type %s is not an object", game::Scr_GetNameForType((context->top - index)->type)));
+				*(DWORD*)(context + 13536) = index + 1;
+				scr_error(va(__FUNCTION__ ": type %s is not an object", game::Scr_GetNameForType((context->top - index)->type)));
 			}
 
-			scr_error(va("parameter %u does not exist", index + 1));
+			scr_error(va(__FUNCTION__ ": parameter %u does not exist", index + 1));
 			return 0;
 		}
 
@@ -238,7 +257,7 @@ namespace gsc
 				return (context->top - index)->type;
 			}
 
-			scr_error(va("parameter %u does not exist", index + 1));
+			scr_error(va(__FUNCTION__ ": parameter %u does not exist", index + 1));
 			return 0;
 		}
 
@@ -249,7 +268,7 @@ namespace gsc
 				return game::Scr_GetNameForType((context->top - index)->type);
 			}
 
-			scr_error(va("parameter %u does not exist", index + 1));
+			scr_error(va(__FUNCTION__ ": parameter %u does not exist", index + 1));
 			return nullptr;
 		}
 	}
@@ -284,21 +303,21 @@ namespace gsc
 			utils::hook::call(0x13168DD_b, find_variable_stub); // Scr_EmitFunction_Precompiled
 
 			// Restore basic error messages for commonly used scr functions
-			/*
-			utils::hook::jump(0x1325005_b, scr_get_object);
-			utils::hook::jump(0x13247F0_b, scr_get_const_string);
-			utils::hook::jump(0x1324E10_b, scr_get_const_istring);
-			utils::hook::jump(0x125CDA0_b, scr_validate_localized_string_ref);
-			utils::hook::jump(0x1325740_b, scr_get_vector);
-			utils::hook::jump(0x1324F00_b, scr_get_int);
-			utils::hook::jump(0x1324C00_b, scr_get_float);
+#define MEME_DETOUR(address, func) func##_hook.create(address, func);
 
-			utils::hook::jump(0x1325220_b, scr_get_pointer_type);
-			utils::hook::jump(0x1325580_b, scr_get_type);
-			utils::hook::jump(0x1325610_b, scr_get_type_name);
-			*/
+			MEME_DETOUR(0x1325000_b, scr_get_object);
+			MEME_DETOUR(0x13247F0_b, scr_get_const_string);
+			//MEME_DETOUR(0x1324E10_b, scr_get_const_istring);
+			MEME_DETOUR(0x125CDA0_b, scr_validate_localized_string_ref);
+			MEME_DETOUR(0x1325740_b, scr_get_vector);
+			//MEME_DETOUR(0x1324F00_b, scr_get_int); // works, but has meme cases?
+			MEME_DETOUR(0x1324C00_b, scr_get_float);
+
+			MEME_DETOUR(0x1325220_b, scr_get_pointer_type);
+			MEME_DETOUR(0x1325580_b, scr_get_type);
+			MEME_DETOUR(0x1325610_b, scr_get_type_name);
 		}
 	};
 }
 
-//REGISTER_COMPONENT(gsc::error)
+REGISTER_COMPONENT(gsc::error)

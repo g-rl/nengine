@@ -168,24 +168,59 @@ namespace gsc
 
 		void print_callstack()
 		{
-			/*
 			const auto context = game::ScriptContext_Server();
 			for (auto frame = context->function_frame; frame != context->function_frame_start; --frame)
 			{
-				const auto pos = frame == context->function_frame ? context->pos.m_scriptPos : frame->fs.pos.m_scriptPos;
-				const auto function = find_function(frame->fs.pos.m_scriptPos);
+				const auto pos = frame == context->function_frame ? context->m_fs_real.pos.m_scriptPos : frame->fs.pos.m_scriptPos;
+				const auto function = find_function(pos);
 
-				if (function.has_value())
+				if (!function.has_value())
 				{
-					printf("\tat function \"%s\" in file \"%s.gsc\"\n", function.value().first.data(), function.value().second.data());
+					printf("\tat unknown location %p\n", pos);
+					continue;
+				}
+
+				const auto& function = script_info->function;
+				const auto& file = script_info->file;
+				const auto* loaded_script = gsc::get_loaded_script(file);
+
+				if (loaded_script)
+				{
+					const auto script = loaded_script->ptr;
+					assert(script);
+
+					const auto& pos_map = loaded_script->devmap;
+
+					auto position = static_cast<std::uint32_t>(pos - script->bytecode);
+					for (auto i = 0; i < 8; ++i)
+					{
+						auto position_fixup = position + i;
+						if (pos_map.contains(position_fixup))
+						{
+							position = position_fixup;
+							break;
+						}
+					}
+
+					if (pos_map.contains(position))
+					{
+						const auto& info = pos_map.at(position);
+
+						console::warn("\tat function \"%s\" in file \"%s.gsc\" (line %d, col %d)\n",
+							function.data(), file.data(), info.line, info.column);
+					}
+					else
+					{
+						goto NO_DEVMAP;
+					}
 				}
 				else
 				{
-					printf("\tat unknown location %p\n", pos);
-				}
+				NO_DEVMAP:
+					c
 			}
-			*/
 
+			/*
 			const auto context = game::ScriptContext_Server();
 			const auto function_count = context->function_count;
 			if (function_count)
@@ -223,6 +258,7 @@ namespace gsc
 					printf("\tstarted at unknown location %p\n", pos);
 				}
 			}
+			*/
 		}
 
 		void vm_error_internal()
@@ -266,8 +302,10 @@ namespace gsc
 			printf("**********************************************\n");
 		}
 
-		void vm_error_stub(unsigned __int64 mark_pos)
+		void vm_error_stub(void* mark_pos)
 		{
+			printf("vm_error_stub\n");
+
 #ifdef DEBUG
 			vm_error_internal();
 #endif
@@ -336,8 +374,17 @@ namespace gsc
 		force_error_print = force_print;
 		gsc_error_msg = error;
 
-		//printf("scr_error: %s\n", error);
-		game::Scr_ErrorInternal(game::ScriptContext_Server());
+		printf("scr_error: %s\n", error);
+
+		auto* context = game::ScriptContext_Server();
+
+		// scrContext->m_varPub.error_message )
+		if (!*(const char**)(context + 13528))
+		{
+			utils::hook::invoke<void>(0x2036A90_b, *game::error_message, 0x400uLL, error);
+			*(char**)(context + 13528) = *game::error_message;
+		}
+		game::Scr_ErrorInternal(context);
 	}
 
 	namespace function
@@ -402,9 +449,9 @@ namespace gsc
 			//utils::hook::call(0x13292EB_b, get_entity_id_stub);
 			//utils::hook::jump(0x132930D_b, utils::hook::assemble(vm_call_builtin_method_stub), true);
 
-			//utils::hook::call(0x132ACB9_b, vm_error_stub); // LargeLocalResetToMark
-
 			utils::hook::jump(0x1327420_b, utils::hook::assemble(vm_execute_stub), true);
+
+			utils::hook::call(0x132ACB9_b, vm_error_stub); // LargeLocalResetToMark
 
 			function::add("print", [](game::scrContext_t* context) -> void
 			{

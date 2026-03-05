@@ -88,6 +88,7 @@ namespace exception
 			//line("Environment: "s + (game::environment::is_dedi() ? "Dedicated" : "Base"));
 			line("Timestamp: "s + get_timestamp());
 			line(utils::string::va("Exception: 0x%08X", exceptioninfo->ExceptionRecord->ExceptionCode));
+			line(utils::string::va("Base Address: 0x%llX", game::base_address));
 			line(utils::string::va("Address: 0x%llX", exceptioninfo->ExceptionRecord->ExceptionAddress));
 
 #pragma warning(push)

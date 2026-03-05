@@ -711,8 +711,7 @@ namespace game
 
 	struct ScriptCodePos
 	{
-		char* m_scriptPos;
-		unsigned __int64 m_genericPos;
+		const char* m_scriptPos;
 	};
 
 	struct VariableStackBuffer
@@ -884,24 +883,23 @@ namespace game
 		VariableValue* startTop;
 	};
 
-	struct function_frame_t
+	struct __declspec(align(8)) function_frame_t
 	{
 		function_stack_t fs;
-		int topType;
+		BYTE topType[1];
 	};
 
 	struct scrContext_t
 	{
 		char __pad0[3184]; // 0
 		bool script_loading; // 3184
-		char __pad1[3]; // 3185
 		unsigned int m_funcBegin; // 3188
 		unsigned int m_funcEnd; // 3192
 		unsigned int m_funcCount; // 3196
 		unsigned int m_methBegin; // 3200
 		unsigned int m_methEnd; // 3204
 		unsigned int m_methCount; // 3208
-		char __pad2[4]; // 3212
+		unsigned int unk_pad; // 3212
 		builtin_function* m_pFuncTable; // 3216
 		builtin_method* m_pMethTable; // 3224
 		char __pad3[10248]; // 3232
@@ -911,8 +909,8 @@ namespace game
 		void* unk_0; // 13496
 		ChildVariableValue* childVariableValue; // 13504
 
-		function_stack_t m_fs;	// 13512
-		char __pad3_1[34984];	// 13544
+		function_stack_t m_fs;	// 13512 (a)
+		char __pad3_1[33984];	// 13544
 		//int m_errorLevel;		// 31088
 		//int startTime;		// 31108
 
@@ -929,10 +927,16 @@ namespace game
 		unsigned int outparamcount; // 47576
 		unsigned int breakpointOutparamcount; // 47580 (PDB says this)
 		function_frame_t function_frame_start[64]; // 47584
-		char __pad6[35376]; // 47644
+		char __pad6[32776]; // 50144
 
-		ScriptCodePos pos; // 82920 // ScriptCodePos::GetScriptPos(scrContext + 82920);
+		function_stack_t m_fs_real; // 82920
+		int m_threadCount;
 	};
+	static_assert(offsetof(scrContext_t, m_funcBegin) == 3188);
+	static_assert(offsetof(scrContext_t, function_count) == 47544);
+	static_assert(offsetof(scrContext_t, outparamcount) == 47576);
+	static_assert(offsetof(scrContext_t, m_fs_real) == 82920);
+	static_assert(offsetof(scrContext_t, m_threadCount) == 82952);
 
 	/*
 		
