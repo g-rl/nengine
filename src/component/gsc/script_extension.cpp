@@ -450,7 +450,7 @@ namespace gsc
 
 			utils::hook::jump(0x1327420_b, utils::hook::assemble(vm_execute_stub), true);
 
-			//utils::hook::call(0x132ACB9_b, vm_error_stub); // LargeLocalResetToMark
+			utils::hook::call(0x132ACB9_b, vm_error_stub); // LargeLocalResetToMark
 
 			function::add("print", [](game::scrContext_t* context) -> void
 			{
