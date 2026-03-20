@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
+#include "component/command.hpp"
 #include "component/filesystem.hpp"
 #include "component/scripting.hpp"
 
@@ -443,6 +444,80 @@ namespace gsc
 
 			scr_end_load_scripts_hook.invoke<void>(context);
 		}
+
+		struct custom_text_slot
+		{
+			const char* prefix;       // "MP/NEURA_STR1_"
+			unsigned int id;
+			std::string value;        // the extracted custom text
+			std::string value_copy;   // kept alive for c_str() in the output hook
+		};
+
+		static std::array<custom_text_slot, 17> custom_text_slots = { {
+			{ "MP/NEURA_TITLE_",	790, "", ""},
+			{ "MP/NEURA_INFO_",		791, "", ""},
+			{ "MP/NEURA_ADDITIONAL_",	792, "", ""},
+			{ "MP/NEURA_STR1_",	787, "", ""},
+			{ "MP/NEURA_STR2_",	794, "", ""},
+			{ "MP/NEURA_STR3_",	795, "", ""},
+			{ "MP/NEURA_STR4_",	796, "", ""},
+			{ "MP/NEURA_STR5_",	797, "", ""},
+			{ "MP/NEURA_STR6_",	830, "", ""},
+			{ "MP/NEURA_STR7_",	831, "", ""},
+			{ "MP/NEURA_STR8_",	832, "", ""},
+			{ "MP/NEURA_STR9_",	833, "", ""},
+			{ "MP/NEURA_STR10_",	834, "", ""},
+			{ "MP/NEURA_STR11_",	835, "", ""},
+			{ "MP/NEURA_STR12_",	836, "", ""},
+			{ "MP/NEURA_STR13_",	837, "", ""},
+			{ "MP/NEURA_STR14_",	838, "", ""}
+		} };
+
+		utils::hook::detour NetConstStrings_GetIndexPlusOneFromName_hook;
+		bool NetConstStrings_GetIndexPlusOneFromName(int type, const char* string, unsigned int* outIndex)
+		{
+			bool res = NetConstStrings_GetIndexPlusOneFromName_hook.invoke<bool>(type, string, outIndex);
+			if (res)
+			{
+				return res;
+			}
+
+			for (auto& slot : custom_text_slots)
+			{
+				if (strstr(string, slot.prefix))
+				{
+					size_t base_len = strlen(slot.prefix) + 1;
+					slot.value = std::string(string + base_len, strlen(string) - base_len);
+
+					// set the out index to our overrided string, and then return true
+					*outIndex = slot.id;
+					return true;
+				}
+			}
+
+			return res;
+		}
+
+		utils::hook::detour NetConstStrings_GetNameFromIndexPlusOne_hook;
+		bool NetConstStrings_GetNameFromIndexPlusOne(int type, const unsigned int index, const char** outName)
+		{
+			bool res = NetConstStrings_GetNameFromIndexPlusOne_hook.invoke<bool>(type, index, outName);
+
+			if (res && (type == 7))
+			{
+				for (auto& slot : custom_text_slots)
+				{
+					if (index == slot.id)
+					{
+						slot.value_copy = slot.value;
+						*outName = slot.value_copy.c_str();
+						break;
+					}
+				}
+			}
+
+			return res;
+		}
 	}
 
 	game::ScriptFile* find_script(game::XAssetType type, const char* name, int allow_create_default)
@@ -503,6 +578,27 @@ namespace gsc
 
 			// execute main handle after G_LoadStructs (now called G_Spawn_LoadStructs)
 			g_load_structs_hook.create(0xFC80A0_b, g_load_structs_stub);
+
+			// fix settext
+			NetConstStrings_GetIndexPlusOneFromName_hook.create(0x10F0F20_b, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
+			NetConstStrings_GetNameFromIndexPlusOne_hook.create(0x10F1030_b, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
+
+			command::add("dumplocalization", []()
+			{
+				std::string data;
+				int count = 0;
+				for (unsigned int i = 1; ; ++i)
+				{
+					const char* name = nullptr;
+					auto res = NetConstStrings_GetNameFromIndexPlusOne(7, i, &name);
+					if (!res)
+						break;
+					data += std::format("type 7, index {}, name: {}\n", i, name ? name : "(null)");
+					count++;
+				}
+				printf("Dumped %d locstrings\n", count);
+				utils::io::write_file("iw8-mod/loc_strings.txt", data);
+			});
 
 			// clear memory (SV_GameMP_ShutdownGameVM)
 			scripting::on_shutdown([](bool free_scripts, bool is_post_shutdown)
