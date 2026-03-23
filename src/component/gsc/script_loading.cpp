@@ -243,12 +243,7 @@ namespace gsc
 
 		std::string get_raw_script_file_name(const std::string& name)
 		{
-			if (name.ends_with(".gsh"))
-			{
-				return name;
-			}
-
-			return name + ".gsc";
+			return name;
 		}
 
 		std::string get_script_file_name(const std::string& name)
@@ -390,18 +385,16 @@ namespace gsc
 		using fs_callback = std::pair<xsk::gsc::buffer, std::vector<std::uint8_t>>;
 		fs_callback init_compiler_internal(const xsk::gsc::context*, const std::string& include_name)
 		{
-			const auto real_name = get_raw_script_file_name(include_name);
-
 			std::string file_buffer;
-			if (!read_raw_script_file(real_name, &file_buffer) || file_buffer.empty())
+			if (!read_raw_script_file(include_name, &file_buffer) || file_buffer.empty())
 			{
 				const auto name = get_script_file_name(include_name);
 				if (game::DB_XAssetExists(game::ASSET_TYPE_SCRIPTFILE, name.data()))
 				{
-					return read_compiled_script_file(name, real_name);
+					return read_compiled_script_file(name, include_name);
 				}
 
-				throw std::runtime_error(std::format("Could not load gsc file '{}'", real_name));
+				throw std::runtime_error(std::format("Could not load gsc file '{}'", include_name));
 			}
 
 			std::vector<std::uint8_t> script_data;
