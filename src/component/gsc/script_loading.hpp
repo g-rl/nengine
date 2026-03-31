@@ -21,4 +21,7 @@ namespace gsc
 	loaded_script_t* get_loaded_script(const std::string& name);
 
 	void on_begin_scripts(const std::function<void()>& callback);
+
+	std::string get_function_name(std::uint32_t id);
+	std::string get_script_name(const char* name, bool ignore_cache = false);
 }

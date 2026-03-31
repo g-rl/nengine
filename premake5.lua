@@ -28,6 +28,12 @@ function dependencies.projects()
 	end
 end
 
+newoption {
+	trigger = "copy-to",
+	description = "Optional, copy the EXE to a custom folder after build, define the path here if wanted.",
+	value = "PATH"
+}
+
 dependencies.load()
 
 workspace "iw8-mod"

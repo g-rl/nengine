@@ -74,11 +74,11 @@ namespace scripting
 			scr_add_class_field_hook.invoke<void>(context, classnum, name, canonical_string, offset);
 		}
 
-		void process_script_stub(game::scrContext_t* context, const char* filename)
+		void process_script_stub(game::scrContext_t* context, game::ScriptFile* scriptfile)
 		{
-			current_script_file = filename;
+			current_script_file = scriptfile->name;
 			
-			const auto file_id = atoi(filename);
+			const auto file_id = atoi(scriptfile->name);
 			if (file_id)
 			{
 				current_file_id = static_cast<std::uint16_t>(file_id);
@@ -86,10 +86,10 @@ namespace scripting
 			else
 			{
 				current_file_id = 0;
-				current_file = filename;
+				current_file = scriptfile->name;
 			}
 
-			process_script_hook.invoke<void>(context, filename);
+			process_script_hook.invoke<void>(context, scriptfile);
 		}
 
 		void add_function_sort(unsigned int id, const char* pos)
@@ -110,14 +110,14 @@ namespace scripting
 				}
 			}
 
-			const auto name = scripting::get_token(id);
+			const auto name = gsc::get_function_name(id);
 			auto& itr = script_function_table_sort[filename];
 			itr.insert(itr.end() - 1, {name, pos});
 		}
 
 		void add_function(const std::string& file, unsigned int id, const char* pos)
 		{
-			const auto name = get_token(id);
+			const auto name = gsc::get_function_name(id);
 			script_function_table[file][name] = pos;
 			script_function_table_rev[pos] = {file, name};
 		}
@@ -139,7 +139,7 @@ namespace scripting
 			scr_set_thread_position_hook.invoke<void>(context, thread_name, code_pos);
 		}
 
-		void shutdown_game_pre(const bool free_scripts)
+		void shutdown_game_pre(bool free_scripts)
 		{
 			if (free_scripts)
 			{
@@ -169,16 +169,8 @@ namespace scripting
 			utils::hook::detour sv_initgame_vm_hook;
 			utils::hook::detour g_main_mp_shutdowngame_hook;
 
-			void g_main_mp_shutdowngame_stub(const int full_clear)
+			void g_main_mp_shutdowngame_stub(bool full_clear)
 			{
-				if (!game::Com_FrontEnd_IsInFrontEnd())
-				{
-					printf("==== ShutdownGame (%d) ====\n", full_clear);
-
-					//G_LogPrintf("ShutdownGame:\n");
-					//G_LogPrintf("------------------------------------------------------------\n");
-				}
-
 				shutdown_game_pre(full_clear);
 				g_main_mp_shutdowngame_hook.invoke<void>(full_clear);
 				shutdown_game_post(full_clear);

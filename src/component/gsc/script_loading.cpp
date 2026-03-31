@@ -31,6 +31,9 @@ namespace gsc
 
 		utils::memory::allocator scriptfile_allocator;
 
+		std::unordered_map<std::uint32_t, std::string> cached_ids;
+		std::unordered_map<std::uint32_t, std::string> script_function_names;
+
 		char* script_mem_buf = nullptr;
 
 		std::vector<std::function<void()>> begin_scripts_callbacks;
@@ -226,6 +229,15 @@ namespace gsc
 				loaded_script.devmap = parse_devmap(devmap);
 				loaded_scripts.insert(std::make_pair(file_name, loaded_script));
 
+				// precache all functions in their hashed form for later - this helps us with human readable errors
+				// a std::uint64_t should map to a gsc_ctx->path_name
+				// this is cleared on shutdown next to loaded_scripts
+				for (const auto& func : assembly_ptr->functions)
+				{
+					auto bruh = gsc_ctx->token_id(func->name);
+					script_function_names[bruh] = func->name;
+				}
+
 				printf("Loaded custom gsc '%s'\n", real_name.data());
 
 				return script_file_ptr;
@@ -293,6 +305,10 @@ namespace gsc
 		void load_script(const std::string& name)
 		{
 			const auto scr_context = game::ScriptContext_Server();
+
+			auto token_id = gsc_ctx->token_id(name.data());
+			cached_ids[token_id] = name;
+
 			if (!game::Scr_LoadScript(scr_context, name.data()))
 			{
 				return;
@@ -515,12 +531,7 @@ namespace gsc
 
 	game::ScriptFile* find_script(game::XAssetType type, const char* name, int allow_create_default)
 	{
-		std::string real_name = name;
-		const auto id = static_cast<std::uint16_t>(std::atoi(name));
-		if (id)
-		{
-			real_name = gsc_ctx->token_name(id);
-		}
+		auto real_name = get_script_name(name, true);
 
 		auto* script = load_custom_script(name, real_name);
 		if (script)
@@ -543,6 +554,35 @@ namespace gsc
 	void on_begin_scripts(const std::function<void()>& callback)
 	{
 		begin_scripts_callbacks.push_back(callback);
+	}
+
+	inline std::string get_script_name(const char* name, bool ignore_cache)
+	{
+		std::string real_name = name;
+		const auto id = static_cast<std::uint16_t>(std::atoi(name));
+
+		if (id)
+		{
+			// check if the id passed through is actually our script
+			if (!ignore_cache && cached_ids.contains(id))
+			{
+				return cached_ids[id];
+			}
+
+			real_name = gsc_ctx->token_name(id);
+		}
+
+		return real_name;
+	}
+
+	std::string get_function_name(std::uint32_t id)
+	{
+		if (const auto itr = script_function_names.find(id); itr != script_function_names.end())
+		{
+			return itr->second;
+		}
+
+		return gsc::gsc_ctx->token_name(id);
 	}
 
 	class loading final : public component_interface
@@ -576,6 +616,7 @@ namespace gsc
 			NetConstStrings_GetIndexPlusOneFromName_hook.create(0x10F0F20_b, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
 			NetConstStrings_GetNameFromIndexPlusOne_hook.create(0x10F1030_b, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
 
+			/*
 			command::add("dumplocalization", []()
 			{
 				std::string data;
@@ -592,12 +633,14 @@ namespace gsc
 				printf("Dumped %d locstrings\n", count);
 				utils::io::write_file("iw8-mod/loc_strings.txt", data);
 			});
+			*/
 
 			// clear memory (SV_GameMP_ShutdownGameVM)
 			scripting::on_shutdown([](bool free_scripts, bool is_post_shutdown)
 			{
-				if (!is_post_shutdown)
+				if (free_scripts && is_post_shutdown)
 				{
+					printf("clearing script memory...\n");
 					clear();
 				}
 			});
