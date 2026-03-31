@@ -74,11 +74,11 @@ namespace scripting
 			scr_add_class_field_hook.invoke<void>(context, classnum, name, canonical_string, offset);
 		}
 
-		void process_script_stub(game::scrContext_t* context, game::ScriptFile* scriptfile)
+		void process_script_stub(game::scrContext_t* context, const char* filename)
 		{
-			current_script_file = scriptfile->name;
+			current_script_file = filename;
 			
-			const auto file_id = atoi(scriptfile->name);
+			const auto file_id = atoi(filename);
 			if (file_id)
 			{
 				current_file_id = static_cast<std::uint16_t>(file_id);
@@ -86,10 +86,10 @@ namespace scripting
 			else
 			{
 				current_file_id = 0;
-				current_file = scriptfile->name;
+				current_file = filename;
 			}
 
-			process_script_hook.invoke<void>(context, scriptfile);
+			process_script_hook.invoke<void>(context, filename);
 		}
 
 		void add_function_sort(unsigned int id, const char* pos)
@@ -110,14 +110,14 @@ namespace scripting
 				}
 			}
 
-			const auto name = gsc::get_function_name(id);
+			const auto name = scripting::get_token(id);
 			auto& itr = script_function_table_sort[filename];
 			itr.insert(itr.end() - 1, {name, pos});
 		}
 
 		void add_function(const std::string& file, unsigned int id, const char* pos)
 		{
-			const auto name = gsc::get_function_name(id);
+			const auto name = scripting::get_token(id);
 			script_function_table[file][name] = pos;
 			script_function_table_rev[pos] = {file, name};
 		}
