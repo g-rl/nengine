@@ -15,6 +15,15 @@ namespace game
 	WEAK void(*Cbuf_AddText_sig)(int localClientNum, const char* text) = nullptr;
 	WEAK void(*Com_Error_sig)(int code, const char* fmt, ...) = nullptr;
 
+	// Weapon system (sig-scanned)
+	WEAK void(*PM_Weapon_sig)(pmove_t* pm, pml_t* pml) = nullptr;
+	WEAK void(*PM_Weapon_ProcessHand_sig)(pmove_t* pm, pml_t* pml, int delayedAction, int hand) = nullptr;
+	WEAK void(*PM_BeginWeaponChange_sig)(pmove_t* pm, pml_t* pml, const Weapon* newweapon, bool isNewAlternate, bool quick) = nullptr;
+	WEAK void(*PM_Weapon_Idle_sig)(pmove_t* pm, int hand) = nullptr;
+	WEAK uint64_t(*PM_GetWeaponFireButton_sig)(const pmove_t* pm, const Weapon* weapon, int hand, bool fromGamepad) = nullptr;
+	WEAK const Weapon*(*BG_GetCurrentWeaponForPlayer_sig)(void* weaponMap, const playerState_s* ps) = nullptr;
+	WEAK int(*BG_PlayerLastWeaponHand_sig)(void* weaponMap, playerState_s* ps) = nullptr;
+
 	/***************************************************************
 	 * Functions
 	 **************************************************************/

@@ -62,7 +62,7 @@ namespace patches
 			}
 
 			// yeee
-			const auto flags = cg->predictedPlayerstate->pm_flags;
+			const auto flags = cg->predictedPlayerstate->pm_flags[0];
 
 			game::vec4_t on_col  = { 0.f, 1.f, 0.f, 1.f };
 			game::vec4_t off_col = { 0.6f, 0.6f, 0.6f, 1.f };

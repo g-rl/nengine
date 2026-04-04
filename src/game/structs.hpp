@@ -1092,21 +1092,264 @@ namespace game
 		vec4_t outline_glow_color_;			// 0x0028
 	};
 
+	// =========================================================================
+	// Weapon (0x3C / 60 bytes)
+	// =========================================================================
+	struct Weapon
+	{
+		unsigned __int16 weaponIdx;                  // 0x00
+		unsigned __int16 stickerIndices[4];           // 0x02
+		unsigned __int16 weaponClientLoadout;         // 0x0A
+		unsigned __int16 weaponOthers;                // 0x0C
+		unsigned __int8 weaponAttachments[13];        // 0x0E
+		unsigned __int8 attachmentVariationIndices[29]; // 0x1B
+		unsigned __int8 weaponCamo;                   // 0x38
+		unsigned __int8 weaponLootId;                 // 0x39
+		unsigned __int8 scopeVariation;               // 0x3A
+		unsigned __int8 visualAttachmentHighAddr;     // 0x3B
+	}; // Size: 0x3C (60)
+
+	static_assert(sizeof(Weapon) == 0x3C);
+
+	// =========================================================================
+	// BgWeaponHandle (4 bytes)
+	// =========================================================================
+	struct BgWeaponHandle
+	{
+		unsigned __int16 m_mapEntryId;               // 0x00
+		unsigned __int16 m_mapEntryIndex;             // 0x02
+	}; // Size: 0x04
+
+	static_assert(sizeof(BgWeaponHandle) == 0x04);
+
+	// =========================================================================
+	// PlayerActiveWeaponState (0x50 / 80 bytes per hand)
+	// =========================================================================
+	struct PlayerActiveWeaponState
+	{
+		int prevWeapAnim;                            // 0x00
+		int weapAnim;                                // 0x04
+		int weaponPrevFireTime;                      // 0x08
+		int weaponFireTime;                          // 0x0C
+		int nextFireTimeCounter;                     // 0x10
+		int weaponTime;                              // 0x14
+		int weaponDelay;                             // 0x18
+		int weaponStartingKickTime;                  // 0x1C
+		int weaponEndingKickTime;                    // 0x20
+		int weaponState;                             // 0x24
+		int weapHandFlags;                           // 0x28
+		int weaponFrameTimeRemainder;                // 0x2C
+		int rechamberNextFireTime;                   // 0x30
+		unsigned int weaponShotCount;                // 0x34
+		unsigned int meleeHitCount;                  // 0x38
+		unsigned int ammoInClipBeforeReload;         // 0x3C
+		int weaponChargeAmount;                      // 0x40
+		int weaponChargeCooldownTime;                // 0x44
+		int weaponFiredAtMaxCharge;                  // 0x48
+		int queuedActionState;                       // 0x4C
+	}; // Size: 0x50 (80)
+
+	static_assert(sizeof(PlayerActiveWeaponState) == 0x50);
+
+	// =========================================================================
+	// PlayerEquippedWeaponState (0x10 / 16 bytes per slot, 15 slots)
+	// =========================================================================
+	struct PlayerEquippedWeaponState
+	{
+		bool usedBefore;                             // 0x00
+		bool dualWielding;                           // 0x01
+		bool inAltMode;                              // 0x02
+		char _pad03;                                 // 0x03
+		int zoomLevelIndex;                          // 0x04
+		bool thermalEnabled;                         // 0x08
+		bool hybridScope;                            // 0x09
+		unsigned __int8 offhandSlot;                 // 0x0A
+		char _pad0B;                                 // 0x0B
+		int slot;                                    // 0x0C
+	}; // Size: 0x10 (16)
+
+	static_assert(sizeof(PlayerEquippedWeaponState) == 0x10);
+
+	// =========================================================================
+	// SprintState (0x24 / 36 bytes)
+	// =========================================================================
+	struct SprintState
+	{
+		int sprintButtonUpRequired;                  // 0x00
+		int sprintRestore;                           // 0x04
+		int sprintRestoreDelayStart;                 // 0x08
+		int sprintDelay;                             // 0x0C
+		int lastSprintStart;                         // 0x10
+		int lastSprintEnd;                           // 0x14
+		int lastSuperSprintStart;                    // 0x18
+		int lastSuperSprintEnd;                      // 0x1C
+		int sprintStartMaxLength;                    // 0x20
+	}; // Size: 0x24 (36)
+
+	static_assert(sizeof(SprintState) == 0x24);
+
+	// =========================================================================
+	// LightSample (0x02 / 2 bytes)
+	// =========================================================================
+	struct LightSample
+	{
+		bool bValid;                                 // 0x00
+		unsigned __int8 value;                       // 0x01
+	}; // Size: 0x02 (2)
+
+	static_assert(sizeof(LightSample) == 0x02);
+
+	// =========================================================================
+	// UserCmdClientBits (0x1C / 28 bytes) - bitarray<200>
+	// =========================================================================
+	struct UserCmdClientBits
+	{
+		unsigned int data[7];                        // 0x00
+	}; // Size: 0x1C (28)
+
+	static_assert(sizeof(UserCmdClientBits) == 0x1C);
+
+	// =========================================================================
+	// usercmd_s (0x108 / 264 bytes)
+	// =========================================================================
+	struct usercmd_s
+	{
+		unsigned __int64 buttons;                    // 0x00
+		unsigned int stateFlags;                     // 0x08
+		int serverTime;                              // 0x0C
+		int commandTime;                             // 0x10
+		int inputTime;                               // 0x14
+		int angles[3];                               // 0x18
+		Weapon weapon;                               // 0x24
+		Weapon offHand;                              // 0x60
+		char forwardmove;                            // 0x9C
+		char rightmove;                              // 0x9D
+		char pitchmove;                              // 0x9E
+		char yawmove;                                // 0x9F
+		unsigned __int16 meleeChargeEnt;             // 0xA0
+		unsigned __int8 packedControllerAim;         // 0xA2
+		char selectedLoc[2];                         // 0xA3
+		char selectedAngle;                          // 0xA5
+		char remoteControlAngles[2];                 // 0xA6
+		char remoteControlMove[3];                   // 0xA8
+		char mlgSelectedLoc[2];                      // 0xAB
+		char mlgSelectedAngle;                       // 0xAD
+		LightSample lightSample;                     // 0xAE
+		__int16 avoidForward;                        // 0xB0
+		__int16 avoidRight;                          // 0xB2
+		unsigned __int8 upmove;                      // 0xB4
+		unsigned __int8 downmove;                    // 0xB5
+		bool inputFromGamepad;                       // 0xB6
+		bool isAlternate;                            // 0xB7
+		__int16 vehAngles[3];                        // 0xB8
+		float vehOrgX;                               // 0xC0
+		float vehOrgY;                               // 0xC4
+		float vehOrgZ;                               // 0xC8
+		float gunPitch;                              // 0xCC
+		float gunYaw;                                // 0xD0
+		float gunXOfs;                               // 0xD4
+		float gunYOfs;                               // 0xD8
+		float gunZOfs;                               // 0xDC
+		float rollSensitivity;                       // 0xE0
+		__int16 scriptedMeleeTarget;                 // 0xE4
+		unsigned __int16 airburstMarkDistance;        // 0xE6
+		UserCmdClientBits sightedClientsMask;        // 0xE8
+		unsigned __int16 extrapolationMax;           // 0x104
+		unsigned __int16 interpolationMax;           // 0x106
+	}; // Size: 0x108 (264)
+
+	static_assert(sizeof(usercmd_s) == 0x108);
+
+	// =========================================================================
+	// playerState_s - Retail build layout (partial mapping)
+	// =========================================================================
 	struct playerState_s
 	{
-		char what[20];
-		int pm_type; // 20
-		int pm_time; // 24
-		int pm_flags; // 28
-		// 24
+		char _pad000[0x0C];                          // 0x000
+		int pm_type;                                 // 0x00C
+		char _pad010[0x04];                          // 0x010
+		unsigned int pm_flags[2];                    // 0x014
+		unsigned int otherFlags[2];                  // 0x01C
+		unsigned int linkFlags;                      // 0x024
+		char _pad028[0x44];                          // 0x028
+		int grenadeTimeLeft;                         // 0x06C
+		char _pad070[0x150];                         // 0x070
+		int clientNum;                               // 0x1C0
+		char _pad1C4[0x158];                         // 0x1C4
+		SprintState sprintState;                     // 0x31C
+		char _pad340[0x1CC];                         // 0x340
+		PlayerActiveWeaponState weapState[2];        // 0x50C
+		BgWeaponHandle weaponsEquipped[15];          // 0x5AC
+		PlayerEquippedWeaponState weapEquippedData[15]; // 0x5E8
+		char _pad6D8[0x14];                          // 0x6D8
+		int offhandGestureFlags;                     // 0x6EC
+		char _pad6F0[0x08];                          // 0x6F0
+		unsigned __int16 weaponHandleMapEntryId;     // 0x6F8
+		char _pad6FA[0x0A];                          // 0x6FA
+		unsigned int weapFlags[2];                   // 0x704
+		float fWeaponPosFrac;                        // 0x70C
+		char _pad710[0xA38];                         // 0x710
+		unsigned int perks[2];                       // 0x1148
 	};
 
+	static_assert(offsetof(playerState_s, pm_type) == 0x00C);
+	static_assert(offsetof(playerState_s, pm_flags) == 0x014);
+	static_assert(offsetof(playerState_s, sprintState) == 0x31C);
+	static_assert(offsetof(playerState_s, weapState) == 0x50C);
+	static_assert(offsetof(playerState_s, weaponsEquipped) == 0x5AC);
+	static_assert(offsetof(playerState_s, weapEquippedData) == 0x5E8);
+	static_assert(offsetof(playerState_s, weapFlags) == 0x704);
+	static_assert(offsetof(playerState_s, fWeaponPosFrac) == 0x70C);
+	static_assert(offsetof(playerState_s, perks) == 0x1148);
+
+	// =========================================================================
+	// pmove_t - Retail build layout (partial)
+	// =========================================================================
 	struct pmove_t
 	{
-		void* vtable; // 0 lol
-		playerState_s* ps; // 8
-		// 16
-	}; // 928
+		void* vtable;                                // 0x000
+		playerState_s* ps;                           // 0x008
+		usercmd_s cmd;                               // 0x010
+		usercmd_s oldcmd;                            // 0x118
+		char _pad220[0x128];                         // 0x220
+		void* m_bgHandler;                           // 0x348
+		char _pad350[0x30];                          // 0x350
+		void* weaponMap;                             // 0x380
+	};
+
+	static_assert(offsetof(pmove_t, ps) == 0x008);
+	static_assert(offsetof(pmove_t, cmd) == 0x010);
+	static_assert(offsetof(pmove_t, oldcmd) == 0x118);
+	static_assert(offsetof(pmove_t, m_bgHandler) == 0x348);
+	static_assert(offsetof(pmove_t, weaponMap) == 0x380);
+
+	// =========================================================================
+	// pml_t - Player movement locals (per-frame scratch)
+	// =========================================================================
+	struct pml_t
+	{
+		char _pad000[0x64];                          // 0x000
+		unsigned int holdrand;                       // 0x064
+	};
+
+	static_assert(offsetof(pml_t, holdrand) == 0x064);
+
+	// =========================================================================
+	// Weapon State Constants
+	// =========================================================================
+	enum weaponstate_t
+	{
+		WEAPON_READY = 0,
+		WEAPON_RAISING = 1,
+		WEAPON_RAISING_ALTSWITCH = 2,
+		WEAPON_DROPPING = 7,
+		WEAPON_DROPPING_QUICK = 8,
+		WEAPON_DROPPING_ALT = 9,
+		WEAPON_DROPPING_ALT_AKIMBO = 11,
+		WEAPON_FIRING = 16,
+		WEAPON_FIRING_LAST = 21,
+		WEAPON_RECHAMBERING = 50,
+	};
 
 	struct __declspec(align(8)) GPMove : pmove_t
 	{
