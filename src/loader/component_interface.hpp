@@ -1,9 +1,15 @@
 #pragma once
 
+#include <memory/signature_store.hpp>
+
 class component_interface
 {
 public:
 	virtual ~component_interface()
+	{
+	}
+
+	virtual void find_signatures(memory::signature_store& /*batch*/)
 	{
 	}
 

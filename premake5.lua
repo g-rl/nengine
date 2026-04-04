@@ -95,5 +95,9 @@ workspace "iw8-mod"
 
         dependencies.imports()
 
+        if _OPTIONS["copy-to"] then
+            postbuildcommands {"copy /y \"$(TargetPath)\" \"" .. _OPTIONS["copy-to"] .. "\""}
+        end
+
     group "Dependencies"
     dependencies.projects()

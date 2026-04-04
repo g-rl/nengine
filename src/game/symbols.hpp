@@ -5,6 +5,17 @@
 namespace game
 {
 	/***************************************************************
+	 * Sig-scanned function pointers (resolved at startup)
+	 *
+	 * These are plain typed globals, filled in by components via
+	 * find_signatures(). Call them directly: game::Cbuf_AddText_sig(...).
+	 * Coexists with the RVA-based symbol<T> entries below.
+	 **************************************************************/
+
+	WEAK void(*Cbuf_AddText_sig)(int localClientNum, const char* text) = nullptr;
+	WEAK void(*Com_Error_sig)(int code, const char* fmt, ...) = nullptr;
+
+	/***************************************************************
 	 * Functions
 	 **************************************************************/
 

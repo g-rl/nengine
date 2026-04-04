@@ -125,4 +125,4 @@ namespace patches
 	};
 }
 
-REGISTER_COMPONENT(patches::component)
+//REGISTER_COMPONENT(patches::component)

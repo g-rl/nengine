@@ -45,6 +45,7 @@ public:
 	static void post_unpack();
 	static void pre_destroy();
 	static void clean();
+	static void run_signature_scan();
 
 	static void* load_import(const std::string& library, const std::string& function);
 

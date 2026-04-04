@@ -50,11 +50,13 @@ namespace command
 	public:
 		void post_unpack() override
 		{
+			/*
 			add("map_restart", []()
 			{
 				auto SV_CmdsMP_RequestMapRestart = reinterpret_cast<void(*)(bool load_scripts, bool migrate)>(0x136C310_b);
 				SV_CmdsMP_RequestMapRestart(1, 0);
 			});
+			*/
 
 			add("test", []()
 			{
