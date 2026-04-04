@@ -4,6 +4,7 @@
 #include "scheduler.hpp"
 
 #include "game/game.hpp"
+#include <identification/game.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -150,12 +151,15 @@ namespace patches
 
 		void post_unpack() override
 		{
-			scheduler::loop([]()
+			if (identification::game::is("1.20.4-replay"))
 			{
-				render_pm_debug();
-			}, scheduler::renderer);
+				scheduler::loop([]()
+				{
+					render_pm_debug();
+				}, scheduler::renderer);
+			}
 		}
 	};
 }
 
-//REGISTER_COMPONENT(patches::component)
+REGISTER_COMPONENT(patches::component)

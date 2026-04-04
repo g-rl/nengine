@@ -4,6 +4,7 @@
 #include "filesystem.hpp"
 
 #include "game/game.hpp"
+#include <identification/game.hpp>
 
 #include <utils/io.hpp>
 #include <utils/hook.hpp>
@@ -196,9 +197,11 @@ namespace filesystem
 	public:
 		void post_unpack() override
 		{
-			fs_startup_hook.create(0x13DAFC0_b, fs_startup_stub);
-
-			utils::hook::jump(0x13F5340_b, sys_default_install_path_stub);
+			if (identification::game::is("1.20.4-replay"))
+			{
+				fs_startup_hook.create(0x13DAFC0_b, fs_startup_stub);
+				utils::hook::jump(0x13F5340_b, sys_default_install_path_stub);
+			}
 		}
 	};
 }

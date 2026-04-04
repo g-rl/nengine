@@ -3,6 +3,7 @@
 #include "command.hpp"
 
 #include "game/game.hpp"
+#include <identification/game.hpp>
 //#include "game/dvars.hpp"
 
 //#include "console.hpp"
@@ -58,10 +59,13 @@ namespace command
 			});
 			*/
 
-			add("test", []()
+			if (identification::game::is("1.20.4-replay"))
 			{
-				printf("test\n");
-			});
+				add("test", []()
+				{
+					printf("test\n");
+				});
+			}
 		}
 	};
 }

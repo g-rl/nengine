@@ -3,6 +3,7 @@
 
 #include "scheduler.hpp"
 #include "game/game.hpp"
+#include <identification/game.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/concurrency.hpp>
@@ -181,8 +182,11 @@ namespace scheduler
 
 		void post_unpack() override
 		{
-			r_end_frame_hook.create(0x1966950_b, r_end_frame_stub);
-			main_frame_hook.create(0x12AB830_b, scheduler::main_frame_stub);
+			if (identification::game::is("1.20.4-replay"))
+			{
+				r_end_frame_hook.create(0x1966950_b, r_end_frame_stub);
+				main_frame_hook.create(0x12AB830_b, scheduler::main_frame_stub);
+			}
 		}
 
 		void pre_destroy() override
