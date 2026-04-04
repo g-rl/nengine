@@ -241,6 +241,99 @@ namespace patches
 		{
 			return true;
 		}
+
+		inline game::FontGlowStyle s_legacyShadow = {
+			-0.4f, 0.f,
+			{ -0.001f, -0.001f },
+			{ 0.f, 0.f, 0.f, 1.f },
+			0.f, 0.f,
+			{ 0.f, 0.f, 0.f, 0.f }
+		};
+
+		void render_pm_debug()
+		{
+			// if nothing is going on, we dont use this
+			if (!utils::hook::invoke<bool>(0x12B0290_b)) // Com_IsGameLocalServerRunning
+			{
+				return;
+			}
+
+			// we ignore vlobby too
+			if (game::Com_FrontEnd_IsInFrontEnd())
+			{
+				return;
+			}
+
+			static game::GfxFont* overlay_font = utils::hook::invoke<game::GfxFont*>(0x19329B0_b, "fonts/fira_mono_bold.ttf", 36); // R_RegisterFont
+			if (!overlay_font) return;
+
+			auto* font_glow_style = &s_legacyShadow;
+			const bool font_use_post = false;
+
+			auto draw_text = [&](const char* text, float x, float y, float scale, float* color) {
+				// R_AddCmdDrawText
+				utils::hook::invoke<void>(0x1965330_b, text, std::numeric_limits<int>::max(), overlay_font, overlay_font->height, x, y, scale, scale, 0.f,
+					color, font_glow_style, font_use_post);
+			};
+
+			//int width = *reinterpret_cast<int*>(0xEF2DEC0_b);
+			//int height = *reinterpret_cast<int*>(0xEF2DEC4_b);
+
+			//printf("trying 1\n");
+
+			const float scale = 0.80f;
+			const float line_h = static_cast<float>(overlay_font->height) * scale;
+
+			game::cg_t* cg = *reinterpret_cast<game::cg_t**>(0xF26F940_b);
+			if (!cg || !cg->predictedPlayerstate)
+			{
+				return;
+			}
+
+			// yeee
+			const auto flags = cg->predictedPlayerstate->pm_flags;
+
+			game::vec4_t on_col  = { 0.f, 1.f, 0.f, 1.f };
+			game::vec4_t off_col = { 0.6f, 0.6f, 0.6f, 1.f };
+
+			const float x = 50.f;
+			float y = 100.f;
+
+#define DRAW_FLAG(flag_val, flag_name) \
+			draw_text(#flag_name, x, y, scale, ( (flags & flag_val) != 0 ) ? (float*)on_col : (float*)off_col); \
+			y += line_h;
+
+			DRAW_FLAG(0x1,        PMF_PRONE)
+			DRAW_FLAG(0x2,        PMF_DUCKED)
+			DRAW_FLAG(0x4,        PMF_MANTLE)
+			DRAW_FLAG(0x8,        PMF_LADDER)
+			DRAW_FLAG(0x10,       PMF_SIGHT_AIMING)
+			DRAW_FLAG(0x20,       PMF_BACKWARDS_RUN)
+			DRAW_FLAG(0x40,       PMF_WALKING)
+			DRAW_FLAG(0x80,       PMF_TIME_HARDLANDING)
+			DRAW_FLAG(0x100,      PMF_TIME_KNOCKBACK)
+			DRAW_FLAG(0x200,      PMF_PRONEMOVE_OVERRIDDEN)
+			DRAW_FLAG(0x400,      PMF_RESPAWNED)
+			DRAW_FLAG(0x800,      PMF_FROZEN)
+			DRAW_FLAG(0x1000,     PMF_LADDER_FALL)
+			DRAW_FLAG(0x2000,     PMF_JUMPING)
+			DRAW_FLAG(0x4000,     PMF_SPRINTING)
+			DRAW_FLAG(0x8000,     PMF_SHELLSHOCKED)
+			DRAW_FLAG(0x10000,    PMF_MELEE_CHARGE)
+			DRAW_FLAG(0x20000,    PMF_NO_SPRINT)
+			DRAW_FLAG(0x40000,    PMF_NO_JUMP)
+			DRAW_FLAG(0x80000,    PMF_REMOTE_CONTROLLING)
+			DRAW_FLAG(0x100000,   PMF_SLIDE)
+			DRAW_FLAG(0x800000,   PMF_NO_STAND)
+			DRAW_FLAG(0x1000000,  PMF_NO_CROUCH)
+			DRAW_FLAG(0x2000000,  PMF_NO_PRONE)
+			DRAW_FLAG(0x4000000,  PMF_NO_LEAN)
+			DRAW_FLAG(0x8000000,  PMF_NO_MELEE)
+			DRAW_FLAG(0x10000000, PMF_NO_FIRE)
+			DRAW_FLAG(0x20000000, PMF_NO_LADDER)
+			DRAW_FLAG(0x40000000, PMF_NO_MANTLE)
+#undef DRAW_FLAG
+		}
 	}
 
 	class component final : public component_interface
@@ -248,6 +341,7 @@ namespace patches
 	public:
 		void post_start() override
 		{
+			/*
 			utils::hook::set<uint8_t>(0x3061A0_b, 0xC3); // mystery function for Windows 11 users
 
 			// name dvar
@@ -307,73 +401,21 @@ namespace patches
 
 				return scheduler::cond_end;
 			}, pipeline);
+			*/
 		}
 
 		void post_unpack() override
 		{
-			// allows settext method to work with strings that are not localized
-			//g_find_config_string_index_hook.create(0x10E9140_b, g_find_config_string_index_stub);
+			scheduler::loop([]()
+			{
+				render_pm_debug();
+			}, scheduler::renderer);
 
-			// use name dvar
-			utils::hook::jump(0x13FD3A0_b, live_get_local_client_name_stub);
+			// add data for pmove stuff
 
-			// dw
-			utils::hook::jump(0x1A04BD0_b, signin_state_stub); // LUI_CoD_LuaCall_betSignInState
-			utils::hook::jump(0x1AC2570_b, is_paid_user_stub); // LiveStorage_IsPaidUser
-
-			//utils::hook::jump(0x1528470_b, live_is_offline_tool);				// Live_IsOfflineTool
-			utils::hook::jump(0x1528490_b, live_is_user_signed_into_dw_stub);	// Live_IsUserSignedInToDw
-			utils::hook::jump(0x1665EE0_b, live_is_signed_in_stub);				// Live_IsSignedIn
-
-			utils::hook::jump(0x17EC930_b, dw_log_on_status_stub);				// dwGetLogOnStatus
-			utils::hook::jump(0x12A1EB0_b, get_activate_stats_source_stub);
-			utils::hook::jump(0x19B96A0_b, lui_is_demo_build_stub);				// LUI_IsDemoBuild
-
-			// bgs
-			utils::hook::nop(0x12AFAE5_b, 40); // BGS init (Com_Init_Try_Block_Function)
-			utils::hook::set<uint8_t>(0x1665AC0_b, 0xC3); // BGS connect
-			utils::hook::set<uint8_t>(0x165F300_b, 0xC3); // BGS shutdown
-
-			// patch ui_maxclients limit
-			utils::hook::nop(0x0F30210_b, 5);
-			utils::hook::nop(0x119E51D_b, 5);
-			utils::hook::nop(0x136B8F8_b, 5);
-			utils::hook::nop(0x16029F0_b, 5);
-			utils::hook::nop(0x19E19A3_b, 5);
-
-			// patch party_maxplayers limit
-			utils::hook::nop(0x0F252EE_b, 5);
-			utils::hook::nop(0x119D23F_b, 5);
-			utils::hook::nop(0x10769B9_b, 5);
-			utils::hook::set(0x10769B9_b, 0xC3);
-			utils::hook::nop(0x0F24B4B_b, 5);
-			utils::hook::set(0x0F24B4B_b, 0xC3);
-			utils::hook::nop(0x16029E2_b, 5);
-			utils::hook::nop(0x119E52B_b, 5);
-			utils::hook::nop(0x0f252EE_b, 5);
-			utils::hook::nop(0x119F13A_b, 5);
-			utils::hook::nop(0x10D32E2_b, 5);
-
-			// removes "Services aren't ready yet." print
-			utils::hook::nop(0x1504374_b, 5);
-
-			// bypass wz collision (missing file)
-			utils::hook::jump(0xD6B7D0_b, set_transient_mode_stub); // CL_TransientsCollisionMP_SetTransientMode
-
-			// add commands
-			//game::Cmd_AddCommandInternal("addbot", Cmd_AddBot_f, &addbot_f_VAR);
-			//game::Cmd_AddCommandInternal("addtestclient", Cmd_AddTestClient_f, &addTestClient_f_VAR);
-
-			// modify strings to reveal maps not working
-			//seh_string_ed_get_string_hook.create(0x13CC2A0_b, seh_string_ed_get_string_stub);
-
-			// debug LUI errors more in depth
-			utils::hook::call(0x19BCD56_b, set_table_string_stub); // get name for event in LuaShared_SetTableString
-			utils::hook::call(0x19BD9C4_b, report_error_with_info_stub); // LUI_ReportErrorWithInfo
-
-			//load_luafileasset_hook.create(0xF61630_b, load_luafileasset_stub);
+			// 
 		}
 	};
 }
 
-//REGISTER_COMPONENT(patches::component)
+REGISTER_COMPONENT(patches::component)

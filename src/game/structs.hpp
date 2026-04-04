@@ -1069,4 +1069,50 @@ namespace game
 		GAME_MODE_MP = 0x2,
 		GAME_MODE_CP = 0x3,
 	};
+
+	struct GfxFont
+	{
+		const char* name;
+		int height;
+		int ttf_count;
+		void* ttf_defs[4];
+	};
+
+	struct FontGlowStyle
+	{
+		float glow_min_distance_;			// 0x0000
+		float glow_max_distance_;			// 0x0004
+		vec2_t glow_uv_offset_;				// 0x0008
+		vec4_t glow_color_;					// 0x0010
+		float outline_glow_min_distance_;	// 0x0020
+		float outline_glow_max_distance_;	// 0x0024
+		vec4_t outline_glow_color_;			// 0x0028
+	};
+
+	struct playerState_s
+	{
+		char what[20];
+		int pm_type; // 20
+		int pm_time; // 24
+		int pm_flags; // 28
+		// 24
+	};
+
+	struct pmove_t
+	{
+		void* vtable; // 0 lol
+		playerState_s* ps; // 8
+		// 16
+	}; // 928
+
+	struct __declspec(align(8)) GPMove : pmove_t
+	{
+		bool m_isUserMoveWorker;
+	};
+
+	struct cg_t
+	{
+		void* idk;
+		playerState_s* predictedPlayerstate; // 8
+	};
 }

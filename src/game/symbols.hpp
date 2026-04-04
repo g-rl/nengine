@@ -94,6 +94,8 @@ namespace game
 	WEAK symbol<void(GameModeType gamemode, bool wasGameRunning)> Com_GameMode_SetDesiredGameMode{0x10C88F0};
 	WEAK symbol<GameModeType()> Com_GameMode_GetActiveGameMode{0x10C86E0};
 
+	WEAK symbol<int(const char* text, int max_chars, GfxFont* font)> R_TextWidth{0x1932DA0};
+
 	/*
 	WEAK symbol<void(const char* map, const char* gameType, int clientCount, int agentCount, bool hardcore,
 		bool mapIsPreloaded, bool migrate)> SV_CmdsMP_StartMapForParty{ 0xC4D150 };

@@ -145,14 +145,7 @@ namespace
 				}
 				utils::hook::set(system_parameters_info, system_parameters_info_a);
 
-				/*
-				auto* exit_process = main_exe.get_iat_entry("kernel32.dll", "ExitProcess");
-				if (!exit_process)
-				{
-					MSG_BOX_ERROR("could not find import ExitProcess");
-				}
-				utils::hook::set(exit_process, exit_hook);
-				*/
+				utils::hook::set(0x2351A08_b, exit_hook);
 
 				if (!component_loader::post_load())
 				{

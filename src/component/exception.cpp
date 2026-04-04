@@ -169,4 +169,4 @@ namespace exception
 	};
 }
 
-//REGISTER_COMPONENT(exception::component)
+REGISTER_COMPONENT(exception::component)
