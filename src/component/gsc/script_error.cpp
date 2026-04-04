@@ -314,6 +314,7 @@ namespace gsc
 			utils::hook::call(0x1316777_b, compile_error_stub); // ^
 			utils::hook::call(0x13168DD_b, find_variable_stub); // Scr_EmitFunction_Precompiled
 
+			/*
 			// Restore basic error messages for commonly used scr functions
 #define MEME_DETOUR(address, func) func##_hook.create(address, func);
 
@@ -328,8 +329,9 @@ namespace gsc
 			MEME_DETOUR(0x1325220_b, scr_get_pointer_type);
 			MEME_DETOUR(0x1325580_b, scr_get_type);
 			MEME_DETOUR(0x1325610_b, scr_get_type_name);
+			*/
 		}
 	};
 }
 
-REGISTER_COMPONENT(gsc::error)
+//REGISTER_COMPONENT(gsc::error)

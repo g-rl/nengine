@@ -121,4 +121,4 @@ namespace console
 	};
 }
 
-REGISTER_COMPONENT(console::component)
+//REGISTER_COMPONENT(console::component)

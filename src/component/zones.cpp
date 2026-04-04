@@ -163,4 +163,4 @@ namespace zones
 	};
 }
 
-REGISTER_COMPONENT(zones::component)
+//REGISTER_COMPONENT(zones::component)

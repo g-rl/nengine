@@ -76,7 +76,7 @@ workspace "iw8-mod"
 	    defines {"DEBUG", "_DEBUG"}
     filter {}
 
-    project "discord_game_sdk"
+    project "XInput9_1_0"
         kind "SharedLib"
         language "C++"
 

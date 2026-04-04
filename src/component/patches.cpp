@@ -365,7 +365,7 @@ namespace patches
 			//game::Cmd_AddCommandInternal("addtestclient", Cmd_AddTestClient_f, &addTestClient_f_VAR);
 
 			// modify strings to reveal maps not working
-			seh_string_ed_get_string_hook.create(0x13CC2A0_b, seh_string_ed_get_string_stub);
+			//seh_string_ed_get_string_hook.create(0x13CC2A0_b, seh_string_ed_get_string_stub);
 
 			// debug LUI errors more in depth
 			utils::hook::call(0x19BCD56_b, set_table_string_stub); // get name for event in LuaShared_SetTableString
@@ -376,4 +376,4 @@ namespace patches
 	};
 }
 
-REGISTER_COMPONENT(patches::component)
+//REGISTER_COMPONENT(patches::component)

@@ -136,19 +136,23 @@ namespace
 					return;
 				}
 
-				auto* exit_process = utils::nt::library{}.get_iat_entry("kernel32.dll", "ExitProcess");
-				if (!exit_process)
-				{
-					MSG_BOX_ERROR("could not find import ExitProcess");
-				}
-				utils::hook::set(exit_process, exit_hook);
+				const utils::nt::library main_exe(GetModuleHandleA(nullptr));
 
-				auto* system_parameters_info = utils::nt::library{}.get_iat_entry("user32.dll", "SystemParametersInfoA");
+				auto* system_parameters_info = main_exe.get_iat_entry("user32.dll", "SystemParametersInfoA");
 				if (!system_parameters_info)
 				{
 					MSG_BOX_ERROR("could not find import SystemParametersInfoA");
 				}
 				utils::hook::set(system_parameters_info, system_parameters_info_a);
+
+				/*
+				auto* exit_process = main_exe.get_iat_entry("kernel32.dll", "ExitProcess");
+				if (!exit_process)
+				{
+					MSG_BOX_ERROR("could not find import ExitProcess");
+				}
+				utils::hook::set(exit_process, exit_hook);
+				*/
 
 				if (!component_loader::post_load())
 				{
@@ -165,18 +169,37 @@ namespace
 	}
 }
 
-extern "C" __declspec(dllexport) int DiscordCreate()
-{
-	//CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)entry_point, 0, 0, 0);
-	return 1;
+template <typename T>
+inline T GetProxyExport(const std::string& libName, const std::string& exportName) {
+	char dir[MAX_PATH]{ 0 };
+	GetSystemDirectoryA(dir, sizeof(dir));
+
+	const auto lib = utils::nt::library::load(dir + "/"s + libName);
+	return lib.get_proc<T>(exportName.c_str());
+}
+
+extern "C" {
+	__declspec(dllexport) DWORD XInputGetCapabilities(DWORD dwUserIndex, DWORD dwFlags, struct XINPUT_CAPABILITIES* pCapabilities) {
+		static auto func = GetProxyExport<decltype(&XInputGetCapabilities)>("XInput9_1_0.dll", "XInputGetCapabilities");
+		return func(dwUserIndex, dwFlags, pCapabilities);
+	}
+
+	__declspec(dllexport) DWORD XInputSetState(DWORD dwUserIndex, struct XINPUT_VIBRATION* pVibration) {
+		static auto func = GetProxyExport<decltype(&XInputSetState)>("XInput9_1_0.dll", "XInputSetState");
+		return func(dwUserIndex, pVibration);
+	}
+
+	__declspec(dllexport) DWORD XInputGetState(DWORD dwUserIndex, struct XINPUT_STATE* pState) {
+		static auto func = GetProxyExport<decltype(&XInputGetState)>("XInput9_1_0.dll", "XInputGetState");
+		return func(dwUserIndex, pState);
+	}
 }
 
 BOOL WINAPI DllMain(HMODULE hModule, DWORD reason, LPVOID lpVoid)
 {
-	game::load_base_address();
-
 	if (reason == DLL_PROCESS_ATTACH)
 	{
+		game::load_base_address();
 		main();
 	}
 
