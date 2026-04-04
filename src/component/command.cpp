@@ -8,7 +8,6 @@
 //#include "console.hpp"
 //#include "game_console.hpp"
 #include "scheduler.hpp"
-#include "dvars.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>

@@ -1057,10 +1057,13 @@ namespace game
 		static_assert(sizeof(iw8_1_19::GfxWorld) == 17776);
 	}
 
+#pragma warning(push)
+#pragma warning(disable: 4324)
 	struct __declspec(align(8)) GameStateInfo
 	{
 		bool usingRecipe;
 	};
+#pragma warning(pop)
 
 	enum GameModeType : std::uint32_t
 	{

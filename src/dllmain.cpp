@@ -107,9 +107,6 @@ namespace
 
 	void main()
 	{
-		game::XUID xuid{};
-		xuid.random_xuid();
-
 		enable_dpi_awareness();
 
 		// This requires admin privilege, but I suppose many
