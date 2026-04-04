@@ -480,4 +480,5 @@ namespace gsc
 	};
 }
 
+// this has problems basically. just let it be for now :/
 //REGISTER_COMPONENT(gsc::extension)

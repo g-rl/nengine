@@ -307,6 +307,8 @@ namespace gsc
 	public:
 		void post_unpack() override
 		{
+			// TODO: this works great in IW8, but we need to make it multi-game now
+
 			scr_emit_function_hook.create(0x1316800_b, scr_emit_function_stub);
 
 			// change Sys_Error -> Com_Error + advanced messages

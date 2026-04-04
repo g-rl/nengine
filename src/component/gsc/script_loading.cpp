@@ -590,6 +590,8 @@ namespace gsc
 	public:
 		void post_unpack() override
 		{
+			// TODO: this code should only run on 1.20.4 & 1.20.4-replay!!! iw8-mod's stuff works otherwise.
+
 			// Allocate script memory (PMem doesn't work)
 			db_alloc_x_zone_memory_internal_hook.create(0x11A8C90_b, db_alloc_x_zone_memory_internal_stub);
 
@@ -612,29 +614,6 @@ namespace gsc
 			// execute main handle after G_LoadStructs (now called G_Spawn_LoadStructs)
 			g_load_structs_hook.create(0xFC80A0_b, g_load_structs_stub);
 
-			// fix settext
-			NetConstStrings_GetIndexPlusOneFromName_hook.create(0x10F0F20_b, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
-			NetConstStrings_GetNameFromIndexPlusOne_hook.create(0x10F1030_b, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
-
-			/*
-			command::add("dumplocalization", []()
-			{
-				std::string data;
-				int count = 0;
-				for (unsigned int i = 1; ; ++i)
-				{
-					const char* name = nullptr;
-					auto res = NetConstStrings_GetNameFromIndexPlusOne(7, i, &name);
-					if (!res)
-						break;
-					data += std::format("type 7, index {}, name: {}\n", i, name ? name : "(null)");
-					count++;
-				}
-				printf("Dumped %d locstrings\n", count);
-				utils::io::write_file("iw8-mod/loc_strings.txt", data);
-			});
-			*/
-
 			// clear memory (SV_GameMP_ShutdownGameVM)
 			scripting::on_shutdown([](bool free_scripts, bool is_post_shutdown)
 			{
@@ -644,6 +623,19 @@ namespace gsc
 					clear();
 				}
 			});
+
+			/*
+			
+				TODO: this code will work on ALL games
+			
+			*/
+			// TODO: patch to set ncs_patchStrings dvar to false
+
+			// fix settext
+			NetConstStrings_GetIndexPlusOneFromName_hook.create(0x10F0F20_b, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
+			NetConstStrings_GetNameFromIndexPlusOne_hook.create(0x10F1030_b, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
+		
+			// TODO: add iprintln printing to external console for ez debugging on any game
 		}
 	};
 }

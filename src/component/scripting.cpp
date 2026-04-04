@@ -24,8 +24,6 @@ namespace scripting
 
 	namespace
 	{
-		//utils::hook::detour vm_notify_hook;
-
 		utils::hook::detour scr_add_class_field_hook;
 
 		utils::hook::detour scr_set_thread_position_hook;
@@ -35,31 +33,6 @@ namespace scripting
 		unsigned int current_file_id{};
 
 		std::vector<std::function<void(bool, bool)>> shutdown_callbacks;
-
-		/*
-		void vm_notify_stub(game::scrContext_t* context, 
-			const unsigned int notify_list_owner_id, const game::scr_string_t string_value,
-			game::VariableValue* top)
-		{
-			if (!game::Com_FrontEnd_IsInFrontEnd())
-			{
-				const auto* string = game::SL_ConvertToString(string_value);
-				if (string)
-				{
-					event e{};
-					e.name = string;
-					e.entity = notify_list_owner_id;
-
-					for (auto* value = top; value->type != game::VAR_PRECODEPOS; --value)
-					{
-						e.arguments.emplace_back(*value);
-					}
-				}
-			}
-
-			vm_notify_hook.invoke<void>(context, notify_list_owner_id, string_value, top);
-		}
-		*/
 
 		void scr_add_class_field_stub(game::scrContext_t* context,
 			unsigned int classnum, game::scr_string_t name, unsigned int canonical_string, unsigned int offset)
@@ -176,20 +149,6 @@ namespace scripting
 				shutdown_game_post(full_clear);
 			}
 		}
-
-		/*
-		namespace sp
-		{
-			utils::hook::detour g_main_mp_shutdowngame_hook;
-
-			void g_main_mp_shutdowngame_stub(int full_clear, int a2)
-			{
-				shutdown_game_pre(full_clear);
-				g_main_mp_shutdowngame_hook.invoke<void>(full_clear, a2);
-				shutdown_game_post(full_clear);
-			}
-		}
-		*/
 	}
 
 	std::string get_token(unsigned int id)
@@ -207,16 +166,13 @@ namespace scripting
 	public:
 		void post_unpack() override
 		{
-			//vm_notify_hook.create(0x132BC70_b, vm_notify_stub);
+			// TODO: this code should only run on 1.20.4 & 1.20.4-replay!!! iw8-mod's stuff works otherwise.
 
 			scr_add_class_field_hook.create(0x131DBF0_b, scr_add_class_field_stub);
-
 			scr_set_thread_position_hook.create(0x13169D0_b, scr_set_thread_position_stub); // i think this is right
 			process_script_hook.create(0x13222F0_b, process_script_stub);
-			//sl_get_canonical_string_hook.create(game::SL_GetCanonicalString, sl_get_canonical_string_stub); // all hardcoded in IW8, but we have gsc-tool
 
 			mp::g_main_mp_shutdowngame_hook.create(0x121F880_b, mp::g_main_mp_shutdowngame_stub);
-			//sp::g_main_mp_shutdowngame_hook.create(0x12159B6_b, sp::g_main_mp_shutdowngame_stub);
 		}
 	};
 }
