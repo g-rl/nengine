@@ -2,8 +2,6 @@
 
 #include "structs.hpp"
 
-#define SERVER_CD_KEY "iw8mod-CD-Key"
-
 namespace game
 {
 	extern uint64_t base_address;
@@ -36,11 +34,6 @@ namespace game
 	private:
 		T* address_;
 	};
-
-	namespace environment
-	{
-		bool is_dedi();
-	}
 }
 
 size_t operator"" _b(const size_t ptr);

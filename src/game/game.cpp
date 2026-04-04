@@ -12,15 +12,6 @@ namespace game
 		const auto module = GetModuleHandle(NULL);
 		base_address = uint64_t(module);
 	}
-
-	namespace environment
-	{
-		bool is_dedi()
-		{
-			static const auto dedicated = utils::flags::has_flag("dedicated");
-			return dedicated;
-		}
-	}
 }
 
 size_t operator"" _b(const size_t ptr)
