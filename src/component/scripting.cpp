@@ -12,6 +12,8 @@
 
 #include <utils/hook.hpp>
 
+#include <identification/game.hpp>
+
 namespace scripting
 {
 	std::unordered_map<int, std::unordered_map<std::string, int>> fields_table;
@@ -164,15 +166,35 @@ namespace scripting
 	class component final : public component_interface
 	{
 	public:
+		void find_signatures(memory::signature_store& batch) override 
+		{
+			if (identification::game::is("1.20.4") || identification::game::is("1.20.4-replay"))
+			{
+				if (identification::game::is("1.20.4-replay"))
+					batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "40 55 48 83 EC 20 0F B6 E9 48 8D 15 A0 5D 24 01");	// non arxan
+				else
+					batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "40 53 57 41 56 48 83 EC ? 44 0F B6 F1");
+
+				batch.add(SETUP_POINTER(game::Scr_AddClassField), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 0F B6 C2");
+
+				batch.add(SETUP_POINTER(game::Scr_SetThreadPosition), "48 89 5C 24 ? 57 48 83 EC ? 49 8B D8 48 8B F9 44 8B C2");
+
+				batch.add(SETUP_POINTER(game::ProcessScript), "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B F9 48 8B DA B9 ? ? ? ? 44 8D 41 ? E8 ? ? ? ?"
+					" 48 8B D3 B9 ? ? ? ? 48 8B F0 E8 ? ? ? ? 85 C0 75");
+			}
+		}
+
 		void post_unpack() override
 		{
 			// TODO: this code should only run on 1.20.4 & 1.20.4-replay!!! iw8-mod's stuff works otherwise.
+			if (identification::game::is("1.20.4") || identification::game::is("1.20.4-replay"))
+			{
+				scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub);
+				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub);
+				process_script_hook.create(game::ProcessScript, process_script_stub);
 
-			scr_add_class_field_hook.create(0x131DBF0_b, scr_add_class_field_stub);
-			scr_set_thread_position_hook.create(0x13169D0_b, scr_set_thread_position_stub); // i think this is right
-			process_script_hook.create(0x13222F0_b, process_script_stub);
-
-			mp::g_main_mp_shutdowngame_hook.create(0x121F880_b, mp::g_main_mp_shutdowngame_stub);
+				mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
+			}
 		}
 	};
 }

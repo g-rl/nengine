@@ -16,6 +16,8 @@
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 
+#include <identification/game.hpp>
+
 namespace gsc
 {
 	std::unique_ptr<xsk::gsc::iw8::context> gsc_ctx = std::make_unique<xsk::gsc::iw8::context>();
@@ -23,8 +25,13 @@ namespace gsc
 
 	namespace
 	{
+		void* DB_GetRawBuffer_call{};
+		void* FindXAssetHeaderScript_call{};
+		void* IsXAssetDefaultScript_call{};
+
 		utils::hook::detour scr_begin_load_scripts_hook;
 		utils::hook::detour scr_end_load_scripts_hook;
+		utils::hook::detour db_is_x_asset_default_hook;
 
 		std::unordered_map<std::string, std::uint32_t> main_handles;
 		std::unordered_map<std::string, std::uint32_t> init_handles;
@@ -329,14 +336,14 @@ namespace gsc
 			}
 		}
 
-		int db_is_x_asset_default(game::XAssetType type, const char* name)
+		int db_is_x_asset_default_stub(game::XAssetType type, const char* name)
 		{
 			if (loaded_scripts.contains(name))
 			{
 				return 0;
 			}
 
-			return game::DB_IsXAssetDefault(type, name);
+			return db_is_x_asset_default_hook.invoke<int>(type, name);
 		}
 
 		utils::hook::detour g_load_structs_hook;
@@ -371,6 +378,8 @@ namespace gsc
 			{
 				return;
 			}
+
+			printf("load_scripts\n");
 
 			const auto scripts = utils::io::list_files(script_dir.generic_string());
 			for (const auto& script : scripts)
@@ -588,41 +597,67 @@ namespace gsc
 	class loading final : public component_interface
 	{
 	public:
+		void find_signatures(memory::signature_store& batch) override 
+		{
+			if (identification::game::is("1.20.4") || identification::game::is("1.20.4-replay"))
+			{
+				batch.add(SETUP_POINTER(game::DB_AllocXZoneMemory), "E8 ? ? ? ? 4C 8B 7C 24 ? 33 D2 41 B8", GRAB_CALL);
+				batch.add(SETUP_POINTER(game::DB_AllocXZoneMemoryInternal), "E8 ? ? ? ? 48 8B 8F ? ? ? ? 4C 8B C6", GRAB_CALL);
+				batch.add(SETUP_POINTER(game::G_Spawn_LoadStructs), "48 89 5C 24 ? 57 48 83 EC ? 48 8B 1D ? ? ? ? E8 ? ? ? ? 8B 53 ? 45 33 C0 48 8B C8 48 8B F8 E8 ? ? ? ?"
+					" 8B D0 48 8B CF E8");
+
+				batch.add(SETUP_POINTER(game::Scr_BeginLoadScripts), "E8 ? ? ? ? C7 44 24 ? ? ? ? ? E8 ? ? ? ? 85 C0", GRAB_CALL);
+				batch.add(SETUP_POINTER(game::Scr_EndLoadScripts), "48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 E8 ? ? ? ? 48 8B CF E8");
+
+				if (identification::game::is_greater_or_eq("1.53.0")) {
+					batch.add(SETUP_POINTER(DB_GetRawBuffer_call), "E8 ? ? ? ? 48 8B 47 ? 4C 63 67");
+				}
+				else {
+					batch.add(SETUP_POINTER(DB_GetRawBuffer_call), "E8 ? ? ? ? 41 6B 87");
+				}
+
+				// inside ProcessScript
+				batch.add(SETUP_POINTER(FindXAssetHeaderScript_call), "E8 ?? ?? ?? FF 48 8B D3 B9 ?? 00 00 00 48 8B F0");
+				batch.add(SETUP_POINTER(IsXAssetDefaultScript_call), "E8 ?? ?? ?? FF 48 8B D3 B9 ?? 00 00 00 48 8B F0");
+			}
+		}
+
 		void post_unpack() override
 		{
-			// TODO: this code should only run on 1.20.4 & 1.20.4-replay!!! iw8-mod's stuff works otherwise.
+			printf("game loaded: %s\n", identification::game::get_full_display_name().data());
 
-			// Allocate script memory (PMem doesn't work)
-			db_alloc_x_zone_memory_internal_hook.create(0x11A8C90_b, db_alloc_x_zone_memory_internal_stub);
-
-			// TODO: Increase allocated script memory
-			//utils::hook::set<uint32_t>(0xA75B5C_b + 1, 0x480000 + static_cast<std::uint32_t>(script_memory.size));
-			//utils::hook::set<uint32_t>(0xA75BAA_b + 4, 0x480 + (static_cast<std::uint32_t>(script_memory.size) >> 12));
-			//utils::hook::set<uint32_t>(0xA75BBE_b + 6, 0x480 + (static_cast<std::uint32_t>(script_memory.size) >> 12));
-
-			// Load our scripts with an uncompressed stack
-			utils::hook::call(0x13223B6_b, db_get_raw_buffer_stub);
-
-			// Compiler start and cleanup, also loads scripts
-			scr_begin_load_scripts_hook.create(0x1316DE0_b, scr_begin_load_scripts_stub);
-			scr_end_load_scripts_hook.create(0x1316FE0_b, scr_end_load_scripts_stub);
-
-			// ProcessScript: hook xasset functions to return our own custom scripts
-			utils::hook::call(0x132230E_b, find_script);
-			utils::hook::call(0x132231E_b, db_is_x_asset_default);
-
-			// execute main handle after G_LoadStructs (now called G_Spawn_LoadStructs)
-			g_load_structs_hook.create(0xFC80A0_b, g_load_structs_stub);
-
-			// clear memory (SV_GameMP_ShutdownGameVM)
-			scripting::on_shutdown([](bool free_scripts, bool is_post_shutdown)
+			// TODO: this code should only run on 1.20.4 & 1.20.4-replay!!! iw8-mod's stuff works otherwise, but we have a 1.20 compiler
+			if (identification::game::is("1.20.4") || identification::game::is("1.20.4-replay"))
 			{
-				if (free_scripts && is_post_shutdown)
+				printf("is 1.20.4, run code\n");
+
+				// Allocate script memory (PMem doesn't work)
+				db_alloc_x_zone_memory_internal_hook.create(game::DB_AllocXZoneMemory, db_alloc_x_zone_memory_internal_stub);
+
+				// Load our scripts with an uncompressed stack
+				utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);
+
+				// Compiler start and cleanup, also loads scripts
+				scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub);
+				scr_end_load_scripts_hook.create(game::Scr_EndLoadScripts, scr_end_load_scripts_stub);
+
+				// ProcessScript: hook xasset functions to return our own custom scripts
+				utils::hook::call(FindXAssetHeaderScript_call, find_script);
+				
+				db_is_x_asset_default_hook.create(game::DB_IsXAssetDefault, db_is_x_asset_default_stub);
+
+				g_load_structs_hook.create(game::G_Spawn_LoadStructs, g_load_structs_stub);
+
+				// clear memory (SV_GameMP_ShutdownGameVM)
+				scripting::on_shutdown([](bool free_scripts, bool is_post_shutdown)
 				{
-					printf("clearing script memory...\n");
-					clear();
-				}
-			});
+					if (free_scripts && is_post_shutdown)
+					{
+						printf("clearing script memory...\n");
+						clear();
+					}
+				});
+			}
 
 			/*
 			
@@ -632,8 +667,8 @@ namespace gsc
 			// TODO: patch to set ncs_patchStrings dvar to false
 
 			// fix settext
-			NetConstStrings_GetIndexPlusOneFromName_hook.create(0x10F0F20_b, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
-			NetConstStrings_GetNameFromIndexPlusOne_hook.create(0x10F1030_b, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
+			NetConstStrings_GetIndexPlusOneFromName_hook.create(game::NetConstStrings_GetIndexPlusOneFromName, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
+			NetConstStrings_GetNameFromIndexPlusOne_hook.create(game::NetConstStrings_GetNameFromIndexPlusOne, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
 		
 			// TODO: add iprintln printing to external console for ez debugging on any game
 		}

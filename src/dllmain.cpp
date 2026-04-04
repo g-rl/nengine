@@ -17,21 +17,6 @@ namespace
 		std::exit(code);
 	}
 
-	BOOL WINAPI system_parameters_info_a(const UINT uiAction, const UINT uiParam, const PVOID pvParam, const UINT fWinIni)
-	{
-		try
-		{
-			component_loader::post_unpack();
-		}
-		catch (const std::exception& e)
-		{
-			MSG_BOX_ERROR(e.what());
-			std::exit(1);
-		}
-
-		return SystemParametersInfoA(uiAction, uiParam, pvParam, fWinIni);
-	}
-
 	void remove_crash_file()
 	{
 		utils::io::remove_file("__game_dx12_ship_replay");
@@ -109,14 +94,14 @@ namespace
 
 	void main()
 	{
-		enable_dpi_awareness();
+		//enable_dpi_awareness();
 
 		// This requires admin privilege, but I suppose many
 		// people will start with admin rights if it crashes.
-		limit_parallel_dll_loading();
+		//limit_parallel_dll_loading();
 
 		srand(uint32_t(time(nullptr)));
-		remove_crash_file();
+		//remove_crash_file();
 
 		{
 			auto premature_shutdown = true;
@@ -135,18 +120,7 @@ namespace
 					return;
 				}
 
-				component_loader::run_signature_scan();
-
-				const utils::nt::library main_exe(GetModuleHandleA(nullptr));
-
-				auto* system_parameters_info = main_exe.get_iat_entry("user32.dll", "SystemParametersInfoA");
-				if (!system_parameters_info)
-				{
-					MSG_BOX_ERROR("could not find import SystemParametersInfoA");
-				}
-				utils::hook::set(system_parameters_info, system_parameters_info_a);
-
-				utils::hook::set(0x2351A08_b, exit_hook);
+				//
 
 				if (!component_loader::post_load())
 				{

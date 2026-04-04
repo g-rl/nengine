@@ -59,7 +59,7 @@ namespace memory
 				}
 				else
 				{
-					OutputDebugStringA(("[sig] MISS: " + sig.name + " (" + sig.pattern + ")\n").c_str());
+					printf(("[sig] MISS: " + sig.name + " (" + sig.pattern + ")\n").c_str());
 				}
 			}
 			return stats;
@@ -81,3 +81,4 @@ namespace memory
 
 #define SETUP_POINTER(name) #name, reinterpret_cast<void**>(&name)
 #define SETUP_MOD(chain) [](memory::scanned_result<void> r) { return r.chain; }
+#define GRAB_CALL SETUP_MOD(add(1).rip())

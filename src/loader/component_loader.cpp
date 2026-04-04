@@ -65,6 +65,25 @@ void component_loader::post_unpack()
 	}
 }
 
+void component_loader::find_signatures()
+{
+	static auto handled = false;
+	if (handled) return;
+	handled = true;
+
+	memory::signature_store store{ utils::nt::library{} };
+
+	for (const auto& component_ : get_components())
+	{
+		component_->find_signatures(store);
+	}
+
+	const auto stats = store.scan_all();
+	char buf[128];
+	_snprintf_s(buf, _TRUNCATE, "[sig] resolved %u/%u\n", stats.found, stats.total);
+	OutputDebugStringA(buf);
+}
+
 void component_loader::pre_destroy()
 {
 	static auto handled = false;
@@ -108,25 +127,6 @@ void* component_loader::load_import(const std::string& library, const std::strin
 	}
 
 	return function_ptr;
-}
-
-void component_loader::run_signature_scan()
-{
-	static auto handled = false;
-	if (handled) return;
-	handled = true;
-
-	memory::signature_store store{ utils::nt::library{} };
-
-	for (const auto& component_ : get_components())
-	{
-		component_->find_signatures(store);
-	}
-
-	const auto stats = store.scan_all();
-	char buf[128];
-	_snprintf_s(buf, _TRUNCATE, "[sig] resolved %u/%u\n", stats.found, stats.total);
-	OutputDebugStringA(buf);
 }
 
 void component_loader::trigger_premature_shutdown()

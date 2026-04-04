@@ -29,11 +29,6 @@ namespace filesystem
 			initialized = true;
 
 			filesystem::register_path(L"iw8-mod");
-			filesystem::register_path(L"devraw");
-			filesystem::register_path(L"devraw_shared");
-			filesystem::register_path(L"raw_shared");
-			filesystem::register_path(L"raw");
-			filesystem::register_path(L"main");
 
 			fs_startup_hook.invoke<void>(name);
 		}

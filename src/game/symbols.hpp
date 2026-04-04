@@ -12,8 +12,31 @@ namespace game
 	 * Coexists with the RVA-based symbol<T> entries below.
 	 **************************************************************/
 
-	WEAK void(*Cbuf_AddText_sig)(int localClientNum, const char* text) = nullptr;
-	WEAK void(*Com_Error_sig)(int code, const char* fmt, ...) = nullptr;
+	WEAK void(*Cbuf_AddText)(int localClientNum, const char* text) = nullptr;
+	WEAK void(*Com_Error)(int code, const char* fmt, ...) = nullptr;
+
+	// DB
+	WEAK void(*DB_AllocXZoneMemory)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XArchiveBlocks* archive_blocks) = nullptr;
+	WEAK void(*DB_AllocXZoneMemoryInternal)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XArchiveBlocks* archive_blocks,
+		game::DBMemoryType type) = nullptr;
+	WEAK int(*DB_IsXAssetDefault)(XAssetType type, const char* name) = nullptr;
+
+	// G
+	WEAK void(*G_MainMP_ShutdownGame)(bool fullclear) = nullptr;
+	WEAK void(*G_Spawn_LoadStructs)() = nullptr;
+
+	WEAK void(*Scr_BeginLoadScripts)(game::scrContext_t* context, int thread_mode) = nullptr;
+	WEAK void(*Scr_EndLoadScripts)(game::scrContext_t* context) = nullptr;
+
+	// NCS
+	WEAK bool(*NetConstStrings_GetIndexPlusOneFromName)(int type, const char* name, std::uint32_t* out_index) = nullptr;
+	WEAK bool(*NetConstStrings_GetNameFromIndexPlusOne)(int type, std::uint32_t index, const char** out_name) = nullptr;
+
+	// Scr
+	WEAK void(*Scr_AddClassField)(game::scrContext_t* scr_context, std::uint8_t class_num, std::uint32_t name, std::uint32_t canonical_string,
+		std::uint32_t offset) = nullptr;
+	WEAK void(*Scr_SetThreadPosition)(game::scrContext_t* scr_context, int val) = nullptr;
+	WEAK void(*ProcessScript)(game::scrContext_t* scr_context, const char* filename) = nullptr;
 
 	// Weapon system (sig-scanned)
 	WEAK void(*PM_Weapon_sig)(pmove_t* pm, pml_t* pml) = nullptr;
@@ -50,8 +73,6 @@ namespace game
 	WEAK symbol<int()> SV_Cmd_Argc{0x1298AF0};
 	WEAK symbol<const char*(int index)> SV_Cmd_Argv{0x1298B10};
 
-	WEAK symbol<void(errorParm_t code, const char* fmt, ...)> Com_Error{0x12AB4A0};
-
 	WEAK symbol<bool()> Com_FrontEnd_IsInFrontEnd{0x10C67A0};
 	WEAK symbol<void(int localClientNum)> Con_DrawConsole{0x15AE0B0};
 	WEAK symbol<bool(int localClientNum)> Con_IsActive{0x15B0EF0};
@@ -61,7 +82,6 @@ namespace game
 	WEAK symbol<void()> DevGui_Toggle{0x17E9DA0};
 
 	WEAK symbol<XAssetHeader(XAssetType type, const char* name, int createDefault)> DB_FindXAssetHeader{0x11AA890}; // XAssetHeader
-	WEAK symbol<int(XAssetType type, const char* name)> DB_IsXAssetDefault{0x11AC4A0};
 	WEAK symbol<int(XAssetType type, const char* name)> DB_XAssetExists{0x11B2220};
 	WEAK symbol<int(const RawFile* rawfile)> DB_GetRawFileLen{0x12C2AD0};
 	WEAK symbol<int(const RawFile* rawfile, char* buf, int size)> DB_GetRawBuffer{0x12C29A0};
