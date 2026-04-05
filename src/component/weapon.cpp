@@ -132,7 +132,6 @@ namespace weapon
 	}
 
 	void* nop_target_1 = nullptr; // was base + 0x11440A5, NOP 3 bytes
-	void* nop_target_2 = nullptr; // was base + 0x11440E1, NOP 4 bytes
 
 	class component final : public component_interface
 	{
@@ -180,8 +179,6 @@ namespace weapon
 			// nop targets that are both inside PM_Weapon_CheckForChangeWeapon
 			batch.add("nop_target_1", reinterpret_cast<void**>(&nop_target_1),
 				"?? ?? ?? 85 ?? 75 33 48 8B 4C 24 40 41 0F B6 D4 E8 ?? ?? ?? ?? 84 C0 74 21 F3 0F 10 05 ?? ?? ?? ?? F3 0F 59 C6 F3 0F 2C C8 85 C9 7E 0D 48 8B ?? 08 03 ?? 1C 89 88 ?? ?? ?? ??");
-			batch.add("nop_target_2", reinterpret_cast<void**>(&nop_target_2),
-				"89 88 ?? ?? 00 00 FF ?? ?? 83 ?? ?? 49 83 EF 01 0F 85 ?? ?? ?? ?? 4C");
 		}
 
 		void post_unpack() override
@@ -198,8 +195,6 @@ namespace weapon
 
 			if (nop_target_1)
 				utils::hook::nop(nop_target_1, 3);
-			if (nop_target_2)
-				utils::hook::nop(nop_target_2, 4);
 
 			if (game::PM_Weapon_sig)
 				PM_Weapon_hook.create(game::PM_Weapon_sig, PM_Weapon_stub);
