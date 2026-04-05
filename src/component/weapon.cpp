@@ -172,8 +172,7 @@ namespace weapon
 				SETUP_MOD(add(12).rip()));
 
 			batch.add(SETUP_POINTER(game::BG_PlayerLastWeaponHand_sig),
-				"E8 ? ? ? ? 48 85 C0 74 ?? 48 8B D5 48 8B C8 E8 ? ? ? ? 0F B6 F8",
-				SETUP_MOD(add(17).rip()));
+				"40 53 48 83 EC 20 0F B7 82 ?? ?? 00 00 48 8B DA 4C 6B C0 3E 49 83 C0 02 4C 03 41 08 E8 ? ? ? ?");
 
 			batch.add(SETUP_POINTER(game::BG_PlayerDualWieldingWeapon),
 				"48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B F1 49 8B F8 48 8B CA 48 8B DA E8 ?? ?? ?? ?? 84 C0");
