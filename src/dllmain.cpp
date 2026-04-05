@@ -17,6 +17,27 @@ namespace
 		std::exit(code);
 	}
 
+	BOOL WINAPI system_parameters_info_a(const UINT uiAction, const UINT uiParam, const PVOID pvParam, const UINT fWinIni)
+	{
+		static bool has_ran_unpack = false;
+		if (!has_ran_unpack)
+		{
+			try
+			{
+				component_loader::post_unpack();
+			}
+			catch (const std::exception& e)
+			{
+				MSG_BOX_ERROR(e.what());
+				std::exit(1);
+			}
+
+			has_ran_unpack = true;
+		}
+
+		return SystemParametersInfoA(uiAction, uiParam, pvParam, fWinIni);
+	}
+
 	void remove_crash_file()
 	{
 		utils::io::remove_file("__game_dx12_ship_replay");
@@ -101,7 +122,7 @@ namespace
 		//limit_parallel_dll_loading();
 
 		srand(uint32_t(time(nullptr)));
-		//remove_crash_file();
+		remove_crash_file();
 
 		{
 			auto premature_shutdown = true;
@@ -120,7 +141,16 @@ namespace
 					return;
 				}
 
-				//
+				static utils::nt::library game{};
+				game.unprotect();
+				component_loader::find_signatures();
+
+				auto* system_parameters_info = utils::nt::library{}.get_iat_entry("user32.dll", "SystemParametersInfoA");
+				if (!system_parameters_info)
+				{
+					MSG_BOX_ERROR("could not find import SystemParametersInfoA");
+				}
+				utils::hook::set(system_parameters_info, system_parameters_info_a);
 
 				if (!component_loader::post_load())
 				{

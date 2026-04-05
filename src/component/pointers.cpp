@@ -32,7 +32,7 @@ public:
 			" 48 8B DA 8B F1");
 
 		batch.add(SETUP_POINTER(game::NetConstStrings_GetIndexPlusOneFromName), "E8 ? ? ? ? 33 C9 84 C0 0F 45 4C 24 ? 89 0B", SETUP_MOD(add(1).rip()));
-		batch.add(SETUP_POINTER(game::NetConstStrings_GetNameFromIndexPlusOne), "8B D7 B9 0C 00 00 00 E8 ? ? ? ?? 84 C0 74 ?? ", SETUP_MOD(add(6).rip()));
+		batch.add(SETUP_POINTER(game::NetConstStrings_GetNameFromIndexPlusOne), "B9 0C 00 00 00 E8 ? ? ? ?? 84 C0 74 ? 48 ? ? ? ? B2", SETUP_MOD(add(6).rip()));
 	}
 };
 

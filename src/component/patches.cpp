@@ -51,8 +51,6 @@ namespace patches
 			//int width = *reinterpret_cast<int*>(0xEF2DEC0_b);
 			//int height = *reinterpret_cast<int*>(0xEF2DEC4_b);
 
-			//printf("trying 1\n");
-
 			const float scale = 0.80f;
 			const float line_h = static_cast<float>(overlay_font->height) * scale;
 
@@ -108,55 +106,19 @@ namespace patches
 		}
 	}
 
-	utils::hook::detour create_file_a_hook;
-	HANDLE create_file_a_stub(LPCSTR lp_file_name, DWORD dw_desired_access, DWORD dw_share_mode, LPSECURITY_ATTRIBUTES lp_security_attributes,
-		DWORD dw_creation_disposition, DWORD dw_flags_and_attributes, HANDLE h_template_file)
-	{
-		// shamelessly taken from iw8-mod - thank you tho :P
-		static bool scanned = false;
-		if (!scanned)
-		{
-			try
-			{
-				static memory::signature_store batch;
-				static utils::nt::library game{};
-				game.unprotect(); // fixes non-Arxan executables :)
-				printf("find_signatures\n");
-				component_loader::find_signatures();
-				batch.scan_all();
-				//batch.dump();		// for debugging
-				scanned = true;
-
-				printf("post_unpack\n");
-				component_loader::post_unpack();
-			}
-			catch (const std::exception& e)
-			{
-				MSG_BOX_ERROR(e.what());
-				std::exit(1);
-			}
-		}
-
-		return create_file_a_hook.invoke<HANDLE>(lp_file_name, dw_desired_access, dw_share_mode, lp_security_attributes, dw_creation_disposition,
-			dw_flags_and_attributes, h_template_file);
-	}
-
 	class component final : public component_interface
 	{
 	public:
-		void post_load() override
-		{
-			create_file_a_hook.create("kernel32.dll", "CreateFileA", create_file_a_stub);
-		}
-
 		void post_unpack() override
 		{
 			if (identification::game::is("1.20.4-replay"))
 			{
+				/*
 				scheduler::loop([]()
 				{
 					render_pm_debug();
 				}, scheduler::renderer);
+				*/
 			}
 		}
 	};

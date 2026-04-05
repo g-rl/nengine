@@ -101,6 +101,7 @@ namespace utils::nt
 		[[nodiscard]] PIMAGE_NT_HEADERS get_nt_headers() const;
 		[[nodiscard]] PIMAGE_DOS_HEADER get_dos_header() const;
 		[[nodiscard]] PIMAGE_OPTIONAL_HEADER get_optional_header() const;
+		[[nodiscard]] MODULEINFO get_info() const;
 
 		[[nodiscard]] void** get_iat_entry(const std::string& module_name, std::string proc_name) const;
 		[[nodiscard]] void** get_iat_entry(const std::string& module_name, const char* proc_name) const;

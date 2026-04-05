@@ -71,7 +71,10 @@ void component_loader::find_signatures()
 	if (handled) return;
 	handled = true;
 
-	memory::signature_store store{ utils::nt::library{} };
+	utils::nt::library game{};
+	game.unprotect();
+
+	memory::signature_store store{ game };
 
 	for (const auto& component_ : get_components())
 	{

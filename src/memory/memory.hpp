@@ -4,115 +4,126 @@
 #include <string>
 #include <vector>
 
+#include <Psapi.h>
+#pragma comment(lib, "Psapi.lib")
+
 #include <utils/nt.hpp>
 
 #include "scanned_result.hpp"
 
+// Scanner ported verbatim from ZeroProxy (common/memory/memory.hpp).
+// Keep the logic identical — it is known-good against Arxan'd MW builds.
+
+#define VT_GET(ptr, idx) (*(void***)(ptr))[idx]
+#define PTR_AS(type, ptr) reinterpret_cast<type>((ptr))
+#define VAL_AS(type, val) static_cast<type>((val))
+#define DEREF_PTR_AS(type, ptr) *PTR_AS(type*, ptr)
+#define ENUM_UNDER(val) static_cast<std::underlying_type_t<decltype(val)>>(val)
+#define CLASS_ASSERT_SZ(cls, sz) static_assert(sizeof(cls) == sz, #cls " is not " #sz " bytes in size.")
+#define CLASS_VALUE_AT_PTR(cls, off, t) PTR_AS(t*, PTR_AS(std::uintptr_t, cls) + off)
+#define CLASS_VALUE_AT(cls, off, t) DEREF_PTR_AS(t, PTR_AS(std::uintptr_t, cls) + off)
+#define RSC_VAL(arg) PTR_AS(std::uintptr_t, arg)
+
 namespace memory
 {
-	struct masked_signature
-	{
+	struct masked_signature {
 		std::vector<std::uint8_t> data_{};
 		std::vector<std::uint8_t> mask_{};
 	};
 
-	inline masked_signature masked_signature_from_string(const std::string& pattern)
-	{
-		const auto astroul = [](char c) -> std::uint8_t
-		{
-			if (c >= '0' && c <= '9') return static_cast<std::uint8_t>(c - '0');
-			if (c >= 'A' && c <= 'F') return static_cast<std::uint8_t>(10 + (c - 'A'));
-			if (c >= 'a' && c <= 'f') return static_cast<std::uint8_t>(10 + (c - 'a'));
+	inline masked_signature masked_signature_from_string(const std::string& pattern) {
+		const auto astroul = [](char c) -> std::uint8_t {
+			if (c >= '0' && c <= '9') {
+				return c - '0';
+			}
+
+			if (c >= 'A' && c <= 'F') {
+				return 10 + (c - 'A');
+			}
+
+			if (c >= 'a' && c <= 'f') {
+				return 10 + (c - 'a');
+			}
+
 			return 0;
 		};
 
 		masked_signature sig{};
-		for (std::size_t ix = 0, len = pattern.length(); ix < len; ix++)
-		{
-			if (pattern[ix] == ' ') continue;
+		for (std::size_t ix = 0, len = pattern.length(); ix < len; ix++) {
+			if (pattern[ix] == ' ') {
+				continue;
+			}
 
-			const char h1 = pattern[ix];
-			const char h2 = (ix + 1 < len && pattern[ix + 1] != ' ') ? pattern[ix + 1] : '?';
+			char h1 = pattern[ix];
+			char h2 = (ix + 1 < len && pattern[ix + 1] != ' ') ? pattern[ix + 1] : '?';
 
-			if (h1 == '?' && h2 == '?')
-			{
+			if (h1 == '?' && h2 == '?') {
 				sig.data_.push_back(0x00);
-				sig.mask_.push_back(0x00);
+				sig.mask_.push_back(0x00); // full wildcard
 			}
-			else if (h1 != '?' && h2 == '?')
-			{
-				sig.data_.push_back(static_cast<std::uint8_t>(astroul(h1) << 4));
-				sig.mask_.push_back(0xF0);
+			else if (h1 != '?' && h2 == '?') {
+				sig.data_.push_back(astroul(h1) << 4);
+				sig.mask_.push_back(0xF0); // high nibble exact, low wildcard
 			}
-			else if (h1 == '?' && h2 != '?')
-			{
+			else if (h1 == '?' && h2 != '?') {
 				sig.data_.push_back(astroul(h2));
-				sig.mask_.push_back(0x0F);
+				sig.mask_.push_back(0x0F); // low nibble exact, high wildcard
 			}
-			else
-			{
-				sig.data_.push_back(static_cast<std::uint8_t>((astroul(h1) << 4) | astroul(h2)));
-				sig.mask_.push_back(0xFF);
+			else if (h1 != '?' && h2 != '?') {
+				sig.data_.push_back((astroul(h1) << 4) | astroul(h2));
+				sig.mask_.push_back(0xFF); // exact match
 			}
 
-			ix++;
+			ix++; // do the funny
 		}
 		return sig;
 	}
 
-	inline std::pair<std::uintptr_t, std::size_t> get_module_range(const utils::nt::library& library)
+	template <typename T = void*>
+	std::enable_if_t<std::is_pointer_v<T>, std::vector<scanned_result<std::remove_pointer_t<T>>>> masked_vectored_sig_scan(utils::nt::library library,
+		masked_signature sig, std::size_t limit)
 	{
-		const auto base = reinterpret_cast<std::uintptr_t>(library.get_ptr());
-		const auto headers = library.get_nt_headers();
-		const auto size = headers ? static_cast<std::size_t>(headers->OptionalHeader.SizeOfImage) : 0;
-		return { base, size };
-	}
+		std::size_t pat_len = sig.mask_.size();
+		MODULEINFO mod_info = library.get_info();
+		std::uintptr_t mod_base = PTR_AS(std::uintptr_t, mod_info.lpBaseOfDll);
+		std::uintptr_t mod_len = mod_info.SizeOfImage;
+		std::vector<scanned_result<std::remove_pointer_t<T>>> results{};
 
-	inline std::vector<scanned_result<void>> masked_vectored_sig_scan(const utils::nt::library& library,
-		const masked_signature& sig, std::size_t limit)
-	{
-		std::vector<scanned_result<void>> results{};
-		const auto [mod_base, mod_len] = get_module_range(library);
-		if (!mod_base || !mod_len || sig.mask_.empty()) return results;
-
-		const std::size_t pat_len = sig.mask_.size();
-
-		MEMORY_BASIC_INFORMATION page_info{};
-		for (auto current_page = mod_base; current_page < mod_base + mod_len;
-			current_page = reinterpret_cast<std::uintptr_t>(page_info.BaseAddress) + page_info.RegionSize)
-		{
-			if (!VirtualQuery(reinterpret_cast<LPCVOID>(current_page), &page_info, sizeof(page_info)))
-			{
-				break;
-			}
-			if (page_info.Protect == PAGE_NOACCESS || page_info.State != MEM_COMMIT || (page_info.Protect & PAGE_GUARD))
-			{
+#		if defined(_WIN64)
+			MEMORY_BASIC_INFORMATION64 page_info = {};
+#			define PAGE_BASE_ADDR(p) p.BaseAddress
+#		else
+			MEMORY_BASIC_INFORMATION page_info = {};
+#			define PAGE_BASE_ADDR(p) PTR_AS(std::uintptr_t, p.BaseAddress)
+#		endif
+		for (auto current_page = mod_base; current_page < mod_base + mod_len; current_page = PAGE_BASE_ADDR(page_info) + page_info.RegionSize) {
+			VirtualQuery(PTR_AS(LPCVOID, current_page), PTR_AS(PMEMORY_BASIC_INFORMATION, &page_info), sizeof(MEMORY_BASIC_INFORMATION));
+			if (page_info.Protect == PAGE_NOACCESS || page_info.State != MEM_COMMIT || page_info.Protect & PAGE_GUARD) {
 				continue;
 			}
 
-			const auto page_base = reinterpret_cast<std::uintptr_t>(page_info.BaseAddress);
-			const auto page_end = page_base + page_info.RegionSize;
-			if (page_end < pat_len + 0x8) continue;
-
-			for (auto current_addr = page_base; current_addr < page_end - 0x8 - pat_len; current_addr++)
+			for (auto current_addr = PAGE_BASE_ADDR(page_info); current_addr < PAGE_BASE_ADDR(page_info) + page_info.RegionSize - 0x8 - pat_len;
+				current_addr++)
 			{
-				if (current_addr >= mod_base + mod_len - pat_len) continue;
-
-				bool found = true;
-				for (std::size_t jx = 0; jx < pat_len; jx++)
-				{
-					const auto byte = *reinterpret_cast<std::uint8_t*>(current_addr + jx);
-					if ((byte & sig.mask_[jx]) != sig.data_[jx])
-					{
-						found = false;
-						break;
-					}
+				if (current_addr >= mod_base + mod_len - pat_len) {
+					continue;
 				}
 
-				if (found)
-				{
-					results.emplace_back(current_addr);
-					if (results.size() >= limit) return results;
+				bool found = true;
+
+				for (std::size_t jx = 0; jx < pat_len; jx++) {
+                    std::uint8_t byte = DEREF_PTR_AS(std::uint8_t, current_addr + jx);
+                    if ((byte & sig.mask_[jx]) != sig.data_[jx]) {
+                        found = false;
+                        break;
+                    }
+                }
+
+				if (found) {
+					results.push_back(scanned_result<std::remove_pointer_t<T>>(current_addr));
+					if (results.size() >= limit) {
+						return results;
+					}
 				}
 			}
 		}
@@ -120,21 +131,65 @@ namespace memory
 		return results;
 	}
 
-	inline scanned_result<void> masked_sig_scan(const utils::nt::library& library, const masked_signature& sig)
-	{
-		auto r = masked_vectored_sig_scan(library, sig, 1);
-		if (!r.empty()) return r.front();
-		return scanned_result<void>(nullptr);
+	template <typename T = void*>
+	std::enable_if_t<std::is_pointer_v<T>, scanned_result<std::remove_pointer_t<T>>> masked_sig_scan(utils::nt::library library, masked_signature sig) {
+		std::vector<scanned_result<std::remove_pointer_t<T>>> result = masked_vectored_sig_scan<T>(library, sig, 1);
+		if (result.size() > 0) {
+			return result.at(0);
+		}
+		return scanned_result<std::remove_pointer_t<T>>(nullptr);
 	}
 
-	inline std::vector<scanned_result<void>> vectored_sig_scan(const utils::nt::library& library,
-		const std::string& pattern, std::size_t limit)
+	template <typename T = void*>
+	std::enable_if_t<std::is_pointer_v<T>, std::vector<scanned_result<std::remove_pointer_t<T>>>> vectored_sig_scan(utils::nt::library library,
+		std::string pattern, std::size_t limit, std::string name = "", bool print_fail = true)
 	{
-		return masked_vectored_sig_scan(library, masked_signature_from_string(pattern), limit);
+		std::vector<scanned_result<std::remove_pointer_t<T>>> res = masked_vectored_sig_scan<T>(library, masked_signature_from_string(pattern), limit);
+		if (!name.empty()) {
+			if (res.size() > 0) {
+				printf("%s\n", std::format("Found '{}' {} + 0x{:X}[{} total]", name, library.get_name(), res.at(0).template as<std::uintptr_t>()
+					- PTR_AS(std::uintptr_t, library.get_info().lpBaseOfDll), res.size()).data());
+			}
+			else if (print_fail) {
+				printf("%s\n", std::format("Failed to find '{}' in{} ({})", name, library.get_name(), pattern).data());
+			}
+		}
+		return res;
 	}
 
-	inline scanned_result<void> sig_scan(const utils::nt::library& library, const std::string& pattern)
+	template <typename T = void*>
+	std::enable_if_t<std::is_pointer_v<T>, scanned_result<std::remove_pointer_t<T>>> sig_scan(utils::nt::library library, std::string pattern,
+		std::string name = "", bool print_fail = true)
 	{
-		return masked_sig_scan(library, masked_signature_from_string(pattern));
+		scanned_result<std::remove_pointer_t<T>> res = masked_sig_scan<T>(library, masked_signature_from_string(pattern));
+		if (!name.empty()) {
+			if (res) {
+				printf("%s\n", std::format("Found '{}' {}+0x{:X}", name, library.get_name(), res.template as<std::uintptr_t>()
+					- PTR_AS(std::uintptr_t, library.get_info().lpBaseOfDll)).data());
+			}
+			else if (print_fail) {
+				printf("%s\n", std::format("Failed to find '{}' in {}", name, library.get_name()).data());
+			}
+		}
+		return res;
+	}
+
+	template <typename T = void*>
+	std::enable_if_t<std::is_pointer_v<T>, scanned_result<std::remove_pointer_t<T>>> get_export(const std::string& module_name, const std::string& export_name) {
+		utils::nt::library library(module_name);
+		if (!library.is_valid()) {
+			printf("%s\n", std::format("Failed to find module '{}' while trying to find '{}'", export_name, module_name).data());
+			return scanned_result<std::remove_pointer_t<T>>(nullptr);
+		}
+
+		scanned_result<std::remove_pointer_t<T>> res = scanned_result<std::remove_pointer_t<T>>(library.get_proc<void*>(export_name));
+		if (res) {
+			printf("%s\n", std::format("Found '{}' {}+0x{:X}", export_name, module_name, res.template as<std::uintptr_t>()
+				- PTR_AS(std::uintptr_t, library.get_info().lpBaseOfDll)).data());
+		}
+		else {
+			printf("%s\n", std::format("Failed to find '{}' in {}", export_name, module_name).data());
+		}
+		return res;
 	}
 }

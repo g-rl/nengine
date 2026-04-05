@@ -68,6 +68,17 @@ namespace utils::nt
 		return &this->get_nt_headers()->OptionalHeader;
 	}
 
+	MODULEINFO library::get_info() const 
+	{
+		MODULEINFO info{};
+		if (!this->is_valid()) {
+			return info;
+		}
+
+		GetModuleInformation(GetCurrentProcess(), this->module_, &info, sizeof(MODULEINFO));
+		return info;
+	}
+
 	std::vector<PIMAGE_SECTION_HEADER> library::get_section_headers() const
 	{
 		std::vector<PIMAGE_SECTION_HEADER> headers;
