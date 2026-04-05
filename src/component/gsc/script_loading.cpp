@@ -28,6 +28,7 @@ namespace gsc
 		void* DB_GetRawBuffer_call{};
 		void* FindXAssetHeaderScript_call{};
 		void* IsXAssetDefaultScript_call{};
+		void* DB_AllocXZoneMemory_call{};
 
 		utils::hook::detour scr_begin_load_scripts_hook;
 		utils::hook::detour scr_end_load_scripts_hook;
@@ -190,6 +191,7 @@ namespace gsc
 				return nullptr;
 			}
 
+			/*
 			// filter out "GSC rawfiles" that were used for development usage and are not meant for us.
 			// each "GSC rawfile" has a ScriptFile counterpart to be used instead
 			if (game::DB_XAssetExists(game::ASSET_TYPE_SCRIPTFILE, file_name) &&
@@ -202,6 +204,7 @@ namespace gsc
 					return game::DB_FindXAssetHeader(game::ASSET_TYPE_SCRIPTFILE, file_name, false).scriptfile;
 				}
 			}
+			*/
 
 			try
 			{
@@ -245,6 +248,7 @@ namespace gsc
 					script_function_names[bruh] = func->name;
 				}
 
+				//
 				printf("Loaded custom gsc '%s'\n", real_name.data());
 
 				return script_file_ptr;
@@ -378,8 +382,6 @@ namespace gsc
 			{
 				return;
 			}
-
-			printf("load_scripts\n");
 
 			const auto scripts = utils::io::list_files(script_dir.generic_string());
 			for (const auto& script : scripts)
@@ -611,14 +613,16 @@ namespace gsc
 
 				if (identification::game::is_greater_or_eq("1.53.0")) {
 					batch.add(SETUP_POINTER(DB_GetRawBuffer_call), "E8 ? ? ? ? 48 8B 47 ? 4C 63 67");
+					batch.add(SETUP_POINTER(game::DB_GetRawBuffer), "E8 ? ? ? ? 48 8B 47 ? 4C 63 67", GRAB_CALL);
 				}
 				else {
 					batch.add(SETUP_POINTER(DB_GetRawBuffer_call), "E8 ? ? ? ? 41 6B 87");
+					batch.add(SETUP_POINTER(game::DB_GetRawBuffer), "E8 ? ? ? ? 41 6B 87", GRAB_CALL);
 				}
 
 				// inside ProcessScript
-				batch.add(SETUP_POINTER(FindXAssetHeaderScript_call), "E8 ?? ?? ?? FF 48 8B D3 B9 ?? 00 00 00 48 8B F0");
-				batch.add(SETUP_POINTER(IsXAssetDefaultScript_call), "E8 ?? ?? ?? FF 48 8B D3 B9 ?? 00 00 00 48 8B F0");
+				batch.add(SETUP_POINTER(FindXAssetHeaderScript_call), "E8 ? ? ? FF 48 8B D3 B9 ? 00 00 00 48 8B F0 E8 ? ? ? FF 85 C0 75 0B 48 8B ? 48 8B ? E8 1E 00 00 00");
+				batch.add(SETUP_POINTER(IsXAssetDefaultScript_call), "E8 9D 42 E9 FF 85 C0 74 12 33 C0 48 8B 5C 24 30");
 			}
 		}
 
@@ -626,13 +630,11 @@ namespace gsc
 		{
 			printf("game loaded: %s\n", identification::game::get_full_display_name().data());
 
-			// TODO: this code should only run on 1.20.4 & 1.20.4-replay!!! iw8-mod's stuff works otherwise, but we have a 1.20 compiler
+			// TODO: this code should only run on 1.20.4 & 1.20.4-replay!!! iw8-mod's stuff works otherwise, but we have a 1.20 compiler A
 			if (identification::game::is("1.20.4") || identification::game::is("1.20.4-replay"))
 			{
-				printf("is 1.20.4, run code\n");
-
 				// Allocate script memory (PMem doesn't work)
-				db_alloc_x_zone_memory_internal_hook.create(game::DB_AllocXZoneMemory, db_alloc_x_zone_memory_internal_stub);
+				db_alloc_x_zone_memory_internal_hook.create(game::DB_AllocXZoneMemoryInternal, db_alloc_x_zone_memory_internal_stub);
 
 				// Load our scripts with an uncompressed stack
 				utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);

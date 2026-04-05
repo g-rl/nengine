@@ -13,13 +13,19 @@ namespace game
 	 **************************************************************/
 
 	WEAK void(*Cbuf_AddText)(int localClientNum, const char* text) = nullptr;
+
+	// Com
 	WEAK void(*Com_Error)(int code, const char* fmt, ...) = nullptr;
+	WEAK bool(*Com_FrontEnd_IsInFrontEnd)() = nullptr;
 
 	// DB
-	WEAK void(*DB_AllocXZoneMemory)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XArchiveBlocks* archive_blocks) = nullptr;
-	WEAK void(*DB_AllocXZoneMemoryInternal)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XArchiveBlocks* archive_blocks,
-		game::DBMemoryType type) = nullptr;
+	WEAK void(*DB_AllocXZoneMemory)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XBlock* archive_blocks) = nullptr;
+	WEAK void(*DB_AllocXZoneMemoryInternal)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XBlock* archive_blocks,
+		int type) = nullptr;
+	WEAK XAssetHeader(*DB_FindXAssetHeader)(XAssetType type, const char* name, int createDefault) = nullptr;
 	WEAK int(*DB_IsXAssetDefault)(XAssetType type, const char* name) = nullptr;
+	WEAK int(*DB_XAssetExists)(XAssetType type, const char* name) = nullptr;
+	WEAK int(*DB_GetRawBuffer)(const RawFile* rawfile, char* buf, int size) = nullptr;
 
 	// G
 	WEAK void(*G_MainMP_ShutdownGame)(bool fullclear) = nullptr;
@@ -36,7 +42,12 @@ namespace game
 	WEAK void(*Scr_AddClassField)(game::scrContext_t* scr_context, std::uint8_t class_num, std::uint32_t name, std::uint32_t canonical_string,
 		std::uint32_t offset) = nullptr;
 	WEAK void(*Scr_SetThreadPosition)(game::scrContext_t* scr_context, int val) = nullptr;
+	WEAK unsigned int(*Scr_LoadScript)(game::scrContext_t* scr_context, const char* filename) = nullptr;
+	WEAK unsigned int(*Scr_GetFunctionHandle)(game::scrContext_t* scr_context, const char* filename, unsigned int handle) = nullptr;
+	WEAK unsigned int(*Scr_ExecThread)(game::scrContext_t* scr_context, int handle, int num_param) = nullptr;
+	WEAK unsigned int(*Scr_FreeThread)(game::scrContext_t* scr_context, unsigned int handle) = nullptr;
 	WEAK void(*ProcessScript)(game::scrContext_t* scr_context, const char* filename) = nullptr;
+	WEAK scrContext_t* (*ScriptContext_Server)() = nullptr;
 
 	// Weapon system (sig-scanned)
 	WEAK void(*PM_Weapon_sig)(pmove_t* pm, pml_t* pml) = nullptr;
@@ -73,7 +84,6 @@ namespace game
 	WEAK symbol<int()> SV_Cmd_Argc{0x1298AF0};
 	WEAK symbol<const char*(int index)> SV_Cmd_Argv{0x1298B10};
 
-	WEAK symbol<bool()> Com_FrontEnd_IsInFrontEnd{0x10C67A0};
 	WEAK symbol<void(int localClientNum)> Con_DrawConsole{0x15AE0B0};
 	WEAK symbol<bool(int localClientNum)> Con_IsActive{0x15B0EF0};
 	WEAK symbol<void()> Con_ToggleConsole{0x15B18C0};
@@ -81,10 +91,7 @@ namespace game
 	WEAK symbol<void(int localClientNum)> DevGui_Draw{0x17E5CD0};
 	WEAK symbol<void()> DevGui_Toggle{0x17E9DA0};
 
-	WEAK symbol<XAssetHeader(XAssetType type, const char* name, int createDefault)> DB_FindXAssetHeader{0x11AA890}; // XAssetHeader
-	WEAK symbol<int(XAssetType type, const char* name)> DB_XAssetExists{0x11B2220};
 	WEAK symbol<int(const RawFile* rawfile)> DB_GetRawFileLen{0x12C2AD0};
-	WEAK symbol<int(const RawFile* rawfile, char* buf, int size)> DB_GetRawBuffer{0x12C29A0};
 	
 	WEAK symbol<dvar_t*(const char* dvarName)> Dvar_FindVarByName{0x13E63A0};
 	WEAK symbol<const char*(const char* dvar)> Dvar_GetStringSafe{0x13E69B0};
@@ -114,15 +121,10 @@ namespace game
 
 	//WEAK symbol<void*(const char* name, int pixelHeight)> R_RegisterFont{0x1419329B0};
 
-	WEAK symbol<scrContext_t*()> ScriptContext_Server{0x12E0E70};
 	WEAK symbol<void(scrContext_t* context)> Scr_ClearOutParams{0x1323410};
 	WEAK symbol<void(scrContext_t* context)> Scr_ErrorInternal{0x13237B0};
-	WEAK symbol<unsigned int(void* scr_context, int handle, int num_param)> Scr_ExecThread{0x13238F0};
 	WEAK symbol<const char*(int type)> Scr_GetNameForType{0x13210A0};
 	WEAK symbol<const char*(scrContext_t* context, unsigned int index)> Scr_GetString{0x13254D0};
-	WEAK symbol<unsigned int(void* scr_context, unsigned int handle)> Scr_FreeThread{0x13242E0};
-	WEAK symbol<unsigned int(void* scr_context, const char* filename, unsigned int handle)> Scr_GetFunctionHandle{0x1317270};
-	WEAK symbol<unsigned int(void* scr_context, const char* filename)> Scr_LoadScript{0x1317400};
 	WEAK symbol<void(scrContext_t* context, unsigned int id, scr_string_t stringValue, 
 		unsigned int paramcount)> Scr_NotifyId{0x1325E20};
 
