@@ -8,6 +8,7 @@
 #include <utils/string.hpp>
 #include <utils/nt.hpp>
 #include <utils/hook.hpp>
+#include <component/gpc/gpc_engine.hpp>
 
 namespace
 {
@@ -189,7 +190,12 @@ extern "C" {
 
 	__declspec(dllexport) DWORD XInputGetState(DWORD dwUserIndex, struct XINPUT_STATE* pState) {
 		static auto func = GetProxyExport<decltype(&XInputGetState)>("XInput9_1_0.dll", "XInputGetState");
-		return func(dwUserIndex, pState);
+		const DWORD result = func(dwUserIndex, pState);
+		if (result == ERROR_SUCCESS && pState)
+		{
+			gpc::engine::instance().on_xinput_get_state(dwUserIndex, pState);
+		}
+		return result;
 	}
 }
 
