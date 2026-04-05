@@ -49,6 +49,8 @@ namespace game
 	WEAK void(*ProcessScript)(game::scrContext_t* scr_context, const char* filename) = nullptr;
 	WEAK scrContext_t* (*ScriptContext_Server)() = nullptr;
 
+	WEAK void(*R_EndFrame)() = nullptr;
+
 	// Weapon system (sig-scanned)
 	WEAK void(*PM_Weapon_sig)(pmove_t* pm, pml_t* pml) = nullptr;
 	WEAK void(*PM_Weapon_ProcessHand_sig)(pmove_t* pm, pml_t* pml, int delayedAction, int hand) = nullptr;

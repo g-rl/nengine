@@ -168,6 +168,16 @@ namespace scheduler
 	class component final : public component_interface
 	{
 	public:
+		void find_signatures(memory::signature_store& batch) override 
+		{
+			if (identification::game::is_less_or_eq("1.36.1") || identification::game::is("1.20.4-replay")) {
+				batch.add(SETUP_POINTER(game::R_EndFrame), "48 8B 15 ? ? ? ? 45 33 D2 4C 8B 0D");
+			}
+			else {
+				batch.add(SETUP_POINTER(game::R_EndFrame), "48 83 EC ? E8 ? ? ? ? 48 8B 15 ? ? ? ? 45 33 D2");
+			}
+		}
+
 		void post_start() override
 		{
 			thread = utils::thread::create_named_thread("Async Scheduler", []()
@@ -184,8 +194,13 @@ namespace scheduler
 		{
 			if (identification::game::is("1.20.4-replay"))
 			{
-				r_end_frame_hook.create(0x1966950_b, r_end_frame_stub);
-				main_frame_hook.create(0x12AB830_b, scheduler::main_frame_stub);
+				r_end_frame_hook.create(game::R_EndFrame, r_end_frame_stub);
+
+				// TODO: support other version
+				if (identification::game::is("1.20.4-replay"))
+				{
+					main_frame_hook.create(0x12AB830_b, scheduler::main_frame_stub);
+				}
 			}
 		}
 
