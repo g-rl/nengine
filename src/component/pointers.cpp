@@ -45,6 +45,9 @@ public:
 
 		batch.add(SETUP_POINTER(game::Scr_ExecThread), "48 83 EC ? 33 C0 45 8B C8");
 		batch.add(SETUP_POINTER(game::Scr_FreeThread), "E8 ? ? ? ? 48 8B 4F ? 48 63 81", SETUP_MOD(add(1).rip()));
+
+		batch.add(SETUP_POINTER(game::Dvar_RegisterBool), "E8 ? ? ? ? 48 8B F0 F6 46", SETUP_MOD(add(1).rip()));
+		batch.add(SETUP_POINTER(game::Dvar_FindVarByName), "E8 ? ? ? ? 48 8B CB 48 63 50", SETUP_MOD(add(1).rip()));
 	}
 };
 

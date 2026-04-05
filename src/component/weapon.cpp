@@ -2,10 +2,17 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 
+#include "scheduler.hpp"
+
 #include <utils/hook.hpp>
 
 namespace weapon
 {
+	const game::dvar_t* sprintswaps = nullptr;
+	const game::dvar_t* instashoots = nullptr;
+	const game::dvar_t* alwayscanswap = nullptr;
+	const game::dvar_t* freezeanim = nullptr;
+
 	// =========================================================================
 	// Detour: PM_BeginWeaponChange
 	//
@@ -16,6 +23,12 @@ namespace weapon
 	void PM_BeginWeaponChange_stub(game::pmove_t* pm, game::pml_t* pml,
 		const game::Weapon* newweapon, bool isNewAlternate, bool quick)
 	{
+		if (!sprintswaps || !sprintswaps->current.enabled)
+		{
+			PM_BeginWeaponChange_hook.invoke<void>(pm, pml, newweapon, isNewAlternate, quick);
+			return;
+		}
+
 		game::PlayerActiveWeaponState prevWeapState[2] = {
 			pm->ps->weapState[0],
 			pm->ps->weapState[1]
@@ -44,6 +57,9 @@ namespace weapon
 	// =========================================================================
 	void instashoots_check(game::pmove_t* pm, int hand)
 	{
+		if (!instashoots || !instashoots->current.enabled)
+			return;
+
 		int state = pm->ps->weapState[hand].weaponState;
 		if (state != game::WEAPON_RAISING && state != game::WEAPON_RAISING_ALTSWITCH)
 			return;
@@ -84,12 +100,26 @@ namespace weapon
 	utils::hook::detour PM_Weapon_hook;
 	void PM_Weapon_stub(game::pmove_t* pm, game::pml_t* pml)
 	{
-		for (int i = 0; i < 15; i++)
+		if (alwayscanswap && alwayscanswap->current.enabled)
 		{
-			pm->ps->weapEquippedData[i].usedBefore = false;
+			for (int i = 0; i < 15; i++)
+			{
+				pm->ps->weapEquippedData[i].usedBefore = false;
+			}
 		}
 
 		PM_Weapon_hook.invoke<void>(pm, pml);
+	}
+
+	utils::hook::detour CG_UpdateViewWeaponAnim_hook;
+	void CG_UpdateViewWeaponAnim_stub(unsigned int localClientNum)
+	{
+		if (freezeanim && freezeanim->current.enabled)
+		{
+			return;
+		}
+
+		CG_UpdateViewWeaponAnim_hook.invoke<void>(localClientNum);
 	}
 
 	// =========================================================================
@@ -123,6 +153,10 @@ namespace weapon
 			// PM_BeginWeaponChange
 			batch.add(SETUP_POINTER(game::PM_BeginWeaponChange_sig),
 				"40 55 57 41 54 41 55 41 57 48 81 EC F0 00 00 00");
+
+			// CG_UpdateViewWeaponAnim
+			batch.add(SETUP_POINTER(game::CG_UpdateViewWeaponAnim),
+				"48 89 5C 24 ?? 56 57 41 55 41 56 41 57 48 81 EC F0 04 00 00");
 
 			// PM_Weapon_Idle (thunk — struct offsets 0x380 and 0x348 are the anchor)
 			batch.add(SETUP_POINTER(game::PM_Weapon_Idle_sig),
@@ -158,6 +192,14 @@ namespace weapon
 
 		void post_unpack() override
 		{
+			scheduler::once([]
+			{
+				sprintswaps = game::Dvar_RegisterBool("pan_sprintswaps", false, game::DVAR_FLAG_NONE, "");
+				instashoots = game::Dvar_RegisterBool("pan_instashoots", false, game::DVAR_FLAG_NONE, "");
+				alwayscanswap = game::Dvar_RegisterBool("pan_alwayscanswap", false, game::DVAR_FLAG_NONE, "");
+				freezeanim = game::Dvar_RegisterBool("pan_freezeanim", false, game::DVAR_FLAG_NONE, "");
+			}, scheduler::main);
+
 			// NOP patches — only apply if signatures resolved
 			if (nop_target_1)
 				utils::hook::nop(nop_target_1, 3);
@@ -173,6 +215,9 @@ namespace weapon
 
 			if (game::PM_BeginWeaponChange_sig)
 				PM_BeginWeaponChange_hook.create(game::PM_BeginWeaponChange_sig, PM_BeginWeaponChange_stub);
+
+			if (game::CG_UpdateViewWeaponAnim)
+				CG_UpdateViewWeaponAnim_hook.create(game::CG_UpdateViewWeaponAnim, CG_UpdateViewWeaponAnim_stub);
 		}
 	};
 }

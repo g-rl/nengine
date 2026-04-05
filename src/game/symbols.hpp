@@ -4,6 +4,9 @@
 
 namespace game
 {
+	WEAK dvar_t* (*Dvar_FindVarByName)(const char* dvarName) = nullptr;
+	WEAK dvar_t* (*Dvar_RegisterBool)(const char* dvarName, bool value, DvarFlags flags, const char* desc) = nullptr;
+	WEAK void (*CG_UpdateViewWeaponAnim)(unsigned int localClientNum) = nullptr;
 	/***************************************************************
 	 * Sig-scanned function pointers (resolved at startup)
 	 *
@@ -95,9 +98,9 @@ namespace game
 
 	WEAK symbol<int(const RawFile* rawfile)> DB_GetRawFileLen{0x12C2AD0};
 	
-	WEAK symbol<dvar_t*(const char* dvarName)> Dvar_FindVarByName{0x13E63A0};
+	//WEAK symbol<dvar_t*(const char* dvarName)> Dvar_FindVarByName{0x13E63A0};
 	WEAK symbol<const char*(const char* dvar)> Dvar_GetStringSafe{0x13E69B0};
-	WEAK symbol<dvar_t*(const char* dvarName, bool value, DvarFlags flags, const char* desc)> Dvar_RegisterBool{0x13E7670};
+	//WEAK symbol<dvar_t*(const char* dvarName, bool value, DvarFlags flags, const char* desc)> Dvar_RegisterBool{0x13E7670};
 	WEAK symbol<dvar_t*(const char* dvarName, const char* value, DvarFlags flags, const char* desc)> Dvar_RegisterString{0x13E7A70};
 	WEAK symbol<void(const char* dvarName, const char* string, bool isSuperUser)> Dvar_SetCommandByName{0x13E8FE0};
 
