@@ -7,6 +7,7 @@ namespace game
 	WEAK dvar_t* (*Dvar_FindVarByName)(const char* dvarName) = nullptr;
 	WEAK dvar_t* (*Dvar_RegisterBool)(const char* dvarName, bool value, DvarFlags flags, const char* desc) = nullptr;
 	WEAK void (*CG_UpdateViewWeaponAnim)(unsigned int localClientNum) = nullptr;
+	WEAK bool (*BG_PlayerDualWieldingWeapon)(const void *weaponMap, const playerState_s *ps, const Weapon *r_weapon) = nullptr;
 	/***************************************************************
 	 * Sig-scanned function pointers (resolved at startup)
 	 *
@@ -55,6 +56,7 @@ namespace game
 	WEAK void(*R_EndFrame)() = nullptr;
 
 	// Weapon system (sig-scanned)
+	WEAK void(*PmoveSingle_sig)(pmove_t* pm) = nullptr;
 	WEAK void(*PM_Weapon_sig)(pmove_t* pm, pml_t* pml) = nullptr;
 	WEAK void(*PM_Weapon_ProcessHand_sig)(pmove_t* pm, pml_t* pml, int delayedAction, int hand) = nullptr;
 	WEAK void(*PM_BeginWeaponChange_sig)(pmove_t* pm, pml_t* pml, const Weapon* newweapon, bool isNewAlternate, bool quick) = nullptr;
@@ -97,7 +99,7 @@ namespace game
 	WEAK symbol<void()> DevGui_Toggle{0x17E9DA0};
 
 	WEAK symbol<int(const RawFile* rawfile)> DB_GetRawFileLen{0x12C2AD0};
-	
+
 	//WEAK symbol<dvar_t*(const char* dvarName)> Dvar_FindVarByName{0x13E63A0};
 	WEAK symbol<const char*(const char* dvar)> Dvar_GetStringSafe{0x13E69B0};
 	//WEAK symbol<dvar_t*(const char* dvarName, bool value, DvarFlags flags, const char* desc)> Dvar_RegisterBool{0x13E7670};
@@ -130,7 +132,7 @@ namespace game
 	WEAK symbol<void(scrContext_t* context)> Scr_ErrorInternal{0x13237B0};
 	WEAK symbol<const char*(int type)> Scr_GetNameForType{0x13210A0};
 	WEAK symbol<const char*(scrContext_t* context, unsigned int index)> Scr_GetString{0x13254D0};
-	WEAK symbol<void(scrContext_t* context, unsigned int id, scr_string_t stringValue, 
+	WEAK symbol<void(scrContext_t* context, unsigned int id, scr_string_t stringValue,
 		unsigned int paramcount)> Scr_NotifyId{0x1325E20};
 
 	WEAK symbol<scr_string_t(const char* str, unsigned int user)> SL_GetString{0x131AE30};
@@ -167,7 +169,7 @@ namespace game
 	WEAK symbol<void(void* scrPlace, const char* text, void* rect, void* font, float x, float y,
 		float scale, const float* color, int style, int textAlignMode, void* textRect, char a12)> UI_DrawWrappedText{0x1DCE30};
 
-	WEAK symbol<unsigned int(scrContext_t* context, unsigned int localId, const char* pos, 
+	WEAK symbol<unsigned int(scrContext_t* context, unsigned int localId, const char* pos,
 		unsigned int paramcount)> VM_Execute{0x132BA60};
 
 	/***************************************************************

@@ -1311,7 +1311,8 @@ namespace game
 		playerState_s* ps;                           // 0x008
 		usercmd_s cmd;                               // 0x010
 		usercmd_s oldcmd;                            // 0x118
-		char _pad220[0x128];                         // 0x220
+		unsigned int tracemask;                      // 0x220
+		char _pad224[0x124];                         // 0x224
 		void* m_bgHandler;                           // 0x348
 		char _pad350[0x30];                          // 0x350
 		void* weaponMap;                             // 0x380
@@ -1320,6 +1321,7 @@ namespace game
 	static_assert(offsetof(pmove_t, ps) == 0x008);
 	static_assert(offsetof(pmove_t, cmd) == 0x010);
 	static_assert(offsetof(pmove_t, oldcmd) == 0x118);
+	static_assert(offsetof(pmove_t, tracemask) == 0x220);
 	static_assert(offsetof(pmove_t, m_bgHandler) == 0x348);
 	static_assert(offsetof(pmove_t, weaponMap) == 0x380);
 
