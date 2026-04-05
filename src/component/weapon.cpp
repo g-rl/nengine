@@ -10,23 +10,23 @@
 
 namespace weapon
 {
-	const game::dvar_t* sprintswaps = nullptr;
-	const game::dvar_t* instashoots = nullptr;
-	const game::dvar_t* alwayscanswap = nullptr;
-	const game::dvar_t* freezeanim = nullptr;
-	const game::dvar_t* canzooms = nullptr;
-	const game::dvar_t* alwaysaltswap = nullptr;
+	const game::dvar_t* sprint_swaps_dvar = nullptr;
+	const game::dvar_t* instashoots_dvar = nullptr;
+	const game::dvar_t* always_canswap_dvar = nullptr;
+	const game::dvar_t* freeze_anim_dvar = nullptr;
+	const game::dvar_t* canzooms_dvar = nullptr;
+	const game::dvar_t* always_altswap_dvar = nullptr;
 
 	utils::hook::detour PM_BeginWeaponChange_hook;
 	void PM_BeginWeaponChange_stub(game::pmove_t* pm, game::pml_t* pml,
 		const game::Weapon* newweapon, bool isNewAlternate, bool quick)
 	{
-		if (alwaysaltswap && alwaysaltswap->current.enabled)
+		if (always_altswap_dvar && always_altswap_dvar->current.enabled)
 		{
 			quick = true;
 		}
 
-		if (!sprintswaps || !sprintswaps->current.enabled)
+		if (!sprint_swaps_dvar || !sprint_swaps_dvar->current.enabled)
 		{
 			PM_BeginWeaponChange_hook.invoke<void>(pm, pml, newweapon, isNewAlternate, quick);
 			return;
@@ -54,7 +54,7 @@ namespace weapon
 
 	void instashoots_check(game::pmove_t* pm, int hand)
 	{
-		if (!instashoots || !instashoots->current.enabled)
+		if (!instashoots_dvar || !instashoots_dvar->current.enabled)
 			return;
 
 		int state = pm->ps->weapState[hand].weaponState;
@@ -85,7 +85,7 @@ namespace weapon
 
 	void canzooms_check(game::pmove_t* pm)
 	{
-		if (!canzooms || !canzooms->current.enabled)
+		if (!canzooms_dvar || !canzooms_dvar->current.enabled)
 			return;
 
 		if (pm->ps->weapState[0].weaponState != game::WEAPON_RAISING)
@@ -108,7 +108,7 @@ namespace weapon
 	utils::hook::detour PM_Weapon_hook;
 	void PM_Weapon_stub(game::pmove_t* pm, game::pml_t* pml)
 	{
-		if (alwayscanswap && alwayscanswap->current.enabled)
+		if (always_canswap_dvar && always_canswap_dvar->current.enabled)
 		{
 			for (int i = 0; i < 15; i++)
 			{
@@ -123,7 +123,7 @@ namespace weapon
 	utils::hook::detour CG_UpdateViewWeaponAnim_hook;
 	void CG_UpdateViewWeaponAnim_stub(unsigned int localClientNum)
 	{
-		if (freezeanim && freezeanim->current.enabled)
+		if (freeze_anim_dvar && freeze_anim_dvar->current.enabled)
 		{
 			return;
 		}
@@ -131,13 +131,6 @@ namespace weapon
 		CG_UpdateViewWeaponAnim_hook.invoke<void>(localClientNum);
 	}
 
-	// =========================================================================
-	// Sig-scanned NOP targets
-	//
-	// These point to instructions that need to be patched out.
-	// In the old codebase these were hardcoded as base_address + RVA.
-	// Now they're resolved via signature scanning.
-	// =========================================================================
 	void* nop_target_1 = nullptr; // was base + 0x11440A5, NOP 3 bytes
 	void* nop_target_2 = nullptr; // was base + 0x11440E1, NOP 4 bytes
 
@@ -146,8 +139,6 @@ namespace weapon
 	public:
 		void find_signatures(memory::signature_store& batch) override
 		{
-			const bool is_ship_replay = identification::game::is("1.20.4-replay");
-
 			batch.add(SETUP_POINTER(game::PM_Weapon_sig),
 				"48 8B D5 48 8B CF E8 ? ? ? ? 48 8B 4F 08 4C 8B 74 24 40 48 8B 74 24 38 8B 41 14 C1 E8 1D"
 				" A8 01",
@@ -187,45 +178,30 @@ namespace weapon
 			batch.add(SETUP_POINTER(game::BG_PlayerDualWieldingWeapon),
 				"48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B F1 49 8B F8 48 8B CA 48 8B DA E8 ?? ?? ?? ?? 84 C0");
 
-			// NOP targets
-			// Both inside PM_Weapon_CheckForChangeWeapon.
-			// Anchor directly on the patch sites so this stays one signature call.
-			if (is_ship_replay)
-			{
-				batch.add("nop_target_1", reinterpret_cast<void**>(&nop_target_1),
-					"41 89 06 85 F6 75 33 48 8B 4C 24 40 41 0F B6 D4 E8 ?? ?? ?? ?? 84 C0 74 21 F3 0F 10 05 ?? ?? ?? ?? F3 0F 59 C6 F3 0F 2C C8 85 C9 7E 0D 48 8B 47 08 03 4F 1C 89 88 CC 10 00 00");
-				batch.add("nop_target_2", reinterpret_cast<void**>(&nop_target_2),
-					"89 88 CC 10 00 00 FF C6 49 83 C6 50 49 83 EF 01 0F 85 ?? ?? ?? ?? 4C 8B AC 24 C0 00 00 00 0F 28 74 24 50 B9 4A 00 00 00 E8 ?? ?? ?? ??");
-			}
-			else
-			{
-				//who knows bruh
-				batch.add("nop_target_1", reinterpret_cast<void**>(&nop_target_1),
-					"89 43 10 85 ED 75 33 48 8B 4C 24 40 41 0F B6 D4 E8 ?? ?? ?? ?? 84 C0 74 21 F3 0F 10 05 ?? ?? ?? ?? F3 0F 59 C6 F3 0F 2C C8 85 C9 7E 0D 48 8B 46 08 03 4E 1C 89 88 38 11 00 00");
-				batch.add("nop_target_2", reinterpret_cast<void**>(&nop_target_2),
-					"89 88 38 11 00 00 FF C5 48 83 C3 54 49 83 EF 01 0F 85 ?? ?? ?? ?? 4C 8B AC 24 C0 00 00 00 0F 28 74 24 50 48 8B 9E C8 03 00 00");
-			}
+			// nop targets that are both inside PM_Weapon_CheckForChangeWeapon
+			batch.add("nop_target_1", reinterpret_cast<void**>(&nop_target_1),
+				"?? ?? ?? 85 ?? 75 33 48 8B 4C 24 40 41 0F B6 D4 E8 ?? ?? ?? ?? 84 C0 74 21 F3 0F 10 05 ?? ?? ?? ?? F3 0F 59 C6 F3 0F 2C C8 85 C9 7E 0D 48 8B ?? 08 03 ?? 1C 89 88 ?? ?? ?? ??");
+			batch.add("nop_target_2", reinterpret_cast<void**>(&nop_target_2),
+				"89 88 ?? ?? 00 00 FF ?? ?? 83 ?? ?? 49 83 EF 01 0F 85 ?? ?? ?? ?? 4C");
 		}
 
 		void post_unpack() override
 		{
 			scheduler::once([]
 			{
-				sprintswaps = game::Dvar_RegisterBool("pan_sprintswaps", false, game::DVAR_FLAG_NONE, "");
-				instashoots = game::Dvar_RegisterBool("pan_instashoots", false, game::DVAR_FLAG_NONE, "");
-				alwayscanswap = game::Dvar_RegisterBool("pan_alwayscanswap", false, game::DVAR_FLAG_NONE, "");
-				freezeanim = game::Dvar_RegisterBool("pan_freezeanim", false, game::DVAR_FLAG_NONE, "");
-				canzooms = game::Dvar_RegisterBool("pan_canzooms", false, game::DVAR_FLAG_NONE, "");
-				alwaysaltswap = game::Dvar_RegisterBool("pan_alwaysaltswap", false, game::DVAR_FLAG_NONE, "");
+				sprint_swaps_dvar = game::Dvar_RegisterBool("pan_sprintswaps", false, game::DVAR_FLAG_NONE, "");
+				instashoots_dvar = game::Dvar_RegisterBool("pan_instashoots", false, game::DVAR_FLAG_NONE, "");
+				always_canswap_dvar = game::Dvar_RegisterBool("pan_alwayscanswap", false, game::DVAR_FLAG_NONE, "");
+				freeze_anim_dvar = game::Dvar_RegisterBool("pan_freezeanim", false, game::DVAR_FLAG_NONE, "");
+				canzooms_dvar = game::Dvar_RegisterBool("pan_canzooms", false, game::DVAR_FLAG_NONE, "");
+				always_altswap_dvar = game::Dvar_RegisterBool("pan_alwaysaltswap", false, game::DVAR_FLAG_NONE, "");
 			}, scheduler::main);
 
-			// NOP patches - only apply if signatures resolved
 			if (nop_target_1)
 				utils::hook::nop(nop_target_1, 3);
 			if (nop_target_2)
 				utils::hook::nop(nop_target_2, 4);
 
-			// Detour hooks - only create if function pointers resolved
 			if (game::PM_Weapon_sig)
 				PM_Weapon_hook.create(game::PM_Weapon_sig, PM_Weapon_stub);
 
