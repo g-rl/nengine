@@ -22,6 +22,9 @@ namespace game
 	WEAK void(*Com_Error)(int code, const char* fmt, ...) = nullptr;
 	WEAK bool(*Com_FrontEnd_IsInFrontEnd)() = nullptr;
 
+	// Dvar
+	WEAK int(*Dvar_GetIntSafe)(const char* dvar_name) = nullptr;
+
 	// DB
 	WEAK void(*DB_AllocXZoneMemory)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XBlock* archive_blocks) = nullptr;
 	WEAK void(*DB_AllocXZoneMemoryInternal)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XBlock* archive_blocks,
@@ -34,6 +37,9 @@ namespace game
 	// G
 	WEAK void(*G_MainMP_ShutdownGame)(bool fullclear) = nullptr;
 	WEAK void(*G_Spawn_LoadStructs)() = nullptr;
+
+	// Fence idk
+	WEAK void(*FenceManager_Frame)() = nullptr;
 
 	WEAK void(*Scr_BeginLoadScripts)(game::scrContext_t* context, int thread_mode) = nullptr;
 	WEAK void(*Scr_EndLoadScripts)(game::scrContext_t* context) = nullptr;

@@ -23,12 +23,12 @@ namespace weapon
 	{
 		printf("PM_BeginWeaponChange_stub\n");
 
-		if (always_altswap_dvar && always_altswap_dvar->current.enabled)
+		if (game::Dvar_GetIntSafe("pan_alwaysaltswap"))
 		{
 			quick = true;
 		}
 
-		if (!sprint_swaps_dvar || !sprint_swaps_dvar->current.enabled)
+		if (!game::Dvar_GetIntSafe("pan_sprintswaps"))
 		{
 			PM_BeginWeaponChange_hook.invoke<void>(pm, pml, newweapon, isNewAlternate, quick);
 			return;
@@ -63,7 +63,7 @@ namespace weapon
 
 	void instashoots_check(game::pmove_t* pm, int hand)
 	{
-		if (!instashoots_dvar || !instashoots_dvar->current.enabled)
+		if (game::Dvar_GetIntSafe("pan_instashoots"))
 			return;
 
 		int state = pm->ps->weapState[hand].weaponState;
@@ -97,7 +97,7 @@ namespace weapon
 
 	void canzooms_check(game::pmove_t* pm)
 	{
-		if (!canzooms_dvar || !canzooms_dvar->current.enabled)
+		if (!game::Dvar_GetIntSafe("pan_canzooms"))
 			return;
 
 		if (pm->ps->weapState[0].weaponState != game::WEAPON_RAISING)
@@ -122,7 +122,7 @@ namespace weapon
 	{
 		printf("PM_Weapon start\n");
 
-		if (always_canswap_dvar && always_canswap_dvar->current.enabled)
+		if (game::Dvar_GetIntSafe("pan_alwayscanswap"))
 		{
 			for (int i = 0; i < 15; i++)
 			{
@@ -140,12 +140,12 @@ namespace weapon
 	utils::hook::detour CG_UpdateViewWeaponAnim_hook;
 	void CG_UpdateViewWeaponAnim_stub(unsigned int localClientNum)
 	{
-		printf("CG_UpdateViewWeaponAnim_stub\n");
-		if (freeze_anim_dvar && freeze_anim_dvar->current.enabled)
+		if (game::Dvar_GetIntSafe("pan_freezeanim"))
 		{
 			return;
 		}
 
+		printf("CG_UpdateViewWeaponAnim_stub normally call\n");
 		CG_UpdateViewWeaponAnim_hook.invoke<void>(localClientNum);
 	}
 
@@ -167,18 +167,15 @@ namespace weapon
 				SETUP_MOD(add(4).rip()));
 
 			batch.add(SETUP_POINTER(game::PM_BeginWeaponChange_sig),
-				"48 8B 94 24 88 00 00 00 4C 8B C0 41 B1 01 C6 44 24 20 00 48 8B CE E8 ? ? ? ? 0F 28 74 24 30"
-				" 48 8B AC 24 90 00 00 00",
-				SETUP_MOD(add(23).rip()));
+				"48 89 54 24 10 53 56 57 48 83 EC 60 48 8B ?? ?? 48 8B F1");
 
 			batch.add(SETUP_POINTER(game::CG_UpdateViewWeaponAnim),
-				"E8 ? ? ? ? 8B CF E8 ? ? ? ? 48 8B 93 ? ? ? ? 41 B0",
-				SETUP_MOD(add(1).rip()));
+				"8B CF E8 ? ? ? ? 8B CF E8 ? ? ? ? 48 8B 93",
+				SETUP_MOD(add(3).rip()));
 
 			batch.add(SETUP_POINTER(game::PM_Weapon_Idle_sig),
-				"83 FA 3B 77 ?? 48 B9 01 00 00 00 00 00 01 0C 48 0F A3 D1 72 ?? EB ?? 45 85 FF 7F ?? 33 D2 48"
-				" 8B CF E8 ? ? ? ?",
-				SETUP_MOD(add(34).rip()));
+				"45 33 C0 ? 8B ? 48 8B CF E8 ? ? ? FF E9 ? ? ? 00",
+				SETUP_MOD(add(10).rip()));
 
 			batch.add(SETUP_POINTER(game::PM_GetWeaponFireButton_sig),
 				"48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 48 8B 59 08 41 0F B6 E9");
@@ -223,8 +220,8 @@ namespace weapon
 			if (game::PM_BeginWeaponChange_sig)
 				PM_BeginWeaponChange_hook.create(game::PM_BeginWeaponChange_sig, PM_BeginWeaponChange_stub);
 
-			if (game::CG_UpdateViewWeaponAnim)
-				CG_UpdateViewWeaponAnim_hook.create(game::CG_UpdateViewWeaponAnim, CG_UpdateViewWeaponAnim_stub);
+			//if (game::CG_UpdateViewWeaponAnim)
+			//	CG_UpdateViewWeaponAnim_hook.create(game::CG_UpdateViewWeaponAnim, CG_UpdateViewWeaponAnim_stub);
 		}
 	};
 }

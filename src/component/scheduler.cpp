@@ -104,12 +104,8 @@ namespace scheduler
 
 		void main_frame_stub()
 		{
-			const auto _0 = gsl::finally([]()
-			{
-				execute(pipeline::main);
-			});
-
 			main_frame_hook.invoke<void>();
+			execute(pipeline::main);
 		}
 	}
 
@@ -176,6 +172,17 @@ namespace scheduler
 			else {
 				batch.add(SETUP_POINTER(game::R_EndFrame), "48 83 EC ? E8 ? ? ? ? 48 8B 15 ? ? ? ? 45 33 D2");
 			}
+
+			if (identification::game::is("1.20.4-replay"))
+			{
+				batch.add(SETUP_POINTER(game::FenceManager_Frame), "E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8", GRAB_CALL);
+			}
+			else
+			{
+				// this works for 1.38, not sure abt 1.20.4 ship...
+				// on vanguard, you can find the fence doing this too... it just needs a lil bit of adjustment
+				batch.add(SETUP_POINTER(game::FenceManager_Frame), "E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ?", GRAB_CALL);
+			}
 		}
 
 		void post_start() override
@@ -192,16 +199,8 @@ namespace scheduler
 
 		void post_unpack() override
 		{
-			if (identification::game::is("1.20.4-replay"))
-			{
-				r_end_frame_hook.create(game::R_EndFrame, r_end_frame_stub);
-
-				// TODO: support other version
-				if (identification::game::is("1.20.4-replay"))
-				{
-					main_frame_hook.create(0x12AB830_b, scheduler::main_frame_stub);
-				}
-			}
+			r_end_frame_hook.create(game::R_EndFrame, r_end_frame_stub);
+			main_frame_hook.create(game::FenceManager_Frame, main_frame_stub);
 		}
 
 		void pre_destroy() override
