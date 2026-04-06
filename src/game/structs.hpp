@@ -55,19 +55,38 @@ namespace game
 
 	struct dvar_t
 	{
-		const char* name;
-		unsigned int checksum;
-		const char* description;
-		unsigned int flags;
-		char level[1];
-		unsigned __int8 type;
-		bool modified;
-		unsigned __int16 hashNext;
-		DvarValue current;
-		DvarValue latched;
-		DvarValue reset;
-		char domain[0x10];
-		BbConstUsageFlags BbConstUsageFlags;
+		const char* name;			// 0
+		unsigned int checksum;		// 8
+		char __pad[4];				// 12
+		const char* description;	// 16
+		unsigned int flags;			// 24
+		char level[1];				// 28
+		unsigned __int8 type;		// 29
+		bool modified;				// 30
+		char __pad2[1];				// 31
+		unsigned __int16 hashNext;	// 32
+		char __pad3[6];				// 34
+		DvarValue current;			// 40
+		DvarValue latched;			// 56
+		DvarValue reset;			// 72
+		char domain[0x10];			// 88
+		BbConstUsageFlags BbConstUsageFlags; // 104
+	}; // 128
+
+	struct dvar_t_ship
+	{
+		unsigned int checksum;		// 0
+		unsigned int flags;			// 4
+		char level[1];				// 8
+		unsigned __int8 type;		// 9
+		char __pad[2];				// 10
+		unsigned __int16 hashNext;	// 12
+		char __pad2[2];				// 14
+		DvarValue current;			// 16
+		DvarValue latched;			// 56
+		DvarValue reset;			// 72
+		char __pad3[0x30];			// jrmigm
+		char domain[0x10];			// 0x70
 	};
 
 	enum threadType
@@ -1295,7 +1314,7 @@ namespace game
 	static_assert(offsetof(playerState_s, pm_type) == 0x00C);
 	static_assert(offsetof(playerState_s, pm_flags) == 0x014);
 	static_assert(offsetof(playerState_s, sprintState) == 0x31C);
-	static_assert(offsetof(playerState_s, weapState) == 0x50C);
+	static_assert(offsetof(playerState_s, weapState) == 0x50C); // 1.20 is 1292, 1.38 is ??? (need a sig to find on 1.20)
 	static_assert(offsetof(playerState_s, weaponsEquipped) == 0x5AC);
 	static_assert(offsetof(playerState_s, weapEquippedData) == 0x5E8);
 	static_assert(offsetof(playerState_s, weapFlags) == 0x704);

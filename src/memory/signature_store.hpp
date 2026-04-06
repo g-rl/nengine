@@ -35,6 +35,12 @@ namespace memory
 			signatures_.push_back({ name, pattern, pointer, [](res r) { return r; } });
 		}
 
+		using offset_mod_fn = std::function<std::uint32_t(res)>;
+		void add(const std::string& name, std::uint32_t* out, const std::string& pattern, offset_mod_fn mod)
+		{
+			offset_signatures_.push_back({ name, pattern, out, std::move(mod) });
+		}
+
 		struct scan_stats
 		{
 			std::uint32_t found = 0;
@@ -66,6 +72,23 @@ namespace memory
 					printf(("[sig] MISS: " + sig.name + " (" + sig.pattern + ")\n").c_str());
 				}
 			}
+
+			for (auto& sig : offset_signatures_)
+			{
+				stats.total++;
+				auto r = sig_scan(library_, sig.pattern);
+				if (r)
+				{
+					*sig.out = sig.mod(r);
+					stats.found++;
+					printf(("[sig] offset: " + sig.name + " = 0x%x\n").c_str(), *sig.out);
+				}
+				else
+				{
+					printf(("[sig] MISS: " + sig.name + " (" + sig.pattern + ")\n").c_str());
+				}
+			}
+
 			return stats;
 		}
 
@@ -78,11 +101,23 @@ namespace memory
 			mod_fn mod;
 		};
 
+		struct offset_entry
+		{
+			std::string name;
+			std::string pattern;
+			std::uint32_t* out;
+			offset_mod_fn mod;
+		};
+
 		utils::nt::library library_;
 		std::vector<entry> signatures_;
+		std::vector<offset_entry> offset_signatures_;
 	};
 }
 
 #define SETUP_POINTER(name) #name, reinterpret_cast<void**>(&name)
 #define SETUP_MOD(chain) [](memory::scanned_result<void> r) { return r.chain; }
 #define GRAB_CALL SETUP_MOD(add(1).rip())
+
+#define SETUP_OFFSET(name) #name, &(name)
+#define SETUP_OFFSET_MOD(chain) [](memory::scanned_result<void> r) -> std::uint32_t { return r.chain; }

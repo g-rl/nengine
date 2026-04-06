@@ -10,51 +10,82 @@
 
 namespace weapon
 {
-	const game::dvar_t* sprint_swaps_dvar = nullptr;
-	const game::dvar_t* instashoots_dvar = nullptr;
-	const game::dvar_t* always_canswap_dvar = nullptr;
-	const game::dvar_t* freeze_anim_dvar = nullptr;
-	const game::dvar_t* canzooms_dvar = nullptr;
-	const game::dvar_t* always_altswap_dvar = nullptr;
+	game::dvar_t* sprint_swaps_dvar = nullptr;
+	game::dvar_t* instashoots_dvar = nullptr;
+	game::dvar_t* always_canswap_dvar = nullptr;
+	game::dvar_t* freeze_anim_dvar = nullptr;
+	game::dvar_t* canzooms_dvar = nullptr;
+	game::dvar_t* always_altswap_dvar = nullptr;
+
+	std::uint32_t pmove_weaponMap_offset  = 0x380; // default: 1.20
+	std::uint32_t pmove_weapState_offset  = 0x50C; // default: 1.20
+	std::uint32_t ps_sprintState_offset   = 0x31C; // default: 1.20
+
+	void* get_weapon_map(game::pmove_t* pm)
+	{
+		return *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(pm) + pmove_weaponMap_offset);
+	}
+
+	game::SprintState* get_sprint_state_ptr(game::pmove_t* pm)
+	{
+		return reinterpret_cast<game::SprintState*>(reinterpret_cast<std::uint8_t*>(pm->ps) + ps_sprintState_offset);
+	}
+
+	game::PlayerActiveWeaponState* get_weap_state_ptr(game::pmove_t* pm, int index)
+	{
+		return reinterpret_cast<game::PlayerActiveWeaponState*>(reinterpret_cast<std::uint8_t*>(pm->ps) + pmove_weapState_offset + (index * sizeof(game::PlayerActiveWeaponState)));
+	}
+
+	// this is so so so so extremely ugly, but i think it works sadly :p
+	// too lazy to sig this rn but i think its always the same lmfao
+	game::PlayerEquippedWeaponState* get_weap_equipped_data_ptr(game::pmove_t* pm, int index)
+	{
+		//printf("get_weap_equipped_data_ptr\n");
+		constexpr auto offset = (2 * sizeof(game::PlayerActiveWeaponState)) + (15 * sizeof(game::BgWeaponHandle));
+		return reinterpret_cast<game::PlayerEquippedWeaponState*>(reinterpret_cast<std::uint8_t*>(pm->ps) + pmove_weapState_offset + offset + (index * sizeof(game::PlayerEquippedWeaponState)));
+	}
+
+	/*
+		ok now actual code :D
+	*/
 
 	utils::hook::detour PM_BeginWeaponChange_hook;
 	void PM_BeginWeaponChange_stub(game::pmove_t* pm, game::pml_t* pml,
 		const game::Weapon* newweapon, bool isNewAlternate, bool quick)
 	{
-		printf("PM_BeginWeaponChange_stub\n");
-
-		if (game::Dvar_GetIntSafe("pan_alwaysaltswap"))
+		if (game::dvar_is_enabled_safe(always_canswap_dvar))
 		{
 			quick = true;
 		}
 
-		if (!game::Dvar_GetIntSafe("pan_sprintswaps"))
+		if (!game::dvar_is_enabled_safe(sprint_swaps_dvar))
 		{
 			PM_BeginWeaponChange_hook.invoke<void>(pm, pml, newweapon, isNewAlternate, quick);
 			return;
 		}
 
-		printf("PM_BeginWeaponChange_stub 2\n");
+		printf("sprint swaps r on woooooooooooo\n");
 
 		game::PlayerActiveWeaponState prevWeapState[2] = {
-			pm->ps->weapState[0],
-			pm->ps->weapState[1]
+			*get_weap_state_ptr(pm, 0),
+			*get_weap_state_ptr(pm, 1)
 		};
 
-		printf("PM_BeginWeaponChange_stub 3\n");
 		PM_BeginWeaponChange_hook.invoke<void>(pm, pml, newweapon, isNewAlternate, quick);
 
-		printf("PM_BeginWeaponChange_stub 4\n");
+		printf("doing sprint swap stuff\n");
 
-		const bool isSprinting = pm->ps->sprintState.lastSprintStart
-			&& pm->ps->sprintState.lastSprintStart > pm->ps->sprintState.lastSprintEnd;
+		const auto* sprint_state = get_sprint_state_ptr(pm);
+		const bool isSprinting = sprint_state->lastSprintStart
+			&& sprint_state->lastSprintStart > sprint_state->lastSprintEnd;
 
 		if (isSprinting)
 		{
 			for (int i = 0; i < 2; i++)
 			{
-				pm->ps->weapState[i].weapAnim = prevWeapState[i].weapAnim;
-				pm->ps->weapState[i].prevWeapAnim = prevWeapState[i].prevWeapAnim;
+				auto weap_state = get_weap_state_ptr(pm, i);
+				weap_state->weapAnim = prevWeapState[i].weapAnim;
+				weap_state->prevWeapAnim = prevWeapState[i].prevWeapAnim;
 			}
 		}
 
@@ -63,24 +94,30 @@ namespace weapon
 
 	void instashoots_check(game::pmove_t* pm, int hand)
 	{
-		if (game::Dvar_GetIntSafe("pan_instashoots"))
+		if (!game::dvar_is_enabled_safe(instashoots_dvar))
 			return;
 
-		int state = pm->ps->weapState[hand].weaponState;
+		int state = get_weap_state_ptr(pm, hand)->weaponState;
 		if (state != game::WEAPON_RAISING && state != game::WEAPON_RAISING_ALTSWITCH)
 			return;
 
+		//printf("current weapon check 1\n");
 		const game::Weapon* currentWeapon = game::BG_GetCurrentWeaponForPlayer_sig(
-			pm->weaponMap, pm->ps);
+			get_weapon_map(pm), pm->ps);
+		//printf("current weapon check 2\n");
 
 		uint64_t fireButton = game::PM_GetWeaponFireButton_sig(
 			pm, currentWeapon, hand, pm->cmd.inputFromGamepad);
 
+		//printf("after PM_GetWeaponFireButton_sig\n");
 		if (pm->cmd.buttons & fireButton)
 		{
-			int lastHand = game::BG_PlayerLastWeaponHand_sig(pm->weaponMap, pm->ps);
+			//printf("yo\n");
+			int lastHand = game::BG_PlayerLastWeaponHand_sig(get_weapon_map(pm), pm->ps);
+			//printf("and ok\n");
 			for (int i = 0; i <= lastHand; i++)
 				game::PM_Weapon_Idle_sig(pm, i);
+			//printf("anddd magic\n");
 		}
 	}
 
@@ -88,64 +125,69 @@ namespace weapon
 	void PM_Weapon_ProcessHand_stub(game::pmove_t* pm, game::pml_t* pml,
 		int delayedAction, int hand)
 	{
-		printf("PM_Weapon_ProcessHand_stub\n");
+		//printf("PM_Weapon_ProcessHand_stub\n");
 		instashoots_check(pm, hand);
-		printf("PM_Weapon_ProcessHand_stub end 1\n");
+		//printf("PM_Weapon_ProcessHand_stub end 1\n");
 		PM_Weapon_ProcessHand_hook.invoke<void>(pm, pml, delayedAction, hand);
-		printf("PM_Weapon_ProcessHand_stub end final\n");
+		//printf("PM_Weapon_ProcessHand_stub end final\n");
 	}
 
 	void canzooms_check(game::pmove_t* pm)
 	{
-		if (!game::Dvar_GetIntSafe("pan_canzooms"))
+		if (!game::dvar_is_enabled_safe(canzooms_dvar))
 			return;
 
-		if (pm->ps->weapState[0].weaponState != game::WEAPON_RAISING)
+		auto weap_state = get_weap_state_ptr(pm, 0);
+
+		if (weap_state->weaponState != game::WEAPON_RAISING)
 			return;
 
-		const game::Weapon* currentWeapon = game::BG_GetCurrentWeaponForPlayer_sig(pm->weaponMap, pm->ps);
-		const bool dualWielding = game::BG_PlayerDualWieldingWeapon(pm->weaponMap, pm->ps, currentWeapon);
+		const game::Weapon* currentWeapon = game::BG_GetCurrentWeaponForPlayer_sig(get_weapon_map(pm), pm->ps);
+		const bool dualWielding = game::BG_PlayerDualWieldingWeapon(get_weapon_map(pm), pm->ps, currentWeapon);
 		if (dualWielding)
 			return;
 
 		unsigned int zoomButton = 0x20000;
 		if (pm->cmd.buttons & zoomButton)
 		{
-			pm->ps->weapState[0].weaponState = game::WEAPON_READY;
-			pm->ps->weapState[0].weaponTime = 0;
-			pm->ps->weapState[0].weaponDelay = 0;
+			weap_state->weaponState = game::WEAPON_READY;
+			weap_state->weaponTime = 0;
+			weap_state->weaponDelay = 0;
 		}
 	}
 
 	utils::hook::detour PM_Weapon_hook;
 	void PM_Weapon_stub(game::pmove_t* pm, game::pml_t* pml)
 	{
-		printf("PM_Weapon start\n");
+		//printf("PM_Weapon start\n");
 
-		if (game::Dvar_GetIntSafe("pan_alwayscanswap"))
+		if (game::dvar_is_enabled_safe(always_canswap_dvar))
 		{
+			//printf("always canswap is enabled\n");
 			for (int i = 0; i < 15; i++)
 			{
-				pm->ps->weapEquippedData[i].usedBefore = false;
+				get_weap_equipped_data_ptr(pm, i)->usedBefore = false;
 			}
 		}
 
+		//printf("PM_Weapon start 2\n");
+
 		canzooms_check(pm);
 
-		printf("PM_Weapon end 1\n");
+		//printf("PM_Weapon end 1\n");
 		PM_Weapon_hook.invoke<void>(pm, pml);
-		printf("PM_Weapon end final\n");
+		//printf("PM_Weapon end final\n");
 	}
 
 	utils::hook::detour CG_UpdateViewWeaponAnim_hook;
 	void CG_UpdateViewWeaponAnim_stub(unsigned int localClientNum)
 	{
-		if (game::Dvar_GetIntSafe("pan_freezeanim"))
+		if (game::dvar_is_enabled_safe(freeze_anim_dvar))
 		{
 			return;
 		}
 
-		printf("CG_UpdateViewWeaponAnim_stub normally call\n");
+		//printf("CG_UpdateViewWeaponAnim_stub normally call\n");
 		CG_UpdateViewWeaponAnim_hook.invoke<void>(localClientNum);
 	}
 
@@ -194,6 +236,36 @@ namespace weapon
 			// nop targets that are both inside PM_Weapon_CheckForChangeWeapon
 			batch.add("nop_target_1", reinterpret_cast<void**>(&nop_target_1),
 				"?? ?? ?? 85 ?? 75 33 48 8B 4C 24 40 41 0F B6 D4 E8 ?? ?? ?? ?? 84 C0 74 21 F3 0F 10 05 ?? ?? ?? ?? F3 0F 59 C6 F3 0F 2C C8 85 C9 7E 0D 48 8B ?? 08 03 ?? 1C 89 88 ?? ?? ?? ??");
+		
+			// offsets
+			batch.add(SETUP_OFFSET(pmove_weaponMap_offset),
+				"48 8B 8F ? ? 00 00 48 8B D6 E8 ? ? ? FF",
+				SETUP_OFFSET_MOD(add(3).as<std::uint32_t&>()));
+
+			// 83 ? ? ? ? ? ? 48 8B ? E8 ? ? ? FF 84 setspawnweapon gsc func
+
+			// weapState offset: sig finds a mov that writes into [rdi+weapState+0x18],
+			// so we read the displacement and subtract 24 (0x18) to land on weapState[0].
+			if (identification::game::is("1.20.4-replay"))
+			{
+				// 44 89 BF [disp32] = mov [rdi+disp32], r15d  — disp at byte 3
+				batch.add(SETUP_OFFSET(pmove_weapState_offset),
+					"44 89 ? ? ? 00 00 48 8D 0D ? ? ? ? 44 89 ? ? ? 00 00 0F",
+					SETUP_OFFSET_MOD(add(3).as<std::uint32_t&>() - 24));
+			}
+			else // ship builds
+			{
+				// 89 AF [disp32] = mov [rdi+disp32], ebp  — disp at byte 2
+				batch.add(SETUP_OFFSET(pmove_weapState_offset),
+					"89 ? ? ? 00 00 48 8D 0D ? ? ? ? 89 ? ? ? 00 00 0F",
+					SETUP_OFFSET_MOD(add(2).as<std::uint32_t&>() - 24));
+			}
+
+			// ps_sprintState_offset: cmp [rbx+disp32], 0 — disp at byte 12
+			// 1.20: 0x31C, 1.38: 0x32C — single sig covers both
+			batch.add(SETUP_OFFSET(ps_sprintState_offset),
+				"F6 ? ? ? 0F ? ? ? ? ? 83 ? ? ? 00 00 00 0F",
+				SETUP_OFFSET_MOD(add(12).as<std::uint32_t&>()));
 		}
 
 		void post_unpack() override

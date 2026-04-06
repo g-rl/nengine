@@ -23,7 +23,7 @@ namespace game
 	WEAK bool(*Com_FrontEnd_IsInFrontEnd)() = nullptr;
 
 	// Dvar
-	WEAK int(*Dvar_GetIntSafe)(const char* dvar_name) = nullptr;
+	//WEAK int(*Dvar_GetIntSafe)(const char* dvar_name) = nullptr;
 
 	// DB
 	WEAK void(*DB_AllocXZoneMemory)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XBlock* archive_blocks) = nullptr;

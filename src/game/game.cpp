@@ -1,6 +1,8 @@
 #include <std_include.hpp>
 #include "game.hpp"
 
+#include <identification/game.hpp>
+
 #include <utils/flags.hpp>
 
 namespace game
@@ -11,6 +13,26 @@ namespace game
 	{
 		const auto module = GetModuleHandle(NULL);
 		base_address = uint64_t(module);
+	}
+
+	DvarValue& get_current(game::dvar_t* dvar) {
+		if (identification::game::is("1.20.4-replay")) {
+			return dvar->current;
+		}
+
+		printf("yo 1\n");
+		auto test = reinterpret_cast<game::dvar_t_ship*>(dvar);
+		printf("yo 2\n");
+		return test->current;
+	}
+
+	bool dvar_is_enabled_safe(game::dvar_t* dvar)
+	{
+		if (!dvar)
+			return false;
+
+		auto current = get_current(dvar);
+		return current.enabled;
 	}
 }
 

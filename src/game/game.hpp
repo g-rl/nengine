@@ -7,6 +7,8 @@ namespace game
 	extern uint64_t base_address;
 	void load_base_address();
 
+	bool dvar_is_enabled_safe(dvar_t*);
+
 	template <typename T>
 	class symbol
 	{

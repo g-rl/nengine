@@ -72,6 +72,11 @@ namespace memory
 				.add(this->as<std::int32_t&>());
 		}
 
+		scanned_result val_u32()
+		{
+			return scanned_result(static_cast<std::uintptr_t>(this->as<std::uint32_t&>()));
+		}
+
 		bool is(std::uint8_t op) { return *this->as<std::uint8_t*>() == op; }
 
 		explicit operator bool() { return this->pointer_ != nullptr; }
