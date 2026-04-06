@@ -142,10 +142,6 @@ namespace
 					return;
 				}
 
-				static utils::nt::library game{};
-				game.unprotect();
-				component_loader::find_signatures();
-
 				auto* system_parameters_info = utils::nt::library{}.get_iat_entry("user32.dll", "SystemParametersInfoA");
 				if (!system_parameters_info)
 				{
@@ -203,6 +199,9 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD reason, LPVOID lpVoid)
 {
 	if (reason == DLL_PROCESS_ATTACH)
 	{
+		//while (!IsDebuggerPresent())
+		//	Sleep(100);
+
 		game::load_base_address();
 		main();
 	}

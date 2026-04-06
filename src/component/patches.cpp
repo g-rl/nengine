@@ -109,6 +109,44 @@ namespace patches
 	class component final : public component_interface
 	{
 	public:
+		component()
+		{
+			const auto version_dll = GetModuleHandleA("version.dll");
+			if (!version_dll) 
+				return;
+
+			const auto set_output_callback = reinterpret_cast<void(*)(void(*)(const char*))>(
+				GetProcAddress(version_dll, "set_output_callback"));
+
+			if (set_output_callback)
+			{
+				set_output_callback([](const char* msg)
+				{
+					// skip past ANSI escape sequences to find the actual text
+					const char* p = msg;
+					std::string stripped;
+					while (*p)
+					{
+						if (*p == '\x1b')
+						{
+							while (*p && *p != 'm') p++;
+							if (*p) p++;
+						}
+						else
+						{
+							stripped += *p++;
+						}
+					}
+
+					if (strstr(stripped.c_str(), "Found") && strstr(stripped.c_str(), "out of"))
+					{
+						//printf("find_signatures call\n");
+						component_loader::find_signatures();
+					}
+				});
+			}
+		}
+
 		void post_unpack() override
 		{
 			if (identification::game::is("1.20.4-replay"))

@@ -170,10 +170,12 @@ namespace scripting
 		{
 			if (identification::game::is("1.20.4") || identification::game::is("1.20.4-replay"))
 			{
-				if (identification::game::is("1.20.4-replay"))
-					batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "40 55 48 83 EC 20 0F B6 E9 48 8D 15 A0 5D 24 01");	// non arxan
-				else
-					batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "40 53 57 41 56 48 83 EC ? 44 0F B6 F1");
+				if (identification::game::is_greater_or_eq("1.46.0")) {
+					batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 8B 05 ? ? ? ? 0F B6 F9");
+				}
+				else {
+					batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "E8 ? ? ? ? 65 48 8B 04 25 ? ? ? ? 48 8B CF 48 8B 14 18 33 C0", SETUP_MOD(add(1).rip()));
+				}
 
 				batch.add(SETUP_POINTER(game::Scr_AddClassField), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 0F B6 C2");
 

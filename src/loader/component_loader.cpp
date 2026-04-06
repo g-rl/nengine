@@ -84,7 +84,7 @@ void component_loader::find_signatures()
 	const auto stats = store.scan_all();
 	char buf[128];
 	_snprintf_s(buf, _TRUNCATE, "[sig] resolved %u/%u\n", stats.found, stats.total);
-	OutputDebugStringA(buf);
+	printf("%s", buf);
 }
 
 void component_loader::pre_destroy()

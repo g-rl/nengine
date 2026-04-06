@@ -622,7 +622,11 @@ namespace gsc
 
 				// inside ProcessScript
 				batch.add(SETUP_POINTER(FindXAssetHeaderScript_call), "E8 ? ? ? FF 48 8B D3 B9 ? 00 00 00 48 8B F0 E8 ? ? ? FF 85 C0 75 0B 48 8B ? 48 8B ? E8 1E 00 00 00");
-				batch.add(SETUP_POINTER(IsXAssetDefaultScript_call), "E8 9D 42 E9 FF 85 C0 74 12 33 C0 48 8B 5C 24 30");
+				
+				if (identification::game::is("1.20.4-replay"))
+					batch.add(SETUP_POINTER(IsXAssetDefaultScript_call), "E8 9D 42 E9 FF 85 C0 74 12 33 C0 48 8B 5C 24 30");
+				else
+					batch.add(SETUP_POINTER(IsXAssetDefaultScript_call), "E8 ?? ?? ?? FF 85 C0 ?? ?? 48 8B ?? 48 8B ?? E8 1E 00 00 00");
 			}
 		}
 
