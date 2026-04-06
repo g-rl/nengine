@@ -9,6 +9,8 @@
 #include "memory.hpp"
 #include "scanned_result.hpp"
 
+#include <game/game.hpp>
+
 namespace memory
 {
 	// Minimal signature store: collect (name, pattern, pointer, mod) entries,
@@ -56,6 +58,8 @@ namespace memory
 				{
 					*sig.pointer = sig.mod(r).as<void*>();
 					stats.found++;
+					printf(("[sig] found: " + sig.name + " at 0x%llx\n").c_str(),
+						reinterpret_cast<uint64_t>(*sig.pointer) - game::base_address);
 				}
 				else
 				{

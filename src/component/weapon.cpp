@@ -21,6 +21,8 @@ namespace weapon
 	void PM_BeginWeaponChange_stub(game::pmove_t* pm, game::pml_t* pml,
 		const game::Weapon* newweapon, bool isNewAlternate, bool quick)
 	{
+		printf("PM_BeginWeaponChange_stub\n");
+
 		if (always_altswap_dvar && always_altswap_dvar->current.enabled)
 		{
 			quick = true;
@@ -32,12 +34,17 @@ namespace weapon
 			return;
 		}
 
+		printf("PM_BeginWeaponChange_stub 2\n");
+
 		game::PlayerActiveWeaponState prevWeapState[2] = {
 			pm->ps->weapState[0],
 			pm->ps->weapState[1]
 		};
 
+		printf("PM_BeginWeaponChange_stub 3\n");
 		PM_BeginWeaponChange_hook.invoke<void>(pm, pml, newweapon, isNewAlternate, quick);
+
+		printf("PM_BeginWeaponChange_stub 4\n");
 
 		const bool isSprinting = pm->ps->sprintState.lastSprintStart
 			&& pm->ps->sprintState.lastSprintStart > pm->ps->sprintState.lastSprintEnd;
@@ -50,6 +57,8 @@ namespace weapon
 				pm->ps->weapState[i].prevWeapAnim = prevWeapState[i].prevWeapAnim;
 			}
 		}
+
+		printf("PM_BeginWeaponChange_stub final\n");
 	}
 
 	void instashoots_check(game::pmove_t* pm, int hand)
@@ -79,8 +88,11 @@ namespace weapon
 	void PM_Weapon_ProcessHand_stub(game::pmove_t* pm, game::pml_t* pml,
 		int delayedAction, int hand)
 	{
+		printf("PM_Weapon_ProcessHand_stub\n");
 		instashoots_check(pm, hand);
+		printf("PM_Weapon_ProcessHand_stub end 1\n");
 		PM_Weapon_ProcessHand_hook.invoke<void>(pm, pml, delayedAction, hand);
+		printf("PM_Weapon_ProcessHand_stub end final\n");
 	}
 
 	void canzooms_check(game::pmove_t* pm)
@@ -108,6 +120,8 @@ namespace weapon
 	utils::hook::detour PM_Weapon_hook;
 	void PM_Weapon_stub(game::pmove_t* pm, game::pml_t* pml)
 	{
+		printf("PM_Weapon start\n");
+
 		if (always_canswap_dvar && always_canswap_dvar->current.enabled)
 		{
 			for (int i = 0; i < 15; i++)
@@ -117,12 +131,16 @@ namespace weapon
 		}
 
 		canzooms_check(pm);
+
+		printf("PM_Weapon end 1\n");
 		PM_Weapon_hook.invoke<void>(pm, pml);
+		printf("PM_Weapon end final\n");
 	}
 
 	utils::hook::detour CG_UpdateViewWeaponAnim_hook;
 	void CG_UpdateViewWeaponAnim_stub(unsigned int localClientNum)
 	{
+		printf("CG_UpdateViewWeaponAnim_stub\n");
 		if (freeze_anim_dvar && freeze_anim_dvar->current.enabled)
 		{
 			return;
@@ -154,8 +172,8 @@ namespace weapon
 				SETUP_MOD(add(23).rip()));
 
 			batch.add(SETUP_POINTER(game::CG_UpdateViewWeaponAnim),
-				"E8 ? ? ? ? 8B CF E8 ? ? ? ? 8B CF E8 ? ? ? ? 48 8B 93 ? ? 00 00",
-				SETUP_MOD(add(8).rip()));
+				"E8 ? ? ? ? 8B CF E8 ? ? ? ? 48 8B 93 ? ? ? ? 41 B0",
+				SETUP_MOD(add(1).rip()));
 
 			batch.add(SETUP_POINTER(game::PM_Weapon_Idle_sig),
 				"83 FA 3B 77 ?? 48 B9 01 00 00 00 00 00 01 0C 48 0F A3 D1 72 ?? EB ?? 45 85 FF 7F ?? 33 D2 48"
