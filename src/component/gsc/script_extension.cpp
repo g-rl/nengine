@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 
 #include "game/game.hpp"
+#include <identification/game.hpp>
 
 #include "component/scripting.hpp"
 
@@ -386,6 +387,14 @@ namespace gsc
 		game::Scr_ErrorInternal(context);
 	}
 
+	utils::hook::detour scr_error_internal_hook;
+	void scr_error_internal_stub(game::scrContext_t* context)
+	{
+		force_error_print = false;
+		gsc_error_msg = *game::error_message;
+		scr_error_internal_hook.invoke<void>(context);
+	}
+
 	namespace function
 	{
 		void add(const std::string& name, builtin_function function)
@@ -427,8 +436,14 @@ namespace gsc
 	public:
 		void post_unpack() override
 		{
-			developer_script = game::Dvar_RegisterBool("developer_script", true, game::DVAR_FLAG_NONE, "Enable developer script comments"); // enable by default for now
+			//developer_script = game::Dvar_RegisterBool("developer_script", true, game::DVAR_FLAG_NONE, "Enable developer script comments"); // enable by default for now
 
+			if (identification::game::is("1.20.4-replay"))
+			{
+				scr_error_internal_hook.create(game::Scr_ErrorInternal, scr_error_internal_stub);
+			}
+
+			/*
 			// use our own tables & counts instead of stock values
 			gsc::on_begin_scripts([&]()
 			{
@@ -469,16 +484,10 @@ namespace gsc
 
 				vm_execute_hooks[what.u.codePosValue] = with.u.codePosValue;
 			});
-
-			/*
-			method::add("test_custom_method", [](game::scrContext_t* context, game::scr_entref_t ent) -> void
-			{
-				printf("test_custom_method called from %hu\n", ent.entnum);
-			});
 			*/
 		}
 	};
 }
 
 // this has problems basically. just let it be for now :/
-//REGISTER_COMPONENT(gsc::extension)
+REGISTER_COMPONENT(gsc::extension)

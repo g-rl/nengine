@@ -3,6 +3,8 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 
+#include <identification/game.hpp>
+
 #include "script_error.hpp"
 #include "script_extension.hpp"
 #include "script_loading.hpp"
@@ -307,8 +309,15 @@ namespace gsc
 	public:
 		void post_unpack() override
 		{
-			// TODO: this works great in IW8, but we need to make it multi-game now
+			if (!identification::game::is("1.20.4-replay"))
+			{
+#ifdef _DEBUG
+				printf("script errors are not included in this verison of the game\n");
+#endif
+				return;
+			}
 
+			// TODO: this works great in IW8, but we need to make it multi-game now
 			scr_emit_function_hook.create(0x1316800_b, scr_emit_function_stub);
 
 			// change Sys_Error -> Com_Error + advanced messages
@@ -316,9 +325,8 @@ namespace gsc
 			utils::hook::call(0x1316777_b, compile_error_stub); // ^
 			utils::hook::call(0x13168DD_b, find_variable_stub); // Scr_EmitFunction_Precompiled
 
-			/*
 			// Restore basic error messages for commonly used scr functions
-#define MEME_DETOUR(address, func) func##_hook.create(address, func);
+#define MEME_DETOUR(address, func) //func##_hook.create(address, func);
 
 			MEME_DETOUR(0x1325000_b, scr_get_object);
 			MEME_DETOUR(0x13247F0_b, scr_get_const_string);
@@ -331,9 +339,8 @@ namespace gsc
 			MEME_DETOUR(0x1325220_b, scr_get_pointer_type);
 			MEME_DETOUR(0x1325580_b, scr_get_type);
 			MEME_DETOUR(0x1325610_b, scr_get_type_name);
-			*/
 		}
 	};
 }
 
-//REGISTER_COMPONENT(gsc::error)
+REGISTER_COMPONENT(gsc::error)

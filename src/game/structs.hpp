@@ -981,11 +981,11 @@ namespace game
 
 	struct function_stack_t
 	{
-		ScriptCodePos pos;
-		unsigned int localId;
-		unsigned int localVarCount;
-		VariableValue* top;
-		VariableValue* startTop;
+		ScriptCodePos pos; // 0
+		unsigned int localId; // 8
+		unsigned int localVarCount; // 12
+		VariableValue* top; // 16
+		VariableValue* startTop; // 24
 	};
 
 	struct __declspec(align(8)) function_frame_t

@@ -68,7 +68,7 @@ namespace weapon
 		if (!game::dvar_is_enabled_safe(sprint_swaps_dvar))
 		{
 			//printf("its off bruh\n");
-			utils::hook::spoof_hook_invoke<void>(PM_BeginWeaponChange_hook, pm, pml, newweapon, isNewAlternate, quick);
+			PM_BeginWeaponChange_hook.invoke<void>(pm, pml, newweapon, isNewAlternate, quick);
 			return;
 		}
 
@@ -77,7 +77,7 @@ namespace weapon
 			*get_weap_state_ptr(pm, 1)
 		};
 
-		utils::hook::spoof_hook_invoke<void>(PM_BeginWeaponChange_hook, pm, pml, newweapon, isNewAlternate, quick);
+		PM_BeginWeaponChange_hook.invoke<void>(pm, pml, newweapon, isNewAlternate, quick);
 
 		const auto* sprint_state = get_sprint_state_ptr(pm);
 		const bool isSprinting = sprint_state->lastSprintStart
