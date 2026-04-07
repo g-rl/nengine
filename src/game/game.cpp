@@ -20,9 +20,7 @@ namespace game
 			return dvar->current;
 		}
 
-		printf("yo 1\n");
 		auto test = reinterpret_cast<game::dvar_t_ship*>(dvar);
-		printf("yo 2\n");
 		return test->current;
 	}
 

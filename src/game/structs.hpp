@@ -73,21 +73,107 @@ namespace game
 		BbConstUsageFlags BbConstUsageFlags; // 104
 	}; // 128
 
+	struct DvarLevel
+	{
+		char lol;
+	};
+
+	struct DvarValueBool
+	{
+		bool enabled;
+		char pad[3];
+		int hashedValue;
+	};
+
+	struct DvarValueInt
+	{
+		int integer;
+		int hashedValue;
+	};
+
+	struct DvarValueEnum
+	{
+		int defaultIndex;
+		int hashedValue;
+	};
+
+	struct DvarValue_
+	{
+		union
+		{
+			bool enabled;
+			int integer;
+			uint32_t unsignedInt;
+			int64_t integer64;
+			uint64_t unsignedInt64;
+			float value;
+			vec4_t vector;
+			const char* string;
+			byte color[4];
+		} naked;
+
+		uint64_t unk1;
+		bool unk2;
+	};
+	static_assert(sizeof(DvarValue_) == 0x20);
+
+	union DvarLimits
+	{
+		struct
+		{
+			int stringCount;
+		private:
+			char pad_0004[0x0004];
+		public:
+			const char** strings;
+		} enumeration;
+
+		struct
+		{
+			int min;
+			int max;
+		} integer;
+
+		struct
+		{
+			int64_t min;
+			int64_t max;
+		} integer64;
+
+		struct
+		{
+			uint64_t min;
+			uint64_t max;
+		} unsignedInt64;
+
+		struct
+		{
+			float min;
+			float max;
+		} value;
+
+		struct
+		{
+			vec_t min;
+			vec_t max;
+		} vector;
+	};
+	static_assert(sizeof(DvarLimits) == 0x10);
+
 	struct dvar_t_ship
 	{
-		unsigned int checksum;		// 0
-		unsigned int flags;			// 4
-		char level[1];				// 8
-		unsigned __int8 type;		// 9
-		char __pad[2];				// 10
-		unsigned __int16 hashNext;	// 12
-		char __pad2[2];				// 14
-		DvarValue current;			// 16
-		DvarValue latched;			// 56
-		DvarValue reset;			// 72
-		char __pad3[0x30];			// jrmigm
-		char domain[0x10];			// 0x70
+		unsigned int checksum;
+		unsigned int flags;
+		DvarLevel level;
+		unsigned __int8 type;
+		unsigned short hashNext;
+		DvarValue current;
+		DvarValue latched;
+		DvarValue reset;
+		DvarLimits domain;
+		ULONG64 padding[1];
 	};
+	//static_assert(offsetof(dvar_t_ship, current) == 16);
 
 	enum threadType
 	{
@@ -1314,7 +1400,7 @@ namespace game
 	static_assert(offsetof(playerState_s, pm_type) == 0x00C);
 	static_assert(offsetof(playerState_s, pm_flags) == 0x014);
 	static_assert(offsetof(playerState_s, sprintState) == 0x31C);
-	static_assert(offsetof(playerState_s, weapState) == 0x50C); // 1.20 is 1292, 1.38 is ??? (need a sig to find on 1.20)
+	static_assert(offsetof(playerState_s, weapState) == 0x50C); // 1.20 is 1292
 	static_assert(offsetof(playerState_s, weaponsEquipped) == 0x5AC);
 	static_assert(offsetof(playerState_s, weapEquippedData) == 0x5E8);
 	static_assert(offsetof(playerState_s, weapFlags) == 0x704);

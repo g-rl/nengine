@@ -31,6 +31,11 @@ namespace weapon
 		return reinterpret_cast<game::SprintState*>(reinterpret_cast<std::uint8_t*>(pm->ps) + ps_sprintState_offset);
 	}
 
+	game::PlayerActiveWeaponState get_weap_state(game::pmove_t* pm, int index)
+	{
+		return *reinterpret_cast<game::PlayerActiveWeaponState*>(reinterpret_cast<std::uint8_t*>(pm->ps) + pmove_weapState_offset + (index * sizeof(game::PlayerActiveWeaponState)));
+	}
+
 	game::PlayerActiveWeaponState* get_weap_state_ptr(game::pmove_t* pm, int index)
 	{
 		return reinterpret_cast<game::PlayerActiveWeaponState*>(reinterpret_cast<std::uint8_t*>(pm->ps) + pmove_weapState_offset + (index * sizeof(game::PlayerActiveWeaponState)));
@@ -58,22 +63,21 @@ namespace weapon
 			quick = true;
 		}
 
+		//printf("beginweaponchange 1\n");
+
 		if (!game::dvar_is_enabled_safe(sprint_swaps_dvar))
 		{
-			PM_BeginWeaponChange_hook.invoke<void>(pm, pml, newweapon, isNewAlternate, quick);
+			//printf("its off bruh\n");
+			utils::hook::spoof_hook_invoke<void>(PM_BeginWeaponChange_hook, pm, pml, newweapon, isNewAlternate, quick);
 			return;
 		}
-
-		printf("sprint swaps r on woooooooooooo\n");
 
 		game::PlayerActiveWeaponState prevWeapState[2] = {
 			*get_weap_state_ptr(pm, 0),
 			*get_weap_state_ptr(pm, 1)
 		};
 
-		PM_BeginWeaponChange_hook.invoke<void>(pm, pml, newweapon, isNewAlternate, quick);
-
-		printf("doing sprint swap stuff\n");
+		utils::hook::spoof_hook_invoke<void>(PM_BeginWeaponChange_hook, pm, pml, newweapon, isNewAlternate, quick);
 
 		const auto* sprint_state = get_sprint_state_ptr(pm);
 		const bool isSprinting = sprint_state->lastSprintStart
@@ -88,8 +92,6 @@ namespace weapon
 				weap_state->prevWeapAnim = prevWeapState[i].prevWeapAnim;
 			}
 		}
-
-		printf("PM_BeginWeaponChange_stub final\n");
 	}
 
 	void instashoots_check(game::pmove_t* pm, int hand)
@@ -101,23 +103,17 @@ namespace weapon
 		if (state != game::WEAPON_RAISING && state != game::WEAPON_RAISING_ALTSWITCH)
 			return;
 
-		//printf("current weapon check 1\n");
 		const game::Weapon* currentWeapon = game::BG_GetCurrentWeaponForPlayer_sig(
 			get_weapon_map(pm), pm->ps);
-		//printf("current weapon check 2\n");
 
 		uint64_t fireButton = game::PM_GetWeaponFireButton_sig(
 			pm, currentWeapon, hand, pm->cmd.inputFromGamepad);
 
-		//printf("after PM_GetWeaponFireButton_sig\n");
 		if (pm->cmd.buttons & fireButton)
 		{
-			//printf("yo\n");
 			int lastHand = game::BG_PlayerLastWeaponHand_sig(get_weapon_map(pm), pm->ps);
-			//printf("and ok\n");
 			for (int i = 0; i <= lastHand; i++)
 				game::PM_Weapon_Idle_sig(pm, i);
-			//printf("anddd magic\n");
 		}
 	}
 
@@ -209,15 +205,16 @@ namespace weapon
 				SETUP_MOD(add(4).rip()));
 
 			batch.add(SETUP_POINTER(game::PM_BeginWeaponChange_sig),
-				"48 89 54 24 10 53 56 57 48 83 EC 60 48 8B ?? ?? 48 8B F1");
+				"41 B1 01 C6 44 24 20 00 48 8B CE E8 ? ? ? FF",
+				SETUP_MOD(add(12).rip()));
 
 			batch.add(SETUP_POINTER(game::CG_UpdateViewWeaponAnim),
 				"8B CF E8 ? ? ? ? 8B CF E8 ? ? ? ? 48 8B 93",
 				SETUP_MOD(add(3).rip()));
 
 			batch.add(SETUP_POINTER(game::PM_Weapon_Idle_sig),
-				"45 33 C0 ? 8B ? 48 8B CF E8 ? ? ? FF E9 ? ? ? 00",
-				SETUP_MOD(add(10).rip()));
+				"7F 0A 33 ? ? ? ? E8 ? ? ? 00 4C",
+				SETUP_MOD(add(8).rip()));
 
 			batch.add(SETUP_POINTER(game::PM_GetWeaponFireButton_sig),
 				"48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 48 8B 59 08 41 0F B6 E9");
@@ -251,14 +248,14 @@ namespace weapon
 				// 44 89 BF [disp32] = mov [rdi+disp32], r15d  — disp at byte 3
 				batch.add(SETUP_OFFSET(pmove_weapState_offset),
 					"44 89 ? ? ? 00 00 48 8D 0D ? ? ? ? 44 89 ? ? ? 00 00 0F",
-					SETUP_OFFSET_MOD(add(3).as<std::uint32_t&>() - 24));
+					SETUP_OFFSET_MOD(add(3).as<std::uint32_t&>() - 36));
 			}
 			else // ship builds
 			{
 				// 89 AF [disp32] = mov [rdi+disp32], ebp  — disp at byte 2
 				batch.add(SETUP_OFFSET(pmove_weapState_offset),
 					"89 ? ? ? 00 00 48 8D 0D ? ? ? ? 89 ? ? ? 00 00 0F",
-					SETUP_OFFSET_MOD(add(2).as<std::uint32_t&>() - 24));
+					SETUP_OFFSET_MOD(add(2).as<std::uint32_t&>() - 36));
 			}
 
 			// ps_sprintState_offset: cmp [rbx+disp32], 0 — disp at byte 12
