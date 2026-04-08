@@ -20,6 +20,7 @@ namespace game
 			return dvar->current;
 		}
 
+		// ship has a different dvar layout, just lazy cast the correct type
 		auto test = reinterpret_cast<game::dvar_t_ship*>(dvar);
 		return test->current;
 	}

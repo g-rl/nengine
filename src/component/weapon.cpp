@@ -269,12 +269,12 @@ namespace weapon
 		{
 			scheduler::once([]
 			{
-				sprint_swaps_dvar = game::Dvar_RegisterBool("pan_sprintswaps", false, game::DVAR_FLAG_NONE, "");
-				instashoots_dvar = game::Dvar_RegisterBool("pan_instashoots", false, game::DVAR_FLAG_NONE, "");
-				always_canswap_dvar = game::Dvar_RegisterBool("pan_alwayscanswap", false, game::DVAR_FLAG_NONE, "");
-				freeze_anim_dvar = game::Dvar_RegisterBool("pan_freezeanim", false, game::DVAR_FLAG_NONE, "");
-				canzooms_dvar = game::Dvar_RegisterBool("pan_canzooms", false, game::DVAR_FLAG_NONE, "");
-				always_altswap_dvar = game::Dvar_RegisterBool("pan_alwaysaltswap", false, game::DVAR_FLAG_NONE, "");
+				sprint_swaps_dvar = game::Dvar_RegisterBool("pan_sprintswaps", false, game::DVAR_NOFLAG, "");
+				instashoots_dvar = game::Dvar_RegisterBool("pan_instashoots", false, game::DVAR_NOFLAG, "");
+				always_canswap_dvar = game::Dvar_RegisterBool("pan_alwayscanswap", false, game::DVAR_NOFLAG, "");
+				freeze_anim_dvar = game::Dvar_RegisterBool("pan_freezeanim", false, game::DVAR_NOFLAG, "");
+				canzooms_dvar = game::Dvar_RegisterBool("pan_canzooms", false, game::DVAR_NOFLAG, "");
+				always_altswap_dvar = game::Dvar_RegisterBool("pan_alwaysaltswap", false, game::DVAR_NOFLAG, "");
 			}, scheduler::main);
 
 			if (nop_target_1)
@@ -289,8 +289,8 @@ namespace weapon
 			if (game::PM_BeginWeaponChange_sig)
 				PM_BeginWeaponChange_hook.create(game::PM_BeginWeaponChange_sig, PM_BeginWeaponChange_stub);
 
-			//if (game::CG_UpdateViewWeaponAnim)
-			//	CG_UpdateViewWeaponAnim_hook.create(game::CG_UpdateViewWeaponAnim, CG_UpdateViewWeaponAnim_stub);
+			if (game::CG_UpdateViewWeaponAnim)
+				CG_UpdateViewWeaponAnim_hook.create(game::CG_UpdateViewWeaponAnim, CG_UpdateViewWeaponAnim_stub);
 		}
 	};
 }

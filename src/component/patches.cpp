@@ -158,6 +158,16 @@ namespace patches
 				}, scheduler::renderer);
 				*/
 			}
+
+			// create a simplified version dvar for script to read
+			scheduler::once([]
+			{
+				game::DvarLimits domain{};
+
+				game::DvarValue value_full{};
+				static auto version_str_full = identification::game::get_version(true);
+				value_full.string = version_str_full.c_str();
+
 		}
 	};
 }

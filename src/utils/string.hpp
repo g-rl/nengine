@@ -101,4 +101,43 @@ namespace utils::string
 	bool match_compare(const std::string& input, const std::string& text, const bool exact);
 
 	bool is_numeric(const std::string& text);
+
+	constexpr inline std::uint32_t dvar_checksum(const char* str, std::size_t length)
+	{
+		if (length < 1 || length > 1024)
+		{
+			return 0xFFFFFFFF;
+		}
+
+		std::size_t total_len = length + 1;
+
+		std::uint8_t buffer[1024] = { 0 };
+		for (std::size_t i = 0; i < total_len; ++i)
+		{
+			char ch = str[i];
+			if (ch >= 'A' && ch <= 'Z')
+			{
+				ch |= 0x20;
+			}
+			buffer[i] = static_cast<std::uint8_t>(ch);
+		}
+
+		std::uint32_t hash = 0xDEADDEAD;
+		for (std::size_t i = 0; buffer[i]; ++i)
+		{
+			hash = buffer[i] ^ (hash * 0x1000193);
+		}
+
+		return hash;
+	}
+
+	constexpr inline std::uint32_t dvar_checksum(std::string_view dvar_name)
+	{
+		return dvar_checksum(dvar_name.data(), dvar_name.length());
+	}
+
+	constexpr inline std::uint32_t operator""_dc(const char* s, std::size_t n)
+	{
+		return dvar_checksum(s, n);
+	}
 }
