@@ -265,7 +265,7 @@ namespace gsc
 
 		void vm_error_internal()
 		{
-			const bool dev_script = developer_script ? developer_script->current.enabled : false;
+			const bool dev_script = true; // developer_script ? developer_script->current.enabled : false;
 
 			if (!dev_script && !force_error_print)
 			{
@@ -390,8 +390,9 @@ namespace gsc
 	utils::hook::detour scr_error_internal_hook;
 	void scr_error_internal_stub(game::scrContext_t* context)
 	{
-		force_error_print = false;
+		force_error_print = true;
 		gsc_error_msg = *game::error_message;
+
 		scr_error_internal_hook.invoke<void>(context);
 	}
 
@@ -441,6 +442,7 @@ namespace gsc
 			if (identification::game::is("1.20.4-replay"))
 			{
 				scr_error_internal_hook.create(game::Scr_ErrorInternal, scr_error_internal_stub);
+				utils::hook::call(0x132ACB9_b, vm_error_stub); // LargeLocalResetToMark
 			}
 
 			/*
@@ -464,8 +466,6 @@ namespace gsc
 			//utils::hook::jump(0x132930D_b, utils::hook::assemble(vm_call_builtin_method_stub), true);
 
 			utils::hook::jump(0x1327420_b, utils::hook::assemble(vm_execute_stub), true);
-
-			utils::hook::call(0x132ACB9_b, vm_error_stub); // LargeLocalResetToMark
 
 			function::add("print", [](game::scrContext_t* context) -> void
 			{
