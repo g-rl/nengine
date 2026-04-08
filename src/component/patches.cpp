@@ -168,6 +168,13 @@ namespace patches
 				static auto version_str_full = identification::game::get_version(true);
 				value_full.string = version_str_full.c_str();
 
+				game::DvarValue value{};
+				static auto version_str = identification::game::get_version(false);
+				value.string = version_str.c_str();
+
+				game::Dvar_RegisterVariant("build_version", utils::string::dvar_checksum("build_version"), 9, game::DVAR_INIT, &value, &domain, "");
+				game::Dvar_RegisterVariant("build_version_full", utils::string::dvar_checksum("build_version_full"), 9, game::DVAR_INIT, &value_full, &domain, "");
+			}, scheduler::main);
 		}
 	};
 }
