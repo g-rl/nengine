@@ -4,6 +4,7 @@
 #include <identification/game.hpp>
 
 #include <utils/flags.hpp>
+#include <utils/string.hpp>
 
 namespace game
 {
@@ -15,14 +16,16 @@ namespace game
 		base_address = uint64_t(module);
 	}
 
-	DvarValue& get_current(game::dvar_t* dvar) {
+	DvarValue* get_current(game::dvar_t* dvar) {
+		if (!dvar) return nullptr;
+
 		if (identification::game::is("1.20.4-replay")) {
-			return dvar->current;
+			return &dvar->current;
 		}
 
 		// ship has a different dvar layout, just lazy cast the correct type
 		auto test = reinterpret_cast<game::dvar_t_ship*>(dvar);
-		return test->current;
+		return &test->current;
 	}
 
 	bool dvar_is_enabled_safe(game::dvar_t* dvar)
@@ -31,7 +34,16 @@ namespace game
 			return false;
 
 		auto current = get_current(dvar);
-		return current.enabled;
+		return current->enabled;
+	}
+
+	// meme
+	dvar_t* Dvar_RegisterString(const char* name, const char* str, game::DvarFlags flags, const char* desc)
+	{
+		game::DvarLimits domain{};
+		game::DvarValue value{};
+		value.string = utils::memory::duplicate_string(str); // not sure if needed lmao
+		return game::Dvar_RegisterVariant(name, utils::string::dvar_checksum(name), 9, flags, &value, &domain, desc);
 	}
 }
 

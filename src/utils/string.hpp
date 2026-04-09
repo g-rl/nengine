@@ -114,12 +114,12 @@ namespace utils::string
 		std::uint8_t buffer[1024] = { 0 };
 		for (std::size_t i = 0; i < total_len; ++i)
 		{
-			char ch = str[i];
-			if (ch >= 'A' && ch <= 'Z')
+			char ch_ = str[i];
+			if (ch_ >= 'A' && ch_ <= 'Z')
 			{
-				ch |= 0x20;
+				ch_ |= 0x20;
 			}
-			buffer[i] = static_cast<std::uint8_t>(ch);
+			buffer[i] = static_cast<std::uint8_t>(ch_);
 		}
 
 		std::uint32_t hash = 0xDEADDEAD;

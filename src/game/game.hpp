@@ -7,6 +7,7 @@ namespace game
 	extern uint64_t base_address;
 	void load_base_address();
 
+	DvarValue* get_current(dvar_t* dvar);
 	bool dvar_is_enabled_safe(dvar_t*);
 
 	template <typename T>
@@ -36,6 +37,8 @@ namespace game
 	private:
 		T* address_;
 	};
+
+	dvar_t* Dvar_RegisterString(const char* name, const char* str, game::DvarFlags flags, const char* desc);
 }
 
 size_t operator"" _b(const size_t ptr);

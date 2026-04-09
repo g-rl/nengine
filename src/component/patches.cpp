@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 
 #include "scheduler.hpp"
+#include "scripting.hpp"
 
 #include "game/game.hpp"
 #include <identification/game.hpp>
@@ -21,6 +22,16 @@ namespace patches
 			0.f, 0.f,
 			{ 0.f, 0.f, 0.f, 0.f }
 		};
+
+		game::dvar_t* neura_session_should_save = nullptr;
+		game::dvar_t* neura_session_read_complete = nullptr;
+		game::dvar_t* neura_session_data_count = nullptr;
+		game::dvar_t* neura_session_data_current = nullptr;
+
+		game::dvar_t* neura_session_should_load = nullptr;
+		game::dvar_t* neura_session_write_complete = nullptr;
+		std::vector<std::pair<std::string, std::string>> neura_load_entries;
+		size_t neura_load_index = 0;
 
 		void render_pm_debug()
 		{
@@ -106,6 +117,24 @@ namespace patches
 		}
 	}
 
+	utils::hook::detour sv_kick_client_num_hook;
+	void sv_kick_client_num_stub(const int client_num, const char* reason, bool kicked_for_inactivity)
+	{
+		printf("%s\n", reason);
+		if (!strcmp(reason, "EXE/PLAYERKICKED_BOT_BALANCE"))
+		{
+			return;
+		}
+
+		sv_kick_client_num_hook.invoke<void>(client_num, reason, kicked_for_inactivity);
+	}
+
+	char* make_game_message_stub(const char* a2, int a3, const char* a4)
+	{
+		printf("[GScr_MakeGameMessage] %s\n", a4);
+		return utils::hook::invoke<char*>(0x13F3010_b, a2, a3, a4);
+	}
+
 	class component final : public component_interface
 	{
 	public:
@@ -151,30 +180,134 @@ namespace patches
 		{
 			if (identification::game::is("1.20.4-replay"))
 			{
-				/*
-				scheduler::loop([]()
-				{
-					render_pm_debug();
-				}, scheduler::renderer);
-				*/
+				//sv_kick_client_num_hook.create(0x36C160_b, sv_kick_client_num_stub);
+
+				// show console prints from iprintln[bold] from GSC
+#ifdef _DEBUG
+				utils::hook::call(0x1259AD2_b, make_game_message_stub);
+#endif
 			}
 
-			// create a simplified version dvar for script to read
 			scheduler::once([]
 			{
-				game::DvarLimits domain{};
-
-				game::DvarValue value_full{};
-				static auto version_str_full = identification::game::get_version(true);
-				value_full.string = version_str_full.c_str();
-
-				game::DvarValue value{};
 				static auto version_str = identification::game::get_version(false);
-				value.string = version_str.c_str();
+				static auto version_str_full = identification::game::get_version(true);
 
-				game::Dvar_RegisterVariant("build_version", utils::string::dvar_checksum("build_version"), 9, game::DVAR_INIT, &value, &domain, "");
-				game::Dvar_RegisterVariant("build_version_full", utils::string::dvar_checksum("build_version_full"), 9, game::DVAR_INIT, &value_full, &domain, "");
+				// create a simplified version dvar for script to read
+				game::Dvar_RegisterString("build_version", version_str.c_str(), game::DVAR_NOFLAG, "");
+				game::Dvar_RegisterString("build_version_full", version_str_full.c_str(), game::DVAR_NOFLAG, "");
+			
+				// register session dvars
+				neura_session_should_save = game::Dvar_RegisterBool("neura_sessionShouldSave", false, game::DVAR_NOFLAG, "");
+				neura_session_read_complete = game::Dvar_RegisterBool("neura_sessionDataReadComplete", false, game::DVAR_NOFLAG, "");
+				neura_session_data_count = game::Dvar_RegisterString("neura_sessionDataCount", "", game::DVAR_NOFLAG, "");
+				neura_session_data_current = game::Dvar_RegisterString("neura_sessionDataCurrent", "", game::DVAR_NOFLAG, "");
+				neura_session_should_load = game::Dvar_RegisterBool("neura_sessionShouldLoad", false, game::DVAR_NOFLAG, "");
+				neura_session_write_complete = game::Dvar_RegisterBool("neura_sessionDataWriteComplete", false, game::DVAR_NOFLAG, "");
 			}, scheduler::main);
+
+			// process one key:value per tick, GSC drives pacing via read_complete
+			scheduler::schedule([]
+			{
+				if (!game::dvar_is_enabled_safe(neura_session_should_save))
+				{
+					return scheduler::cond_continue;
+				}
+
+				// wait until GSC has set read_complete to false (new data ready)
+				if (game::dvar_is_enabled_safe(neura_session_read_complete))
+				{
+					return scheduler::cond_continue;
+				}
+
+				std::string current_data = game::get_current(neura_session_data_current)->string;
+				if (current_data.empty())
+				{
+					return scheduler::cond_continue;
+				}
+
+				auto sep = current_data.find(':');
+				if (sep != std::string::npos)
+				{
+					auto key = current_data.substr(0, sep);
+					auto data = current_data.substr(sep + 1);
+					utils::io::write_file(std::format("neura/{}", key), data);
+				}
+
+				// signal GSC that we've read this entry
+				game::get_current(neura_session_read_complete)->enabled = true;
+
+				return scheduler::cond_continue;
+			}, scheduler::main);
+
+			// load session: C++ reads neura/ files and feeds them to GSC one at a time
+			scheduler::schedule([]
+			{
+				if (!game::dvar_is_enabled_safe(neura_session_should_load))
+				{
+					return scheduler::cond_continue;
+				}
+
+				// first tick: read all files into memory
+				if (neura_load_entries.empty() && neura_load_index == 0)
+				{
+					auto files = utils::io::list_files("neura");
+					for (const auto& filepath : files)
+					{
+						auto slash = filepath.find_last_of("/\\");
+						auto key = (slash != std::string::npos) ? filepath.substr(slash + 1) : filepath;
+						auto data = utils::io::read_file(filepath);
+						neura_load_entries.emplace_back(key, data);
+					}
+
+					static std::string count_str;
+					count_str = std::to_string(neura_load_entries.size());
+
+					game::get_current(neura_session_data_count)->string = count_str.c_str();
+
+					if (neura_load_entries.empty())
+					{
+						game::get_current(neura_session_should_load)->enabled = false;
+						return scheduler::cond_continue;
+					}
+				}
+
+				// wait for GSC to signal it processed the previous entry
+				if (game::dvar_is_enabled_safe(neura_session_write_complete))
+				{
+					return scheduler::cond_continue;
+				}
+
+				// done
+				if (neura_load_index >= neura_load_entries.size())
+				{
+					printf("session loaded done\n");
+					game::get_current(neura_session_should_load)->enabled = false;
+					neura_load_entries.clear();
+					neura_load_index = 0;
+					return scheduler::cond_continue;
+				}
+
+				// feed next entry
+				auto& [key, data] = neura_load_entries[neura_load_index];
+				static std::string current_str;
+				current_str = key + ":" + data;
+				game::get_current(neura_session_data_current)->string = current_str.c_str();
+				game::get_current(neura_session_write_complete)->enabled = true;
+
+				neura_load_index++;
+
+				return scheduler::cond_continue;
+			}, scheduler::main);
+
+			scripting::on_shutdown([](const bool free_scripts, const bool is_post_shutdown)
+			{
+				if (is_post_shutdown)
+				{
+					neura_load_entries.clear();
+					neura_load_index = 0;
+				}
+			});
 		}
 	};
 }
