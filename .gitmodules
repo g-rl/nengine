@@ -41,9 +41,6 @@
 	path = deps/zlib
 	url = https://github.com/madler/zlib.git
 	branch = develop
-[submodule "deps/curl"]
-	path = deps/curl
-	url = https://github.com/curl/curl.git
 [submodule "deps/json"]
 	path = deps/json
 	url = https://github.com/nlohmann/json.git
