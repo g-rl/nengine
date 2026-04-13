@@ -664,13 +664,23 @@ namespace gsc
 						clear();
 					}
 				});
-
-				// fix settext
-				NetConstStrings_GetIndexPlusOneFromName_hook.create(game::NetConstStrings_GetIndexPlusOneFromName, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
-				NetConstStrings_GetNameFromIndexPlusOne_hook.create(game::NetConstStrings_GetNameFromIndexPlusOne, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
 			}
 
-			// TODO: patch to set ncs_patchStrings dvar to false
+			// disable patchStrings from ZeroProxy
+			auto patch_strings_dvar = game::Dvar_FindVarByName("ncs_patchStrings");
+			if (patch_strings_dvar)
+			{
+#ifdef _DEBUG
+				printf("\n\nsetting ZeroProxy ncs_patchStrings to 0\n\n\n");
+#endif
+
+				game::Dvar_SetBool_Internal(patch_strings_dvar, false);
+			}
+
+			// fix settext
+			NetConstStrings_GetIndexPlusOneFromName_hook.create(game::NetConstStrings_GetIndexPlusOneFromName, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
+			NetConstStrings_GetNameFromIndexPlusOne_hook.create(game::NetConstStrings_GetNameFromIndexPlusOne, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
+
 			// TODO: add iprintln printing to external console for ez debugging on any game
 		}
 	};

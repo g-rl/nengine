@@ -23,6 +23,7 @@ namespace game
 		game::DvarLimits* domain, const char* description) = nullptr;
 	WEAK dvar_t* (*Dvar_RegisterVariant_IW9)(std::uint64_t checksum, std::uint8_t type, game::DvarFlags flags, game::DvarValue* value,
 		game::DvarLimits* domain, const char* description) = nullptr;
+	WEAK void (*Dvar_SetBool_Internal)(dvar_t* dvar, bool value) = nullptr;
 
 	// DB
 	WEAK void(*DB_AllocXZoneMemory)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XBlock* archive_blocks) = nullptr;

@@ -97,6 +97,8 @@ public:
 					"48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 8B 05 ? ? ? ? ? 8B ? B9 ? ? 00 00");
 			}
 		}
+
+		batch.add(SETUP_POINTER(game::Dvar_SetBool_Internal), "75 1C 48 8B 0D ? ? ? ? B2 01 E8", SETUP_MOD(add(12).rip()));
 	}
 };
 

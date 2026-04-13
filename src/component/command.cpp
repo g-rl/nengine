@@ -51,16 +51,20 @@ namespace command
 	public:
 		void find_signatures(memory::signature_store& batch) override
 		{
-			// iw8 & iw9
-			batch.add(SETUP_POINTER(game::SV_CmdsMP_RequestMapRestart),
-				"40 55 53 57 48 8D 6C 24 F0 48 81 EC ? ? ? ? 48 8B 05 ? ? ? ? 48 33 C4 48 89 45 00");
+			static const auto& game_ = identification::game::get_target_game().client_name;
+
+			if (game_ == "iw9-mod"s || game_ == "s4-mod"s || identification::game::is("1.20.4-replay"))
+				batch.add(SETUP_POINTER(game::SV_CmdsMP_RequestMapRestart),
+					"40 55 53 57 48 8D 6C 24 F0 48 81 EC ? ? ? ? 48 8B 05 ? ? ? ? 48 33 C4 48 89 45 00");
+			else
+				batch.add(SETUP_POINTER(game::SV_CmdsMP_RequestMapRestart),
+					"48 83 EC 28 E8 ? ? ? ? 84 ? ? ? E8 ? ? ? ? 84 ? ? ? 48 8B 05 ? ? ? ? 80");
 		
 			// iw8 & iw9
 			batch.add(SETUP_POINTER(game::Cmd_AddCommandInternal),
-				"48 83 EC 28 E8 ? ? 00 00 4C 8D 05 ? ? ? ? 48 8D 15 ? ? 00 00 48 8D 0D ? ? ? ? E8 ? ? ? ?",
-				SETUP_MOD(add(0x1F).rip()));
+				"4C 8D 05 ? ? ? ? 48 8D 15 ? ? 00 00 48 8D 0D ? ? ? ? E8 ? ? ? 00",
+				SETUP_MOD(add(22).rip()));
 
-			static const auto& game_ = identification::game::get_target_game().client_name;
 			if (game_ == "iw8-mod"s)
 			{
 				batch.add(SETUP_POINTER(game::Cmd_Argc_internal),
@@ -81,6 +85,12 @@ namespace command
 
 		void post_start() override
 		{
+			SetConsoleTitleA("neura engine");
+
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "iw8-mod"s)
+				return;
+
 			FreeConsole();
 			AllocConsole();
 			SetConsoleTitleA("neura engine");
