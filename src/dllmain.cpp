@@ -2,6 +2,7 @@
 
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "identification/game.hpp"
 
 #include <utils/flags.hpp>
 #include <utils/io.hpp>
@@ -25,6 +26,13 @@ namespace
 		{
 			try
 			{
+				// hina client workaround for now
+				const auto game_ = identification::game::get_target_game().client_name;
+				if (game_ == "iw9-mod"s)
+				{
+					component_loader::find_signatures();
+				}
+
 				component_loader::post_unpack();
 			}
 			catch (const std::exception& e)
@@ -192,6 +200,12 @@ extern "C" {
 			gpc::engine::instance().on_xinput_get_state(dwUserIndex, pState);
 		}
 		return result;
+	}
+
+	__declspec(dllexport) int DiscordCreate()
+	{
+		//CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)entry_point, 0, 0, 0);
+		return 1;
 	}
 }
 

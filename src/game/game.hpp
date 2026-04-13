@@ -10,6 +10,9 @@ namespace game
 	DvarValue* get_current(dvar_t* dvar);
 	bool dvar_is_enabled_safe(dvar_t*);
 
+	int Cmd_Argc();
+	const char* Cmd_Argv(int argIndex);
+
 	template <typename T>
 	class symbol
 	{

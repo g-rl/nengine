@@ -67,26 +67,40 @@ namespace identification::game
 		}
 	}
 
+	std::uint32_t get_game_impl_specific()
+	{
+		return UINT32_MAX;
+	}
+
 	static game_iden_target resolve_target()
 	{
-		const auto iden = get_target_info_game();
+		const game_iden idens[] = { get_iw8_game_iden(), get_iw9_game_iden() };
 		game_iden_target target{};
 
-		for (const auto& it : iden.game_sets)
+		for (const auto& iden : idens)
 		{
-			if (get_target_checksum(it.game_checksum_type) == it.game_hash)
+			for (const auto& it : iden.game_sets)
 			{
-				target.client_name = iden.client_name;
-				target.game_name = iden.game_name;
-				target.game_version = it.game_version;
-				target.game_mode = it.game_mode;
-				target.game_platform = it.game_platform;
-				target.game_config = it.game_config;
-				target.game_hash = it.game_hash;
-				target.game_checksum_type = it.game_checksum_type;
-				return target;
+				if (get_target_checksum(it.game_checksum_type) == it.game_hash)
+				{
+					target.client_name = iden.client_name;
+					target.game_name = iden.game_name;
+					target.game_version = it.game_version;
+					target.game_mode = it.game_mode;
+					target.game_platform = it.game_platform;
+					target.game_config = it.game_config;
+					target.game_hash = it.game_hash;
+					target.game_checksum_type = it.game_checksum_type;
+					return target;
+				}
 			}
 		}
+
+		// no match found — print the actual checksum so it can be added to the database
+		char buf[64];
+		_snprintf_s(buf, _TRUNCATE, "[iden] unknown exe: xxh32=0x%08X nt_ts=0x%08X\n",
+			get_game_xxh32_checksum(), get_game_nt_timestamp());
+		printf("%s", buf);
 
 		return target;
 	}

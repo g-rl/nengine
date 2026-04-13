@@ -52,8 +52,8 @@ namespace identification::game
 		std::string game_name;
 	};
 
-	// Implemented per-client. For iw8 see src/identification/iw8.cpp
-	game_iden get_target_info_game();
+	game_iden get_iw8_game_iden();
+	game_iden get_iw9_game_iden();
 
 	std::uint32_t get_game_xxh32_checksum();
 	std::uint32_t get_game_nt_timestamp();

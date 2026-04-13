@@ -3,7 +3,7 @@
 
 namespace identification::game
 {
-	game_iden get_target_info_game()
+	game_iden get_iw8_game_iden()
 	{
 		return game_iden{
 			"iw8-mod", "Modern Warfare®",
@@ -158,4 +158,3 @@ namespace identification::game
 	}
 }
 
-DEF_GAME_IMPL_SPECIFIC()

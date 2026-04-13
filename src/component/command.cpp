@@ -49,21 +49,76 @@ namespace command
 	class component final : public component_interface
 	{
 	public:
+		void find_signatures(memory::signature_store& batch) override
+		{
+			// iw8 & iw9
+			batch.add(SETUP_POINTER(game::SV_CmdsMP_RequestMapRestart),
+				"40 55 53 57 48 8D 6C 24 F0 48 81 EC ? ? ? ? 48 8B 05 ? ? ? ? 48 33 C4 48 89 45 00");
+		
+			// iw8 & iw9
+			batch.add(SETUP_POINTER(game::Cmd_AddCommandInternal),
+				"48 83 EC 28 E8 ? ? 00 00 4C 8D 05 ? ? ? ? 48 8D 15 ? ? 00 00 48 8D 0D ? ? ? ? E8 ? ? ? ?",
+				SETUP_MOD(add(0x1F).rip()));
+
+			const auto game_ = identification::game::get_target_game().client_name;
+			if (game_ == "iw8-mod"s)
+			{
+				batch.add(SETUP_POINTER(game::Cmd_Argc_internal),
+					"48 83 EC 28 E8 ? ? ? ? 83 F8 03 7C 33",
+					SETUP_MOD(add(5).rip()));
+
+				batch.add(SETUP_POINTER(game::Cmd_Argv_internal),
+					"48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 85 C0 0F 84 ? ? ? ? 33 C9 E8 ? ? FF FF",
+					SETUP_MOD(add(28).rip()));
+			}
+			else if (game_ == "iw9-mod"s)
+			{
+				batch.add(SETUP_POINTER(game::cmd_args),
+					"48 63 ? ? ? ? ? 48 8d ? ? ? ? ? 83 ? ? ? ? 7C 44",
+					SETUP_MOD(add(3).rip()));
+			}
+		}
+
+		void post_start() override
+		{
+			FreeConsole();
+			AllocConsole();
+			SetConsoleTitleA("neura engine");
+
+			FILE* f;
+			freopen_s(&f, "CONOUT$", "w", stdout);
+			freopen_s(&f, "CONOUT$", "w", stderr);
+			freopen_s(&f, "CONIN$", "r", stdin);
+
+			std::ios::sync_with_stdio(true);
+			setvbuf(stdout, nullptr, _IONBF, 0);
+
+			const auto out_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+			DWORD out_mode{};
+			GetConsoleMode(out_handle, &out_mode);
+			SetConsoleMode(out_handle, out_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
+			const auto in_handle = GetStdHandle(STD_INPUT_HANDLE);
+			DWORD in_mode{};
+			GetConsoleMode(in_handle, &in_mode);
+			in_mode &= ~(ENABLE_QUICK_EDIT_MODE | ENABLE_MOUSE_INPUT);
+			in_mode |= ENABLE_WINDOW_INPUT;
+			SetConsoleMode(in_handle, in_mode);
+
+			printf("neura patch console started!\n");
+		}
+
 		void post_unpack() override
 		{
-			if (identification::game::is("1.20.4-replay"))
+			add("fast_restart", []()
 			{
-				add("map_restart", []()
-				{
-					auto SV_CmdsMP_RequestMapRestart = reinterpret_cast<void(*)(bool load_scripts, bool migrate)>(0x136C310_b);
-					SV_CmdsMP_RequestMapRestart(1, 0);
-				});
+				game::SV_CmdsMP_RequestMapRestart(0, 0);
+			});
 
-				add("test", []()
-				{
-					printf("test\n");
-				});
-			}
+			add("map_restart", []()
+			{
+				game::SV_CmdsMP_RequestMapRestart(1, 0);
+			});
 		}
 	};
 }

@@ -34,6 +34,12 @@ newoption {
 	value = "PATH"
 }
 
+newoption {
+	trigger = "copy-to-mw2",
+	description = "Optional, copy the EXE to the MW2 folder after build, define the path here if wanted.",
+	value = "PATH"
+}
+
 dependencies.load()
 
 workspace "iw8-mod"
@@ -97,6 +103,10 @@ workspace "iw8-mod"
 
         if _OPTIONS["copy-to"] then
             postbuildcommands {"copy /y \"$(TargetPath)\" \"" .. _OPTIONS["copy-to"] .. "\""}
+        end
+
+        if _OPTIONS["copy-to-mw2"] then
+            postbuildcommands {"copy /y \"$(TargetPath)\" \"" .. _OPTIONS["copy-to-mw2"] .. "\\discord_game_sdk.dll\""}
         end
 
     group "Dependencies"

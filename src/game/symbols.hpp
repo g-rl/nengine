@@ -8,19 +8,14 @@ namespace game
 	WEAK dvar_t* (*Dvar_RegisterBool)(const char* dvarName, bool value, DvarFlags flags, const char* desc) = nullptr;
 	WEAK void (*CG_UpdateViewWeaponAnim)(unsigned int localClientNum) = nullptr;
 	WEAK bool (*BG_PlayerDualWieldingWeapon)(const void *weaponMap, const playerState_s *ps, const Weapon *r_weapon) = nullptr;
-	/***************************************************************
-	 * Sig-scanned function pointers (resolved at startup)
-	 *
-	 * These are plain typed globals, filled in by components via
-	 * find_signatures(). Call them directly: game::Cbuf_AddText_sig(...).
-	 * Coexists with the RVA-based symbol<T> entries below.
-	 **************************************************************/
 
 	WEAK void(*Cbuf_AddText)(int localClientNum, const char* text) = nullptr;
 
 	// Com
 	WEAK void(*Com_Error)(int code, const char* fmt, ...) = nullptr;
 	WEAK bool(*Com_FrontEnd_IsInFrontEnd)() = nullptr;
+
+	WEAK void(*Cmd_AddCommandInternal)(const char* cmdName, void(), cmd_function_s* allocedCmd) = nullptr;
 
 	// Dvar
 	//WEAK int(*Dvar_GetIntSafe)(const char* dvar_name) = nullptr;
@@ -61,7 +56,15 @@ namespace game
 	WEAK void(*ProcessScript)(game::scrContext_t* scr_context, const char* filename) = nullptr;
 	WEAK scrContext_t* (*ScriptContext_Server)() = nullptr;
 
+	// SV
+	WEAK void(*SV_CmdsMP_RequestMapRestart)(bool load_scripts, bool migrate) = nullptr;
+
 	WEAK void(*R_EndFrame)() = nullptr;
+
+	// variables
+	WEAK CmdArgs(*cmd_args) = nullptr;
+	WEAK int(*Cmd_Argc_internal)() = nullptr;
+	WEAK const char* (*Cmd_Argv_internal)(int) = nullptr;
 
 	// Weapon system (sig-scanned)
 	WEAK void(*PmoveSingle_sig)(pmove_t* pm) = nullptr;
@@ -86,7 +89,6 @@ namespace game
 
 	WEAK symbol<void(int localClientNum, int controllerIndex, const char* buffer, const bool isSuperUser)> Cbuf_ExecuteBufferInternal{ 0xB7C3C0 };
 	//WEAK symbol<void(int localClientNum, int controllerIndex, const char* text)> Cmd_ExecuteSingleCommand{ 0xB7D040 };
-	WEAK symbol<void(const char* cmdName, void(), cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{0x12965F0};
 
 	//WEAK symbol<void(const char* cmdName)> Cmd_RemoveCommand{ 0xB7D630 };
 
@@ -94,8 +96,6 @@ namespace game
 
 	//WEAK symbol<void()> Cmd_EndTokenizeString{ 0xB7CC90 };
 
-	WEAK symbol<int()> Cmd_Argc{0x12968B0};
-	WEAK symbol<const char*(int index)> Cmd_Argv{0x1296960};
 	WEAK symbol<int()> SV_Cmd_Argc{0x1298AF0};
 	WEAK symbol<const char*(int index)> SV_Cmd_Argv{0x1298B10};
 
@@ -184,7 +184,6 @@ namespace game
 	 **************************************************************/
 
 	WEAK symbol<CmdArgs> sv_cmd_args{ 0x5D65C20 };
-	WEAK symbol<CmdArgs> cmd_args{ 0x5D65B70 };
 
 	WEAK symbol<DWORD> threadIds{0xD57F420};
 

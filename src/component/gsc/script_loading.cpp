@@ -616,8 +616,9 @@ namespace gsc
 					batch.add(SETUP_POINTER(game::DB_GetRawBuffer), "E8 ? ? ? ? 48 8B 47 ? 4C 63 67", GRAB_CALL);
 				}
 				else {
-					batch.add(SETUP_POINTER(DB_GetRawBuffer_call), "E8 ? ? ? ? 41 6B 87");
-					batch.add(SETUP_POINTER(game::DB_GetRawBuffer), "E8 ? ? ? ? 41 6B 87", GRAB_CALL);
+					// this also works on IW9
+					batch.add(SETUP_POINTER(DB_GetRawBuffer_call), "E8 ? ? ? ? 41 6B ? ? ? 00 00 1F 48 8B 4F 20 ? 63 ? 10");
+					batch.add(SETUP_POINTER(game::DB_GetRawBuffer), "E8 ? ? ? ? 41 6B ? ? ? 00 00 1F 48 8B 4F 20 ? 63 ? 10", GRAB_CALL);
 				}
 
 				// inside ProcessScript
@@ -663,19 +664,13 @@ namespace gsc
 						clear();
 					}
 				});
+
+				// fix settext
+				NetConstStrings_GetIndexPlusOneFromName_hook.create(game::NetConstStrings_GetIndexPlusOneFromName, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
+				NetConstStrings_GetNameFromIndexPlusOne_hook.create(game::NetConstStrings_GetNameFromIndexPlusOne, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
 			}
 
-			/*
-			
-				TODO: this code will work on ALL games
-			
-			*/
 			// TODO: patch to set ncs_patchStrings dvar to false
-
-			// fix settext
-			NetConstStrings_GetIndexPlusOneFromName_hook.create(game::NetConstStrings_GetIndexPlusOneFromName, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
-			NetConstStrings_GetNameFromIndexPlusOne_hook.create(game::NetConstStrings_GetNameFromIndexPlusOne, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
-		
 			// TODO: add iprintln printing to external console for ez debugging on any game
 		}
 	};

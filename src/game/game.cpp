@@ -45,6 +45,27 @@ namespace game
 		value.string = utils::memory::duplicate_string(str); // not sure if needed lmao
 		return game::Dvar_RegisterVariant(name, utils::string::dvar_checksum(name), 9, flags, &value, &domain, desc);
 	}
+
+	int Cmd_Argc()
+	{
+		static const auto game_ = identification::game::get_target_game().client_name;
+		if (game_ == "iw8-mod"s)
+			return game::Cmd_Argc_internal();
+		
+		return cmd_args->argc[cmd_args->nesting];
+	}
+
+	const char* Cmd_Argv(int argIndex)
+	{
+		static const auto game_ = identification::game::get_target_game().client_name;
+		if (game_ == "iw8-mod"s)
+			return game::Cmd_Argv_internal(argIndex);
+		
+		if (argIndex >= cmd_args->argc[cmd_args->nesting])
+			return nullptr;
+		else
+			return cmd_args->argv[cmd_args->nesting][argIndex];
+	}
 }
 
 size_t operator"" _b(const size_t ptr)
