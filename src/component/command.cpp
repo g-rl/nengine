@@ -60,7 +60,7 @@ namespace command
 				"48 83 EC 28 E8 ? ? 00 00 4C 8D 05 ? ? ? ? 48 8D 15 ? ? 00 00 48 8D 0D ? ? ? ? E8 ? ? ? ?",
 				SETUP_MOD(add(0x1F).rip()));
 
-			const auto game_ = identification::game::get_target_game().client_name;
+			static const auto& game_ = identification::game::get_target_game().client_name;
 			if (game_ == "iw8-mod"s)
 			{
 				batch.add(SETUP_POINTER(game::Cmd_Argc_internal),

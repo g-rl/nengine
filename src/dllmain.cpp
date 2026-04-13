@@ -27,7 +27,7 @@ namespace
 			try
 			{
 				// hina client workaround for now
-				const auto game_ = identification::game::get_target_game().client_name;
+				static const auto& game_ = identification::game::get_target_game().client_name;
 				if (game_ == "iw9-mod"s)
 				{
 					component_loader::find_signatures();

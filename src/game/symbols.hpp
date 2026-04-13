@@ -21,6 +21,8 @@ namespace game
 	//WEAK int(*Dvar_GetIntSafe)(const char* dvar_name) = nullptr;
 	WEAK dvar_t* (*Dvar_RegisterVariant)(const char* dvar_name, std::uint32_t checksum, std::uint8_t type, game::DvarFlags flags, game::DvarValue* value,
 		game::DvarLimits* domain, const char* description) = nullptr;
+	WEAK dvar_t* (*Dvar_RegisterVariant_IW9)(std::uint32_t checksum, std::uint8_t type, game::DvarFlags flags, game::DvarValue* value,
+		game::DvarLimits* domain, const char* description) = nullptr;
 
 	// DB
 	WEAK void(*DB_AllocXZoneMemory)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XBlock* archive_blocks) = nullptr;

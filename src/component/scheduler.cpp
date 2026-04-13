@@ -164,13 +164,28 @@ namespace scheduler
 	class component final : public component_interface
 	{
 	public:
-		void find_signatures(memory::signature_store& batch) override 
+		void find_signatures(memory::signature_store& batch) override
 		{
+			/*
 			if (identification::game::is_less_or_eq("1.36.1") || identification::game::is("1.20.4-replay")) {
 				batch.add(SETUP_POINTER(game::R_EndFrame), "48 8B 15 ? ? ? ? 45 33 D2 4C 8B 0D");
 			}
 			else {
 				batch.add(SETUP_POINTER(game::R_EndFrame), "48 83 EC ? E8 ? ? ? ? 48 8B 15 ? ? ? ? 45 33 D2");
+			}
+			*/
+
+			static const auto& game_ = identification::game::get_target_game().client_name;
+
+			if (game_ == "iw9-mod"s)
+			{
+				// slightly different on IW9, so we just add known bytes instead
+				batch.add(SETUP_POINTER(game::R_EndFrame), "E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? FF 48 8B ? ? ? 84 C0 74", GRAB_CALL);
+			}
+			else
+			{
+				// works on all IW8 & S4
+				batch.add(SETUP_POINTER(game::R_EndFrame), "E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? FF 48 8B ? ? ? 01", GRAB_CALL);
 			}
 
 			if (identification::game::is("1.20.4-replay"))
@@ -179,9 +194,14 @@ namespace scheduler
 			}
 			else
 			{
-				// this works for 1.38, not sure abt 1.20.4 ship...
-				// on vanguard, you can find the fence doing this too... it just needs a lil bit of adjustment
-				batch.add(SETUP_POINTER(game::FenceManager_Frame), "E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ?", GRAB_CALL);
+				if (game_ == "s4-mod"s) // add 8B to end of sig for S4
+					batch.add(SETUP_POINTER(game::FenceManager_Frame), "E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 8B", GRAB_CALL);
+				else if (game_ == "iw9-mod"s) // IW9 is missing 2 calls, but we change it anyways on here to be arxan safe
+				{
+					batch.add(SETUP_POINTER(game::FenceManager_Frame), "8B CB E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 8B D3", SETUP_MOD(add(8).rip()));
+				}
+				else
+					batch.add(SETUP_POINTER(game::FenceManager_Frame), "E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ?", GRAB_CALL);
 			}
 		}
 

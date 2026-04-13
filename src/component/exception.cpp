@@ -229,6 +229,8 @@ namespace exception
 
 		void write_minidump(const LPEXCEPTION_POINTERS exceptioninfo)
 		{
+			printf("\n\nwrite_minidump\n\n");
+
 			const std::string crash_folder = utils::string::va("minidumps/crash-%s", get_timestamp().data());
 
 			utils::io::create_directory(crash_folder);

@@ -43,12 +43,16 @@ namespace game
 		game::DvarLimits domain{};
 		game::DvarValue value{};
 		value.string = utils::memory::duplicate_string(str); // not sure if needed lmao
+
+		if (identification::game::get_target_game().client_name == "iw9-mod"s)
+			return game::Dvar_RegisterVariant_IW9(utils::string::dvar_checksum(name), 10, flags, &value, &domain, desc);
+
 		return game::Dvar_RegisterVariant(name, utils::string::dvar_checksum(name), 9, flags, &value, &domain, desc);
 	}
 
 	int Cmd_Argc()
 	{
-		static const auto game_ = identification::game::get_target_game().client_name;
+		static const auto& game_ = identification::game::get_target_game().client_name;
 		if (game_ == "iw8-mod"s)
 			return game::Cmd_Argc_internal();
 		
@@ -57,7 +61,7 @@ namespace game
 
 	const char* Cmd_Argv(int argIndex)
 	{
-		static const auto game_ = identification::game::get_target_game().client_name;
+		static const auto& game_ = identification::game::get_target_game().client_name;
 		if (game_ == "iw8-mod"s)
 			return game::Cmd_Argv_internal(argIndex);
 		
