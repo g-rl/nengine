@@ -633,10 +633,8 @@ namespace gsc
 
 		void post_unpack() override
 		{
-			//printf("game loaded: %s\n", identification::game::get_full_display_name().data());
-
 			// TODO: this code should only run on 1.20.4 & 1.20.4-replay!!! iw8-mod's stuff works otherwise, but we have a 1.20 compiler A
-			if (identification::game::is("1.20.4") || identification::game::is("1.20.4-replay"))
+			if (identification::game::is("1.20.4-replay"))
 			{
 				// Allocate script memory (PMem doesn't work)
 				db_alloc_x_zone_memory_internal_hook.create(game::DB_AllocXZoneMemoryInternal, db_alloc_x_zone_memory_internal_stub);
