@@ -183,6 +183,21 @@ namespace game
 		DvarLimits domain;
 		ULONG64 padding[1];
 	};
+
+	struct dvar_t_IW9
+	{
+		uint64_t hash;
+		uint64_t hashNext;
+		unsigned int flags;
+		char level[1];
+		unsigned __int8 type;
+		bool modified;
+		DvarLimits domain;
+		DvarValue current;
+		DvarValue latched;
+		DvarValue reset;
+	};
+	static_assert(sizeof(dvar_t_IW9) == 0x58);
 	//static_assert(offsetof(dvar_t_ship, current) == 16);
 
 	enum threadType

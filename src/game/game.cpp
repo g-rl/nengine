@@ -17,15 +17,26 @@ namespace game
 	}
 
 	DvarValue* get_current(game::dvar_t* dvar) {
-		if (!dvar) return nullptr;
+		if (!dvar) 
+			return nullptr;
 
+		static const auto& game_ = identification::game::get_target_game().client_name;
+
+		// IW9 ship
+		if (game_ == "iw9-mod"s)
+		{
+			auto dvar_ship_IW9 = reinterpret_cast<game::dvar_t_IW9*>(dvar);
+			return &dvar_ship_IW9->current;
+		}
+
+		// IW8 1.20.4-replay dev
 		if (identification::game::is("1.20.4-replay")) {
 			return &dvar->current;
 		}
 
-		// ship has a different dvar layout, just lazy cast the correct type
-		auto test = reinterpret_cast<game::dvar_t_ship*>(dvar);
-		return &test->current;
+		// IW8 ship
+		auto dvar_ship = reinterpret_cast<game::dvar_t_ship*>(dvar);
+		return &dvar_ship->current;
 	}
 
 	bool dvar_is_enabled_safe(game::dvar_t* dvar)
@@ -45,7 +56,10 @@ namespace game
 		value.string = utils::memory::duplicate_string(str); // not sure if needed lmao
 
 		if (identification::game::get_target_game().client_name == "iw9-mod"s)
-			return game::Dvar_RegisterVariant_IW9(utils::string::dvar_checksum(name), 10, flags, &value, &domain, desc);
+		{
+			auto hash = game::hash_scr_dvar(name);
+			return game::Dvar_RegisterVariant_IW9(hash, 10, flags, &value, &domain, desc);
+		}
 
 		return game::Dvar_RegisterVariant(name, utils::string::dvar_checksum(name), 9, flags, &value, &domain, desc);
 	}
