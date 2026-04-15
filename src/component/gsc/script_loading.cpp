@@ -669,10 +669,21 @@ namespace gsc
 			if (patch_strings_dvar)
 			{
 #ifdef _DEBUG
-				printf("\n\nsetting ZeroProxy ncs_patchStrings to 0\n\n\n");
+				printf("setting ZeroProxy ncs_patchStrings to 0\n");
 #endif
 
 				game::Dvar_SetBool_Internal(patch_strings_dvar, false);
+			}
+
+			// disable xp dec
+			auto xp_dec_dvar = game::Dvar_FindVarByName("NTTRLOPQKS");
+			if (xp_dec_dvar)
+			{
+#ifdef _DEBUG
+				printf("setting NTTRLOPQKS to 0\n");
+#endif
+
+				game::Dvar_SetBool_Internal(xp_dec_dvar, false);
 			}
 
 			// fix settext

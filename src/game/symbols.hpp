@@ -11,9 +11,17 @@ namespace game
 
 	WEAK void(*Cbuf_AddText)(int localClientNum, const char* text) = nullptr;
 
+	WEAK __int64(*ColorIndex)(unsigned __int8 c) = nullptr;
+
+	WEAK void(*Core_strcpy)(char* dest, unsigned __int64 destsize, const char* size) = nullptr;
+
+	WEAK void(*CL_LookupColor)(int localClientNum, unsigned __int8 c, vec4_t* out) = nullptr;
+
 	// Com
 	WEAK void(*Com_Error)(int code, const char* fmt, ...) = nullptr;
 	WEAK bool(*Com_FrontEnd_IsInFrontEnd)() = nullptr;
+
+	WEAK void(*Com_CleanName)(const char* in, char* out, int outSize) = nullptr;
 
 	WEAK void(*Cmd_AddCommandInternal)(const char* cmdName, void(), cmd_function_s* allocedCmd) = nullptr;
 
@@ -41,6 +49,9 @@ namespace game
 	// Fence idk
 	WEAK void(*FenceManager_Frame)() = nullptr;
 
+	// I
+	WEAK char* (*I_CleanStr)(char* string) = nullptr;
+
 	WEAK void(*Scr_BeginLoadScripts)(game::scrContext_t* context, int thread_mode) = nullptr;
 	WEAK void(*Scr_EndLoadScripts)(game::scrContext_t* context) = nullptr;
 
@@ -62,6 +73,7 @@ namespace game
 	// SV
 	WEAK void(*SV_CmdsMP_RequestMapRestart)(bool load_scripts, bool migrate) = nullptr;
 	WEAK const char* (*SV_BotGetRandomName)() = nullptr;
+	WEAK int(*Sys_Milliseconds)() = nullptr;
 
 	WEAK void(*R_EndFrame)() = nullptr;
 

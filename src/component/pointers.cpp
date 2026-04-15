@@ -99,6 +99,14 @@ public:
 		}
 
 		batch.add(SETUP_POINTER(game::Dvar_SetBool_Internal), "75 1C 48 8B 0D ? ? ? ? B2 01 E8", SETUP_MOD(add(12).rip()));
+	
+		// same func
+		batch.add(SETUP_POINTER(game::Core_strcpy),
+			"BA 40 00 00 00 E8 ? ? ? ? 48 8D ? ? ? E8 ? ? ? ? 8B CE 83", SETUP_MOD(add(6).rip()));
+		batch.add(SETUP_POINTER(game::I_CleanStr),
+			"BA 40 00 00 00 E8 ? ? ? ? 48 8D ? ? ? E8 ? ? ? ? 8B CE 83", SETUP_MOD(add(16).rip()));
+
+		batch.add(SETUP_POINTER(game::Sys_Milliseconds), "E8 ? ? ? ? 48 8B D7 48 8B CB 8B E8 E8 ? ? ? ? 45 33 C0", SETUP_MOD(add(1).rip()));
 	}
 };
 
