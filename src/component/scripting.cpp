@@ -168,15 +168,15 @@ namespace scripting
 	public:
 		void find_signatures(memory::signature_store& batch) override 
 		{
+			if (identification::game::is_greater_or_eq("1.46.0")) {
+				batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 8B 05 ? ? ? ? 0F B6 F9");
+			}
+			else {
+				batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "E8 ? ? ? ? 65 48 8B 04 25 ? ? ? ? 48 8B CF 48 8B 14 18 33 C0", SETUP_MOD(add(1).rip()));
+			}
+
 			if (identification::game::is("1.20.4") || identification::game::is("1.20.4-replay"))
 			{
-				if (identification::game::is_greater_or_eq("1.46.0")) {
-					batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 8B 05 ? ? ? ? 0F B6 F9");
-				}
-				else {
-					batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "E8 ? ? ? ? 65 48 8B 04 25 ? ? ? ? 48 8B CF 48 8B 14 18 33 C0", SETUP_MOD(add(1).rip()));
-				}
-
 				batch.add(SETUP_POINTER(game::Scr_AddClassField), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 0F B6 C2");
 
 				batch.add(SETUP_POINTER(game::Scr_SetThreadPosition), "48 89 5C 24 ? 57 48 83 EC ? 49 8B D8 48 8B F9 44 8B C2");
@@ -194,9 +194,9 @@ namespace scripting
 				scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub);
 				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub);
 				process_script_hook.create(game::ProcessScript, process_script_stub);
-
-				mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
 			}
+
+			mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
 		}
 	};
 }

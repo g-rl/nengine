@@ -61,6 +61,7 @@ namespace game
 
 	// SV
 	WEAK void(*SV_CmdsMP_RequestMapRestart)(bool load_scripts, bool migrate) = nullptr;
+	WEAK const char* (*SV_BotGetRandomName)() = nullptr;
 
 	WEAK void(*R_EndFrame)() = nullptr;
 
