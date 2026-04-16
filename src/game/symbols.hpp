@@ -75,6 +75,8 @@ namespace game
 	WEAK const char* (*SV_BotGetRandomName)() = nullptr;
 	WEAK int(*Sys_Milliseconds)() = nullptr;
 
+	WEAK void* (*SV_ClientMP_ConnectBot)(void* result, const char* name, const int headModelIndex, const int bodyModelIndex, __int64 lol) = nullptr;
+
 	WEAK void(*R_EndFrame)() = nullptr;
 
 	// variables

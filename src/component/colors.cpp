@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
+#include "call_spoofer.hpp"
 #include "scheduler.hpp"
 
 #include "game/game.hpp"
@@ -27,6 +28,7 @@ namespace colors
 		std::vector<DWORD> color_table;
 
 		void* ColorIndex_call{};
+		void* rainbow_color_override_addr{};
 
 		DWORD hsv_to_rgb(const hsv_color hsv)
 		{
@@ -109,20 +111,14 @@ namespace colors
 			return string;
 		}
 
+		utils::hook::detour ColorIndex_hook;
 		__int64 color_index_stub(char a1)
 		{
-			unsigned __int8 v1; // cl
-			__int64 result; // rax
-
 			// set the ^: value to rainbow here - this check is inside RB_LookupColor, which is inlined on replay..?
 			const auto rgb = hsv_to_rgb({ static_cast<uint8_t>((game::Sys_Milliseconds() / 100) % 256), 255, 255 });
-			*reinterpret_cast<DWORD*>(0x10C793BC_b) = 0xFF000000u | rgb;
+			*reinterpret_cast<DWORD*>(rainbow_color_override_addr) = 0xFF000000u | rgb;
 
-			v1 = a1 - 39;
-			result = 16LL;
-			if (v1 < 24u)
-				return v1;
-			return result;
+			return call_spoofer::spoof_hook_invoke<__int64>(ColorIndex_hook, a1);
 		}
 	}
 
@@ -132,18 +128,37 @@ namespace colors
 		void find_signatures(memory::signature_store& batch) override
 		{
 			batch.add(SETUP_POINTER(game::Com_CleanName),
-				"40 53 45 33 DB 41 FF C8 44 88 1A 45 33 D2 44 0F B6 09 48 8B DA 48 FF C1 45 84 C9 74 3A");
+				"48 8D ? ? ? 00 00 41 B8 24 00 00 00 48 8B C8 E8", SETUP_MOD(add(17).rip()));
 
-			batch.add(SETUP_POINTER(game::ColorIndex),
-				"48 83 EC 20 0F ? ? 49 ? ? 0F ? ? E8", SETUP_MOD(add(14).rip()));
+			// 1.20.4-replay
+			//batch.add(SETUP_POINTER(game::ColorIndex),
+			//	"48 83 EC 20 0F ? ? 49 ? ? 0F ? ? E8", SETUP_MOD(add(14).rip()));
 
-			batch.add(SETUP_POINTER(game::CL_LookupColor),
-				"48 89 5C 24 08 57 48 83 EC 20 0F B6 CA 49 8B D8 0F B6 FA E8");
+			//batch.add(SETUP_POINTER(game::CL_LookupColor),
+			//	"48 89 5C 24 08 57 48 83 EC 20 0F B6 CA 49 8B D8 0F B6 FA E8");
 
-			if (identification::game::is("1.20.4-replay"))
-				batch.add(SETUP_POINTER(ColorIndex_call), "E8 ? ? ? ? 0F ? ? 83 ? 11 73 19");
+			static const auto& game_ = identification::game::get_target_game().client_name;
+
+			if (game_ == "iw9-mod"s)
+			{
+				batch.add(SETUP_POINTER(ColorIndex_call), "48 ? ? ? ? C7 02 FF FF FF FF E8", SETUP_MOD(add(12).rip()));
+				batch.add(SETUP_POINTER(rainbow_color_override_addr), "44 8B 84 86 ? ? ? ? 4C",
+					SETUP_MOD(add(16).rip().add(8)));
+			}
 			else
-				batch.add(SETUP_POINTER(ColorIndex_call), "48 8B FA 0F B6 D9 E8 ? ? ? ? 44 0F ? ? 41 ? ? ? 0F", SETUP_MOD(add(7).rip()));
+			{
+				if (identification::game::is("1.20.4-replay"))
+				{
+					batch.add(SETUP_POINTER(ColorIndex_call), "E8 ? ? ? ? 0F ? ? 83 ? 11 73 19", GRAB_CALL);
+					rainbow_color_override_addr = reinterpret_cast<void*>(0x10C793BC_b);
+				}
+				else
+				{
+					batch.add(SETUP_POINTER(ColorIndex_call), "48 8B FA 0F B6 D9 E8 ? ? ? ? 44 0F ? ? 41 ? ? ? 0F", SETUP_MOD(add(7).rip()));
+					batch.add(SETUP_POINTER(rainbow_color_override_addr), "48 8B ? E8 ? ? ? ? 48 8D ? ? ? ? ? 48 8B CF 48 8B ? ? ? 48 83 C4 20",
+						SETUP_MOD(add(11).rip()));
+				}
+			}
 		}
 
 		void post_unpack() override
@@ -162,7 +177,7 @@ namespace colors
 			//utils::hook::set<uint8_t>(0x140E4F64B, MAX_COLOR_INDEX);
 
 			// force new colors
-			utils::hook::call(ColorIndex_call, color_index_stub);
+			ColorIndex_hook.create(ColorIndex_call, color_index_stub);
 
 			// prevent name mismatch check
 			//utils::hook::set<uint8_t>(0x140805C10, 0xC3);

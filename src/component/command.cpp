@@ -88,12 +88,15 @@ namespace command
 			SetConsoleTitleA("neura engine");
 
 			static const auto& game_ = identification::game::get_target_game().client_name;
-			if (game_ == "iw8-mod"s)
+			if (game_ == "iw8-mod"s || game_ == "iw9-mod"s)
 				return;
 
-			FreeConsole();
+			//FreeConsole();
 			AllocConsole();
 			SetConsoleTitleA("neura engine");
+
+			fflush(stdout);
+			fflush(stderr);
 
 			FILE* f;
 			freopen_s(&f, "CONOUT$", "w", stdout);

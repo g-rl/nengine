@@ -151,6 +151,10 @@ namespace patches
 			{
 				set_output_callback([](const char* msg)
 				{
+					static bool done = false;
+					if (done)
+						return;
+
 					// skip past ANSI escape sequences to find the actual text
 					const char* p = msg;
 					std::string stripped;
@@ -169,8 +173,13 @@ namespace patches
 
 					if (strstr(stripped.c_str(), "Found") && strstr(stripped.c_str(), "out of"))
 					{
-						//printf("find_signatures call\n");
 						component_loader::find_signatures();
+					}
+
+					if (identification::game::get_target_game().client_name == "iw9-mod"s && strstr(stripped.c_str(), "Created inline hooks for checksums"))
+					{
+						component_loader::post_unpack();
+						done = true;
 					}
 				});
 			}

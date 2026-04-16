@@ -7,6 +7,7 @@
 #include "call_spoofer.hpp"
 
 #include "game/game.hpp"
+#include <identification/game.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -78,6 +79,25 @@ namespace bots
 
 			sv_kick_client_num_hook.invoke<void>(client_num, reason, kicked_for_inactivity);
 		}
+
+		utils::hook::detour SV_ClientMP_ConnectBot_hook;
+		void* SV_ClientMP_ConnectBot_call(void* result, const char* name, const int headModelIndex, const int bodyModelIndex, __int64 lol)
+		{
+			if (bot_names.empty())
+			{
+				load_bot_data();
+			}
+
+			// only use bot names once, no dupes in names
+			if (!bot_names.empty() && bot_id < bot_names.size())
+			{
+				bot_id %= bot_names.size();
+				const auto& entry = bot_names.at(bot_id++);
+				name = ("%.*s", static_cast<int>(entry.size()), entry.data());
+			}
+
+			return SV_ClientMP_ConnectBot_hook.invoke<void*>(result, name, headModelIndex, bodyModelIndex, lol);
+		}
 	}
 
 	class component final : public component_interface
@@ -85,8 +105,13 @@ namespace bots
 	public:
 		void find_signatures(memory::signature_store& batch) override
 		{
-			batch.add(SETUP_POINTER(game::SV_BotGetRandomName),
-				"48 8B C4 48 83 EC 48 83 3D ? ? ? ? 00 0F 8C ? ? 00 00 48 8B 0D");
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "iw9-mod"s)
+				batch.add(SETUP_POINTER(game::SV_ClientMP_ConnectBot),
+					"C5 ? ? E8 ? ? 00 00 48 ? ? ? ? ? ? ? 4C ? ? ? ? ? ? C5", SETUP_MOD(add(4).rip()));
+			else
+				batch.add(SETUP_POINTER(game::SV_BotGetRandomName), 
+					"48 8B C4 48 83 EC 48 83 3D ? ? ? ? 00 0F 8C ? ? 00 00 48 8B 0D");
 		}
 
 		void post_unpack() override
@@ -94,7 +119,11 @@ namespace bots
 			// don't kick bot to equalize team balance
 			//sv_kick_client_num_hook.create(game::SV_CmdsMP_KickClientNum, sv_kick_client_num_stub);
 
-			get_bot_name_hook.create(game::SV_BotGetRandomName, get_random_bot_name);
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "iw9-mod"s)
+				SV_ClientMP_ConnectBot_hook.create(game::SV_ClientMP_ConnectBot, SV_ClientMP_ConnectBot_call);
+			else
+				get_bot_name_hook.create(game::SV_BotGetRandomName, get_random_bot_name);
 
 			// clear bot names and reset ID on game shutdown to allow new names to be added without restarting
 			scripting::on_shutdown([](bool /*free_scripts*/, bool post_shutdown)

@@ -196,10 +196,10 @@ namespace weapon
 			}
 			else
 			{
-				// 1.20.4-replay, 1.38, IW9
+				// 1.20.4-replay, 1.38, IW9 (not atm but its found in ida? wut)
 				batch.add(SETUP_POINTER(game::PM_Weapon_ProcessHand_sig),
-					"? 8B F2 ? 8B ? 48 8B F9 E8 ? ? ? FF ? C0 0F 85 ? ? 00 00",
-					SETUP_MOD(add(10).rip()));
+					"8B F2 ? 8B ? 48 8B F9 E8 ? ? ? FF ? C0 0F 85 ? ? 00 00",
+					SETUP_MOD(add(9).rip()));
 			}
 
 			if (identification::game::is("1.20.4-replay"))

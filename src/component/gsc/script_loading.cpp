@@ -665,25 +665,30 @@ namespace gsc
 			}
 
 			// disable patchStrings from ZeroProxy
-			auto patch_strings_dvar = game::Dvar_FindVarByName("ncs_patchStrings");
-			if (patch_strings_dvar)
+			static const auto& game_ = identification::game::get_target_game().client_name;
+
+			if (game_ != "iw9-mod"s)
 			{
+				auto patch_strings_dvar = game::Dvar_FindVarByName("ncs_patchStrings");
+				if (patch_strings_dvar)
+				{
 #ifdef _DEBUG
-				printf("setting ZeroProxy ncs_patchStrings to 0\n");
+					printf("setting ZeroProxy ncs_patchStrings to 0\n");
 #endif
 
-				game::Dvar_SetBool_Internal(patch_strings_dvar, false);
-			}
+					game::Dvar_SetBool_Internal(patch_strings_dvar, false);
+				}
 
-			// disable xp dec
-			auto xp_dec_dvar = game::Dvar_FindVarByName("NTTRLOPQKS");
-			if (xp_dec_dvar)
-			{
+				// disable xp dec
+				auto xp_dec_dvar = game::Dvar_FindVarByName("NTTRLOPQKS");
+				if (xp_dec_dvar)
+				{
 #ifdef _DEBUG
-				printf("setting NTTRLOPQKS to 0\n");
+					printf("setting NTTRLOPQKS to 0\n");
 #endif
 
-				game::Dvar_SetBool_Internal(xp_dec_dvar, false);
+					game::Dvar_SetBool_Internal(xp_dec_dvar, false);
+				}
 			}
 
 			// fix settext

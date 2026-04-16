@@ -74,7 +74,9 @@ public:
 		batch.add(SETUP_POINTER(game::Dvar_FindVarByName), "E8 ? ? ? ? 48 8B CB 48 63 50", GRAB_CALL);
 		//batch.add(SETUP_POINTER(game::Dvar_GetIntSafe), "E8 ? ? ? ? 8B D0 85 C0 75 ? 38 05", GRAB_CALL);
 
-		if (game_ == "iw8-mod"s)
+		if (game_ == "iw9-mod"s)
+			batch.add(SETUP_POINTER(game::Dvar_RegisterBool), "E8 ? ? ? ? C5 FA 10 0D ? ? ? ? C5 FA 10 1D ? ? ? ? C5 F8 28 D1", GRAB_CALL);
+		else if (game_ == "iw8-mod"s)
 			batch.add(SETUP_POINTER(game::Dvar_RegisterBool), "E8 ? ? ? ? 48 8B F0 F6 46", GRAB_CALL);
 		else
 			batch.add(SETUP_POINTER(game::Dvar_RegisterBool), "E8 ? ? AD 00 F6 40 ? 08", GRAB_CALL);
@@ -102,11 +104,11 @@ public:
 	
 		// same func
 		batch.add(SETUP_POINTER(game::Core_strcpy),
-			"BA 40 00 00 00 E8 ? ? ? ? 48 8D ? ? ? E8 ? ? ? ? 8B CE 83", SETUP_MOD(add(6).rip()));
+			"24 40 49 81 C0 ? ? 00 00 BA 40 00 00 00 E8", SETUP_MOD(add(15).rip()));
 		batch.add(SETUP_POINTER(game::I_CleanStr),
-			"BA 40 00 00 00 E8 ? ? ? ? 48 8D ? ? ? E8 ? ? ? ? 8B CE 83", SETUP_MOD(add(16).rip()));
+			"24 40 49 81 C0 ? ? 00 00 BA 40 00 00 00 E8", SETUP_MOD(add(25).rip()));
 
-		batch.add(SETUP_POINTER(game::Sys_Milliseconds), "E8 ? ? ? ? 48 8B D7 48 8B CB 8B E8 E8 ? ? ? ? 45 33 C0", SETUP_MOD(add(1).rip()));
+		batch.add(SETUP_POINTER(game::Sys_Milliseconds), "E8 ? ? ? 00 89 87 ? ? 00 00 FF 87", GRAB_CALL);
 	}
 };
 

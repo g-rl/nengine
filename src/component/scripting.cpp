@@ -168,11 +168,18 @@ namespace scripting
 	public:
 		void find_signatures(memory::signature_store& batch) override 
 		{
-			if (identification::game::is_greater_or_eq("1.46.0")) {
-				batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 8B 05 ? ? ? ? 0F B6 F9");
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "iw9-mod"s)
+			{
+				batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame),
+					"48 89 5C 24 10 48 89 6C 24 18 48 89 7C 24 20 41 56 48 83 ec 20 0F ? ? B9 12 00 00 00");
 			}
-			else {
-				batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "E8 ? ? ? ? 65 48 8B 04 25 ? ? ? ? 48 8B CF 48 8B 14 18 33 C0", SETUP_MOD(add(1).rip()));
+			else
+			{
+				if (identification::game::is_greater_or_eq("1.46.0"))
+					batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 56 48 83 EC ? 8B 05 ? ? ? ? 0F B6 F9");
+				else
+					batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "E8 ? ? ? ? 65 48 8B 04 25 ? ? ? ? 48 8B CF 48 8B 14 18 33 C0", SETUP_MOD(add(1).rip()));
 			}
 
 			if (identification::game::is("1.20.4") || identification::game::is("1.20.4-replay"))

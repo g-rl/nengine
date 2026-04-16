@@ -150,12 +150,16 @@ namespace
 					return;
 				}
 
-				auto* system_parameters_info = utils::nt::library{}.get_iat_entry("user32.dll", "SystemParametersInfoA");
-				if (!system_parameters_info)
+				// TODO: this is.... absolutely meme. i need a better import to hook
+				if (identification::game::get_target_game().client_name != "iw9-mod"s)
 				{
-					MSG_BOX_ERROR("could not find import SystemParametersInfoA");
+					auto* system_parameters_info = utils::nt::library{}.get_iat_entry("user32.dll", "SystemParametersInfoA");
+					if (!system_parameters_info)
+					{
+						MSG_BOX_ERROR("could not find import SystemParametersInfoA");
+					}
+					utils::hook::set(system_parameters_info, system_parameters_info_a);
 				}
-				utils::hook::set(system_parameters_info, system_parameters_info_a);
 
 				if (!component_loader::post_load())
 				{
