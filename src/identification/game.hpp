@@ -54,6 +54,7 @@ namespace identification::game
 
 	game_iden get_iw8_game_iden();
 	game_iden get_iw9_game_iden();
+	game_iden get_s4_game_iden();
 
 	std::uint32_t get_game_xxh32_checksum();
 	std::uint32_t get_game_nt_timestamp();

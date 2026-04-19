@@ -74,7 +74,7 @@ namespace identification::game
 
 	static game_iden_target resolve_target()
 	{
-		const game_iden idens[] = { get_iw8_game_iden(), get_iw9_game_iden() };
+		const game_iden idens[] = { get_iw8_game_iden(), get_iw9_game_iden(), get_s4_game_iden()};
 		game_iden_target target{};
 
 		for (const auto& iden : idens)

@@ -26,7 +26,7 @@ namespace
 		{
 			try
 			{
-				// hina client workaround for now
+				// hina client workaround for now a
 				static const auto& game_ = identification::game::get_target_game().client_name;
 				if (game_ == "iw9-mod"s)
 				{

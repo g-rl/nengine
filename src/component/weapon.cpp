@@ -238,8 +238,20 @@ namespace weapon
 				"7F 0A 33 D2 48 8B CF E8 ? ? ? ? 4C 8B",
 				SETUP_MOD(add(8).rip())); // IW8, S4, IW9 is all same
 
+			// B8 00 ? ? ? 85 ? B9 01 00 00 00 0F on all builds
 			batch.add(SETUP_POINTER(game::PM_GetWeaponFireButton_sig),
-				"48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 48 8B 59 08 41 0F B6 E9");
+				"B8 00 ? ? ? 85 ? B9 01 00 00 00 0F",
+				[](memory::scanned_result<void> r) {
+					std::uintptr_t offset = 0;
+					while (true) {
+						offset++;
+						auto buf = r.sub(offset).as<std::uint8_t*>();
+						if (buf[0] == 0x48 && buf[1] == 0x89 && buf[2] == 0x5C && buf[3] == 0x24 && buf[4] == 0x08) {
+							break;
+						}
+					}
+					return r.sub(offset);
+				});
 
 			batch.add(SETUP_POINTER(game::BG_GetCurrentWeaponForPlayer_sig),
 				"48 8B 51 08 48 8B 89 ? ? 00 00 E8 ? ? ? ? 48 8B C8 E8 ? ? ? ? 85 C0 B9 18 00 00 00 BA 16 00 00 00 0F 44 CA",

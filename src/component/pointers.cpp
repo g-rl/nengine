@@ -53,7 +53,18 @@ public:
 		batch.add(SETUP_POINTER(game::Com_FrontEnd_IsInFrontEnd), "E8 ? ? ? 00 84 C0 74 ? E8 ? ? FF FF 84 C0 75 ? E8", GRAB_CALL);
 
 		batch.add(SETUP_POINTER(game::ScriptContext_Server), "E8 ? ? ? ? 4C 8B C3 41 8B D7", GRAB_CALL);
-		batch.add(SETUP_POINTER(game::Scr_LoadScript), "48 89 5C 24 ? 57 48 83 EC ? 48 8B DA 48 8B F9 BA ? ? ? ? 48 8D 4C 24");
+
+		batch.add(SETUP_POINTER(game::Scr_LoadScript), "48 8B DA 48 8B F9 BA ?? ?? 00 00 48 8D 4C 24 ?? E8 ?? ?? ?? FF 4C 8B", [](memory::scanned_result<void> r) {
+			std::uintptr_t offset = 0;
+			while (true) {
+				offset++;
+				auto buf = r.sub(offset).as<std::uint8_t*>();
+				if (buf[0] == 0x48 && buf[1] == 0x89 && buf[2] == 0x5C && buf[3] == 0x24 && buf[4] == 0x08) {
+					break;
+				}
+			}
+			return r.sub(offset);
+		});
 
 		// this is the bottom of the function, and we need to make something to scan up and find the beginning of it
 		batch.add(SETUP_POINTER(game::Scr_GetFunctionHandle), "49 2B D0 48 3B D1 73 ? 41 2B C0", [](memory::scanned_result<void> r) {
@@ -71,7 +82,10 @@ public:
 		batch.add(SETUP_POINTER(game::Scr_ExecThread), "48 83 EC ? 33 C0 45 8B C8");
 		batch.add(SETUP_POINTER(game::Scr_FreeThread), "E8 ? ? ? ? 48 8B 4F ? 48 63 81", GRAB_CALL);
 
-		batch.add(SETUP_POINTER(game::Dvar_FindVarByName), "E8 ? ? ? ? 48 8B CB 48 63 50", GRAB_CALL);
+		if (game_ == "iw8-mod")
+			batch.add(SETUP_POINTER(game::Dvar_FindVarByName), "E8 ? ? ? ? 48 8B CB 48 63 50", GRAB_CALL);
+		else
+			batch.add(SETUP_POINTER(game::Dvar_FindVarByName_IW9), "E8 ? ? ? ? 48 8B CB 48 63 50", GRAB_CALL);
 		//batch.add(SETUP_POINTER(game::Dvar_GetIntSafe), "E8 ? ? ? ? 8B D0 85 C0 75 ? 38 05", GRAB_CALL);
 
 		if (game_ == "iw9-mod"s)
@@ -81,32 +95,37 @@ public:
 		else
 			batch.add(SETUP_POINTER(game::Dvar_RegisterBool), "E8 ? ? AD 00 F6 40 ? 08", GRAB_CALL);
 
-		if (identification::game::is("1.20.4-replay")) {
-			batch.add(SETUP_POINTER(game::Dvar_RegisterVariant), "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 48 8B 05 ? ? ? ? 48 33 C4"
-				" 48 89 84 24 ? ? ? ? 8B 05");
-		}
-		else if (identification::game::is_less_or_eq("1.24.0")) {
-			batch.add(SETUP_POINTER(game::Dvar_RegisterVariant), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 8B 05 ? ? ? ?"
-				" 4C 8B F9");
+		if (game_ == "iw8-mod"s)
+		{
+			if (identification::game::is("1.20.4-replay")) {
+				batch.add(SETUP_POINTER(game::Dvar_RegisterVariant), "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 48 8B 05 ? ? ? ? 48 33 C4"
+					" 48 89 84 24 ? ? ? ? 8B 05");
+			}
+			else if (identification::game::is_less_or_eq("1.24.0")) {
+				batch.add(SETUP_POINTER(game::Dvar_RegisterVariant), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 8B 05 ? ? ? ?"
+					" 4C 8B F9");
+			}
+
+			batch.add(SETUP_POINTER(game::Dvar_SetBool_Internal_IW8), "B2 01 48 83 C4 28 E9 ? ? ? 00 48 83 C4 28 C3", SETUP_MOD(add(7).rip()));
 		}
 		else {
-			if (game_ == "iw9-mod"s) {
-				batch.add(SETUP_POINTER(game::Dvar_RegisterVariant_IW9), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 8B 05 ? ? ? ? ? 8B ? B9 ? ? 00 00");
-			}
-			else {
-				// works for IW8, S4, and IW9 technically but its different parameters
-				batch.add(SETUP_POINTER(game::Dvar_RegisterVariant),
-					"48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 8B 05 ? ? ? ? ? 8B ? B9 ? ? 00 00");
-			}
+			batch.add(SETUP_POINTER(game::Dvar_RegisterVariant), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 8B 05 ? ? ? ? ? 8B ? B9 ? ? 00 00");
+			batch.add(SETUP_POINTER(game::Dvar_RegisterVariant_IW9), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 8B 05 ? ? ? ? ? 8B ? B9 ? ? 00 00");
+			batch.add(SETUP_POINTER(game::Dvar_SetBool_Internal_IW9), "B2 01 48 83 C4 28 E9 ? ? ? 00 48 83 C4 28 C3", SETUP_MOD(add(7).rip()));
 		}
-
-		batch.add(SETUP_POINTER(game::Dvar_SetBool_Internal), "75 1C 48 8B 0D ? ? ? ? B2 01 E8", SETUP_MOD(add(12).rip()));
 	
 		// same func
 		batch.add(SETUP_POINTER(game::Core_strcpy),
 			"24 40 49 81 C0 ? ? 00 00 BA 40 00 00 00 E8", SETUP_MOD(add(15).rip()));
 		batch.add(SETUP_POINTER(game::I_CleanStr),
 			"24 40 49 81 C0 ? ? 00 00 BA 40 00 00 00 E8", SETUP_MOD(add(25).rip()));
+
+		if (game_ == "s4-mod")
+		{
+			batch.add(SETUP_POINTER(game::FindVariable), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48", GRAB_CALL);
+		}
+
+		batch.add(SETUP_POINTER(game::SL_ConvertToString), "E8 ? ? ? ? 45 33 F6 4C 8B E0", GRAB_CALL);
 
 		batch.add(SETUP_POINTER(game::Sys_Milliseconds), "E8 ? ? ? 00 89 87 ? ? 00 00 FF 87", GRAB_CALL);
 	}

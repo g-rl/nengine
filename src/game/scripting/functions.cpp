@@ -6,10 +6,46 @@
 #include "component/gsc/script_loading.hpp"
 #include "component/gsc/script_extension.hpp"
 
+#include "tokens/tokens.hpp"
+
+#include <identification/game.hpp>
+
 namespace scripting
 {
 	namespace
 	{
+		const std::unordered_map<std::uint32_t, std::string>& s4_token_map()
+		{
+			static const auto map = []
+			{
+				std::unordered_map<std::uint32_t, std::string> m;
+				m.reserve(tokens::s4::token_list_count);
+				for (std::size_t i = 0; i < tokens::s4::token_list_count; ++i)
+				{
+					const auto& [id, name] = tokens::s4::token_list[i];
+					m.emplace(id, name);
+				}
+				return m;
+			}();
+			return map;
+		}
+
+		const std::unordered_map<std::uint64_t, std::string>& iw9_hash_map()
+		{
+			static const auto map = []
+			{
+				std::unordered_map<std::uint64_t, std::string> m;
+				m.reserve(tokens::iw9::hash_list_count);
+				for (std::size_t i = 0; i < tokens::iw9::hash_list_count; ++i)
+				{
+					const auto& [id, name] = tokens::iw9::hash_list[i];
+					m.emplace(id, name);
+				}
+				return m;
+			}();
+			return map;
+		}
+
 		int find_function_index(const std::string& name, [[maybe_unused]] const bool prefer_global)
 		{
 			const auto target = utils::string::to_lower(name);
@@ -43,14 +79,36 @@ namespace scripting
 		}
 	}
 
-	std::string find_token(std::uint32_t id)
+	inline std::string find_token(std::uint32_t id)
 	{
+		static const auto& game_ = identification::game::get_target_game().client_name;
+
+		if (game_ == "s4-mod"s)
+		{
+			const auto& map = s4_token_map();
+			if (const auto it = map.find(id); it != map.end())
+			{
+				return it->second;
+			}
+			return std::to_string(id);
+		}
+
+		if (game_ == "iw9-mod")
+		{
+			const auto& map = iw9_hash_map();
+			if (const auto it = map.find(static_cast<std::uint64_t>(id)); it != map.end())
+			{
+				return it->second;
+			}
+			return std::to_string(id);
+		}
+
 		return gsc::gsc_ctx->token_name(id);
 	}
 
 	std::string find_token_single(std::uint32_t id)
 	{
-		return gsc::gsc_ctx->token_name(id);
+		return find_token(id);
 	}
 
 	script_function get_function_by_index(const std::uint32_t index)

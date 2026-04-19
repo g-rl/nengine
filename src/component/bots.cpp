@@ -96,7 +96,7 @@ namespace bots
 				name = ("%.*s", static_cast<int>(entry.size()), entry.data());
 			}
 
-			return SV_ClientMP_ConnectBot_hook.invoke<void*>(result, name, headModelIndex, bodyModelIndex, lol);
+			return call_spoofer::spoof_hook_invoke<void*>(SV_ClientMP_ConnectBot_hook, result, name, headModelIndex, bodyModelIndex, lol);
 		}
 	}
 
@@ -109,6 +109,9 @@ namespace bots
 			if (game_ == "iw9-mod"s)
 				batch.add(SETUP_POINTER(game::SV_ClientMP_ConnectBot),
 					"C5 ? ? E8 ? ? 00 00 48 ? ? ? ? ? ? ? 4C ? ? ? ? ? ? C5", SETUP_MOD(add(4).rip()));
+			else if (game_ == "s4-mod"s)
+				batch.add(SETUP_POINTER(game::SV_ClientMP_ConnectBot),
+					"40 53 55 41 56 48 83 EC 20 83");
 			else
 				batch.add(SETUP_POINTER(game::SV_BotGetRandomName), 
 					"48 8B C4 48 83 EC 48 83 3D ? ? ? ? 00 0F 8C ? ? 00 00 48 8B 0D");
@@ -120,10 +123,10 @@ namespace bots
 			//sv_kick_client_num_hook.create(game::SV_CmdsMP_KickClientNum, sv_kick_client_num_stub);
 
 			static const auto& game_ = identification::game::get_target_game().client_name;
-			if (game_ == "iw9-mod"s)
-				SV_ClientMP_ConnectBot_hook.create(game::SV_ClientMP_ConnectBot, SV_ClientMP_ConnectBot_call);
-			else
+			if (game_ == "iw8-mod"s)
 				get_bot_name_hook.create(game::SV_BotGetRandomName, get_random_bot_name);
+			//else
+			//	SV_ClientMP_ConnectBot_hook.create(game::SV_ClientMP_ConnectBot, SV_ClientMP_ConnectBot_call);
 
 			// clear bot names and reset ID on game shutdown to allow new names to be added without restarting
 			scripting::on_shutdown([](bool /*free_scripts*/, bool post_shutdown)

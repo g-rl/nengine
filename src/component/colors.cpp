@@ -139,11 +139,11 @@ namespace colors
 
 			static const auto& game_ = identification::game::get_target_game().client_name;
 
-			if (game_ == "iw9-mod"s)
+			if (game_ != "iw8-mod"s)
 			{
-				batch.add(SETUP_POINTER(ColorIndex_call), "48 ? ? ? ? C7 02 FF FF FF FF E8", SETUP_MOD(add(12).rip()));
-				batch.add(SETUP_POINTER(rainbow_color_override_addr), "44 8B 84 86 ? ? ? ? 4C",
-					SETUP_MOD(add(16).rip().add(8)));
+				batch.add(SETUP_POINTER(ColorIndex_call), "? ? ? ? ? C7 02 FF FF FF FF E8 ? ? ? FE", SETUP_MOD(add(12).rip()));
+				batch.add(SETUP_POINTER(rainbow_color_override_addr), "8B 84 ? ? ? ? 04 ? 03 ? 41 FF E0 8B 05",
+					SETUP_MOD(add(15).rip().add(8)));
 			}
 			else
 			{

@@ -55,13 +55,24 @@ namespace game
 		game::DvarValue value{};
 		value.string = utils::memory::duplicate_string(str); // not sure if needed lmao
 
-		if (identification::game::get_target_game().client_name == "iw9-mod"s)
+		static const auto& game_ = identification::game::get_target_game().client_name;
+		if (game_ != "iw8-mod"s)
 		{
 			auto hash = game::hash_scr_dvar(name);
-			return game::Dvar_RegisterVariant_IW9(hash, 10, flags, &value, &domain, desc);
+			// 9 on S4, 10 on IW9
+			return game::Dvar_RegisterVariant_IW9(hash, 9 + (game_ == "iw9-mod"s), flags, &value, &domain, desc);
 		}
 
 		return game::Dvar_RegisterVariant(name, utils::string::dvar_checksum(name), 9, flags, &value, &domain, desc);
+	}
+
+	void Dvar_SetBool_Internal(game::dvar_t* dvar, bool value)
+	{
+		static const auto& game_ = identification::game::get_target_game().client_name;
+		if (game_ == "iw8-mod"s)
+			game::Dvar_SetBool_Internal_IW8(dvar, value);
+		else
+			game::Dvar_SetBool_Internal_IW9(dvar, value, 0); // changed for IW9 in S4 too, probably source
 	}
 
 	int Cmd_Argc()

@@ -265,10 +265,11 @@ namespace gsc
 
 		void vm_error_internal()
 		{
-			const bool dev_script = true; // developer_script ? developer_script->current.enabled : false;
+			//const bool dev_script = true; // developer_script ? developer_script->current.enabled : false;
 
-			if (!dev_script && !force_error_print)
+			if (!force_error_print)
 			{
+				printf("[vm_error_internal] force_error_print is false\n");
 				return;
 			}
 
@@ -306,6 +307,8 @@ namespace gsc
 
 		void vm_error_stub(void* mark_pos)
 		{
+			printf("vm_error_stub\n");
+
 #ifdef DEBUG
 			vm_error_internal();
 #endif
@@ -439,6 +442,11 @@ namespace gsc
 		{
 			//developer_script = game::Dvar_RegisterBool("developer_script", true, game::DVAR_FLAG_NONE, "Enable developer script comments"); // enable by default for now
 
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "s4-mod"s)
+			{
+				utils::hook::call(0x2B52559_b, vm_error_stub); // LargeLocalResetToMark
+			}
 			if (identification::game::is("1.20.4-replay"))
 			{
 				scr_error_internal_hook.create(game::Scr_ErrorInternal, scr_error_internal_stub);

@@ -5,6 +5,8 @@
 namespace game
 {
 	WEAK dvar_t* (*Dvar_FindVarByName)(const char* dvarName) = nullptr;
+	WEAK dvar_t* (*Dvar_FindVarByName_IW9)(unsigned __int64 dvarHash) = nullptr;
+
 	WEAK dvar_t* (*Dvar_RegisterBool)(const char* dvarName, bool value, DvarFlags flags, const char* desc) = nullptr;
 	WEAK void (*CG_UpdateViewWeaponAnim)(unsigned int localClientNum) = nullptr;
 	WEAK bool (*BG_PlayerDualWieldingWeapon)(const void *weaponMap, const playerState_s *ps, const Weapon *r_weapon) = nullptr;
@@ -31,7 +33,8 @@ namespace game
 		game::DvarLimits* domain, const char* description) = nullptr;
 	WEAK dvar_t* (*Dvar_RegisterVariant_IW9)(std::uint64_t checksum, std::uint8_t type, game::DvarFlags flags, game::DvarValue* value,
 		game::DvarLimits* domain, const char* description) = nullptr;
-	WEAK void (*Dvar_SetBool_Internal)(dvar_t* dvar, bool value) = nullptr;
+	WEAK void (*Dvar_SetBool_Internal_IW8)(dvar_t* dvar, bool value) = nullptr;
+	WEAK void (*Dvar_SetBool_Internal_IW9)(dvar_t* dvar, bool value, int unk) = nullptr;
 
 	// DB
 	WEAK void(*DB_AllocXZoneMemory)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XBlock* archive_blocks) = nullptr;
@@ -48,6 +51,7 @@ namespace game
 
 	// Fence idk
 	WEAK void(*FenceManager_Frame)() = nullptr;
+	WEAK unsigned int(*FindVariable)(scrContext_t* context, unsigned int parentId, unsigned int name) = nullptr;
 
 	// I
 	WEAK char* (*I_CleanStr)(char* string) = nullptr;
@@ -69,6 +73,8 @@ namespace game
 	WEAK unsigned int(*Scr_FreeThread)(game::scrContext_t* scr_context, unsigned int handle) = nullptr;
 	WEAK void(*ProcessScript)(game::scrContext_t* scr_context, const char* filename) = nullptr;
 	WEAK scrContext_t* (*ScriptContext_Server)() = nullptr;
+
+	WEAK const char*(*SL_ConvertToString)(scr_string_t stringalue) = nullptr;
 
 	// SV
 	WEAK void(*SV_CmdsMP_RequestMapRestart)(bool load_scripts, bool migrate) = nullptr;
@@ -132,7 +138,6 @@ namespace game
 	WEAK symbol<void(const char* dvarName, const char* string, bool isSuperUser)> Dvar_SetCommandByName{0x13E8FE0};
 
 	WEAK symbol<unsigned int(scrContext_t* context, int entnum, unsigned int classnum, int local_client_num)> FindEntityId{0x1320940}; // Scr_FindEntityId
-	WEAK symbol<unsigned int(scrContext_t* context, unsigned int parentId, unsigned int name)> FindVariable{0x131CB90};
 	WEAK symbol<void(scrContext_t* context, unsigned int parentId, unsigned int index)> RemoveVariableValue{0x131D8D0};
 
 	WEAK symbol<void(unsigned int index, const char* name, float value)> GamerProfile_SetDataByName{0x15D8BD0};
@@ -185,8 +190,6 @@ namespace game
 	WEAK symbol<bool(const char* name)> SV_MapExists{ 0xCDB620 };
 	WEAK symbol<bool(int clientNum)> SV_BotIsBot{ 0xC3BC90 };
 	*/
-
-	WEAK symbol<const char*(scr_string_t stringalue)> SL_ConvertToString{0x131AA20};
 
 	WEAK symbol<bool()> Sys_IsDatabaseReady{0x12CF240};
 	WEAK symbol<unsigned __int64()> Sys_Microseconds{0x148FC10};

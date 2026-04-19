@@ -6,6 +6,7 @@
 #include "component/scripting.hpp"
 
 #include "game/scripting/function.hpp"
+#include "game/scripting/functions.hpp"
 
 #include "script_extension.hpp"
 #include "script_loading.hpp"
@@ -21,6 +22,7 @@
 namespace gsc
 {
 	std::unique_ptr<xsk::gsc::iw8::context> gsc_ctx = std::make_unique<xsk::gsc::iw8::context>();
+
 	std::unordered_map<std::string, loaded_script_t> loaded_scripts;
 
 	namespace
@@ -241,10 +243,11 @@ namespace gsc
 
 				// precache all functions in their hashed form for later - this helps us with human readable errors
 				// a std::uint64_t should map to a gsc_ctx->path_name
-				// this is cleared on shutdown next to loaded_scripts
+				// this is cleared on shutdown next to loaded_scripts a
 				for (const auto& func : assembly_ptr->functions)
 				{
 					auto bruh = gsc_ctx->token_id(func->name);
+					printf("caching function '%s' with id %u\n", func->name.data(), bruh);
 					script_function_names[bruh] = func->name;
 				}
 
@@ -262,11 +265,6 @@ namespace gsc
 			}
 
 			return nullptr;
-		}
-
-		std::string get_raw_script_file_name(const std::string& name)
-		{
-			return name;
 		}
 
 		std::string get_script_file_name(const std::string& name)
@@ -593,7 +591,7 @@ namespace gsc
 			return itr->second;
 		}
 
-		return gsc::gsc_ctx->token_name(id);
+		return scripting::find_token(id);
 	}
 
 	class loading final : public component_interface
@@ -667,7 +665,7 @@ namespace gsc
 			// disable patchStrings from ZeroProxy
 			static const auto& game_ = identification::game::get_target_game().client_name;
 
-			if (game_ != "iw9-mod"s)
+			if (game_ == "iw8-mod"s)
 			{
 				auto patch_strings_dvar = game::Dvar_FindVarByName("ncs_patchStrings");
 				if (patch_strings_dvar)
@@ -678,22 +676,27 @@ namespace gsc
 
 					game::Dvar_SetBool_Internal(patch_strings_dvar, false);
 				}
+			}
 
-				// disable xp dec
-				auto xp_dec_dvar = game::Dvar_FindVarByName("NTTRLOPQKS");
-				if (xp_dec_dvar)
-				{
+			// disable xp dec
+			[[maybe_unused]] game::dvar_t* xp_dec_dvar = nullptr;
+
+			if (game_ == "iw8-mod"s)
+				xp_dec_dvar = game::Dvar_FindVarByName("NTTRLOPQKS");
+			else if (game_ == "s4-mod"s)
+				xp_dec_dvar = game::Dvar_FindVarByName_IW9(0xB403CABB1673EEB5);
+
+			if (xp_dec_dvar)
+			{
 #ifdef _DEBUG
-					printf("setting NTTRLOPQKS to 0\n");
+				printf("setting xp dec to 0\n");
 #endif
-
-					game::Dvar_SetBool_Internal(xp_dec_dvar, false);
-				}
+				//game::Dvar_SetBool_Internal(xp_dec_dvar, false);
 			}
 
 			// fix settext
-			NetConstStrings_GetIndexPlusOneFromName_hook.create(game::NetConstStrings_GetIndexPlusOneFromName, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
-			NetConstStrings_GetNameFromIndexPlusOne_hook.create(game::NetConstStrings_GetNameFromIndexPlusOne, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
+			//NetConstStrings_GetIndexPlusOneFromName_hook.create(game::NetConstStrings_GetIndexPlusOneFromName, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
+			//NetConstStrings_GetNameFromIndexPlusOne_hook.create(game::NetConstStrings_GetNameFromIndexPlusOne, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
 
 			// TODO: add iprintln printing to external console for ez debugging on any game
 		}

@@ -475,6 +475,29 @@ namespace game
 		char* bytecode;
 	};
 
+	struct ScriptFile_S4
+	{
+		const char* name; // 0
+		char* idk; // 8
+		int compressedLen; // 16
+		int len; // 20
+		int bytecodeLen; // 24
+		int pad; // 28 ????
+		char* buffer; // 32
+		char* bytecode; // 40
+	}; // 48
+
+	struct ScriptFile_IW9
+	{
+		std::uint64_t name; // 0
+		int compressedLen; // 8
+		int len; // 12
+		int bytecodeLen; // 16
+		int pad; // 20 (idk)
+		char* buffer; // 24
+		char* bytecode; // 32
+	}; // 40
+
 	struct RawFile
 	{
 		const char* name;
@@ -613,13 +636,11 @@ namespace game
 
 	enum XAssetType : __int32
 	{
-		ASSET_TYPE_XMODEL = 9,
-		ASSET_TYPE_GFXWORLD = 31,
-		ASSET_TYPE_WEAPON = 0x2B,		// 0x27 maybe? (weapon???)
-		ASSET_TYPE_RAWFILE = 0x33,		// 0x2F
-		ASSET_TYPE_SCRIPTFILE = 0x34,	// 0x30 on PDB
+		ASSET_TYPE_SCRIPTFILE = 52,			// 0x30 on PDB
+		ASSET_TYPE_SCRIPTFILE_S4 = 54,		// 54 on S4 1.62
+		ASSET_TYPE_SCRIPTFILE_IW9 = 71,		// IW9 latest bnet/prob steam
 
-		ASSET_TYPE_LUA_FILE = 62		// 0x3A
+		ASSET_TYPE_LUA_FILE = 62		// 0x3A IW8 PDB
 	};
 
 	enum DBMemoryType

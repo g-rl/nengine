@@ -26,6 +26,8 @@ namespace gsc
 
 		std::string unknown_function_error;
 
+		void* FindVariable_call{};
+
 		void scr_emit_function_stub(game::scrContext_t* context, std::uint32_t filename, std::uint32_t thread_name, char* code_pos)
 		{
 			current_filename = filename;
@@ -70,10 +72,25 @@ namespace gsc
 			);
 		}
 
-		void compile_error_stub(game::scrContext_t* context, const char* code_pos, [[maybe_unused]] const char* msg)
+		void compile_error_stub(game::scrContext_t* context, const char* code_pos)
 		{
+			printf("[compile_error] code_pos=%p  current_file='%s'\n", code_pos, scripting::current_file.data());
+
+			const auto function = find_function(code_pos);
+			if (function.has_value())
+			{
+				printf("[compile_error] enclosing: %s :: %s\n",
+					function->file.data(), function->function.data());
+			}
+			else
+			{
+				printf("[compile_error] enclosing: (not found — code_pos outside any known function range)\n");
+			}
+
 			get_unknown_function_error(code_pos);
-			const auto error_msg = utils::string::va("script link error\n%s", unknown_function_error.data());
+			const auto error_msg = utils::string::va(
+				"script link error\n%s",
+				unknown_function_error.data());
 			game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n", error_msg);
 			printf("%s\n", error_msg);
 		}
@@ -83,7 +100,9 @@ namespace gsc
 			const auto res = game::FindVariable(context, parent_id, thread_name);
 			if (!res)
 			{
+				printf("find_Variable bruh\n");
 				get_unknown_function_error(thread_name);
+				printf("find_Variable bruh 2\n");
 				const auto error_msg = utils::string::va("script link error\n%s", unknown_function_error.data());
 				game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n");
 				printf("%s\n", error_msg);
@@ -307,8 +326,25 @@ namespace gsc
 	class error final : public component_interface
 	{
 	public:
+		void find_signatures(memory::signature_store& batch) override
+		{
+			batch.add(SETUP_POINTER(FindVariable_call), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48");
+		}
+
 		void post_unpack() override
 		{
+			if (identification::game::get_target_game().client_name == "s4-mod"s)
+			{
+				scr_emit_function_hook.create(0x21AE6F0_b, scr_emit_function_stub);
+
+				// change Sys_Error -> Com_Error + advanced messages A
+				utils::hook::call(0x21AE566_b, compile_error_stub); // CompileError (LinkFile)
+				utils::hook::call(0x21AE656_b, compile_error_stub); // ^
+				utils::hook::call(FindVariable_call, find_variable_stub); // Scr_EmitFunction_Precompiled
+
+				return;
+			}
+
 			if (!identification::game::is("1.20.4-replay"))
 			{
 #ifdef _DEBUG

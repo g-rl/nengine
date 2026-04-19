@@ -29,7 +29,9 @@ namespace filesystem
 
 			initialized = true;
 
-			filesystem::register_path(L"iw8-mod");
+			filesystem::register_path(L".iw8-mod");
+			filesystem::register_path(L".s4-mod");
+			filesystem::register_path(L".iw9-mod");
 
 			fs_startup_hook.invoke<void>(name);
 		}
@@ -197,9 +199,14 @@ namespace filesystem
 	public:
 		void post_unpack() override
 		{
+			initialized = true;
+
+			filesystem::register_path(L".iw8-mod");
+			filesystem::register_path(L".s4-mod");
+			filesystem::register_path(L".iw9-mod");
+
 			if (identification::game::is("1.20.4-replay"))
 			{
-				fs_startup_hook.create(0x13DAFC0_b, fs_startup_stub);
 				utils::hook::jump(0x13F5340_b, sys_default_install_path_stub);
 			}
 		}

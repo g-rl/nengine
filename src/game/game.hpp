@@ -10,6 +10,8 @@ namespace game
 	DvarValue* get_current(dvar_t* dvar);
 	bool dvar_is_enabled_safe(dvar_t*);
 
+	void Dvar_SetBool_Internal(game::dvar_t* dvar, bool value);
+
 	int Cmd_Argc();
 	const char* Cmd_Argv(int argIndex);
 

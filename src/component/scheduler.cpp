@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
+#include "call_spoofer.hpp"
 #include "scheduler.hpp"
 #include "game/game.hpp"
 #include <identification/game.hpp>
@@ -99,12 +100,18 @@ namespace scheduler
 		void r_end_frame_stub()
 		{
 			execute(pipeline::renderer);
-			r_end_frame_hook.invoke<void>();
+			call_spoofer::spoof_hook_invoke<void>(r_end_frame_hook);
 		}
 
 		void main_frame_stub()
 		{
-			main_frame_hook.invoke<void>();
+			call_spoofer::spoof_hook_invoke<void>(main_frame_hook);
+			execute(pipeline::main);
+		}
+
+		void main_frame_stub2(void* a1)
+		{
+			call_spoofer::spoof_hook_invoke<void>(main_frame_hook, a1);
 			execute(pipeline::main);
 		}
 	}
@@ -152,7 +159,6 @@ namespace scheduler
 			const auto dw_init = data_flags == 0;
 			if (dw_init && game::Sys_IsDatabaseReady())
 			{
-				printf("on_game_initialized completed\n");
 				once(callback, type, delay);
 				return cond_end;
 			}
@@ -195,7 +201,7 @@ namespace scheduler
 			else
 			{
 				if (game_ == "s4-mod"s) // add 8B to end of sig for S4
-					batch.add(SETUP_POINTER(game::FenceManager_Frame), "E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 8B", GRAB_CALL);
+					batch.add(SETUP_POINTER(game::FenceManager_Frame), "48 89 5C 24 20 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 20 33 ED");
 				else if (game_ == "iw9-mod"s) // IW9 is missing 2 calls, but we change it anyways on here to be arxan safe
 				{
 					batch.add(SETUP_POINTER(game::FenceManager_Frame), "8B CB E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 8B D3", SETUP_MOD(add(8).rip()));
