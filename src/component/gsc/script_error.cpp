@@ -48,33 +48,37 @@ namespace gsc
 
 		void get_unknown_function_error(const char* code_pos)
 		{
+			const auto current = scripting::get_current_file();
 			const auto function = find_function(code_pos);
 			if (function.has_value())
 			{
 				const auto& pos = function.value();
 				unknown_function_error = std::format(
-					"while processing function '{}' in script '{}':\nunknown script '{}'", pos.function, pos.file, scripting::current_file
+					"while processing function '{}' in script '{}':\nunknown script '{}'", pos.function, pos.file, current
 				);
 			}
 			else
 			{
-				unknown_function_error = std::format("unknown script '{}'", scripting::current_file);
+				unknown_function_error = std::format("unknown script '{}'", current);
 			}
 		}
 
 		void get_unknown_function_error(std::uint32_t thread_name)
 		{
+			printf("get_unknown_function_error\n");
 			const auto filename = get_filename_name();
+			printf("get_unknown_function_error 2\n");
 			const auto name = scripting::get_token(thread_name);
+			printf("get_unknown_function_error 3\n");
 
 			unknown_function_error = std::format(
-				"while processing script '{}':\nunknown function '{}::{}'", scripting::current_file, filename, name
+				"while processing script '{}':\nunknown function '{}::{}'", scripting::get_current_file(), filename, name
 			);
 		}
 
 		void compile_error_stub(game::scrContext_t* context, const char* code_pos)
 		{
-			printf("[compile_error] code_pos=%p  current_file='%s'\n", code_pos, scripting::current_file.data());
+			printf("[compile_error] code_pos=%p  current_file='%s'\n", code_pos, scripting::get_current_file().c_str());
 
 			const auto function = find_function(code_pos);
 			if (function.has_value())
@@ -104,8 +108,7 @@ namespace gsc
 				get_unknown_function_error(thread_name);
 				printf("find_Variable bruh 2\n");
 				const auto error_msg = utils::string::va("script link error\n%s", unknown_function_error.data());
-				game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n");
-				printf("%s\n", error_msg);
+				game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n", error_msg);
 			}
 			return res;
 		}
@@ -298,29 +301,14 @@ namespace gsc
 
 	std::optional<script_info_t> find_function(const char* pos)
 	{
-		for (const auto& file : scripting::script_function_table_sort)
-		{
-			if (file.first.find("/asm/") != std::string::npos)
-			{
-				continue;
-			}
+		scripting::script_function_info lookup;
+		if (!scripting::find_script_function(pos, &lookup))
+			return {};
 
-			const auto first_function = file.second.begin();
-			for (auto i = file.second.begin(); i != file.second.end() && std::next(i) != file.second.end(); ++i)
-			{
-				const auto next = std::next(i);
-				if (pos >= i->second && pos < next->second)
-				{
-					script_info_t info{};
-					info.function = i->first;
-					info.file = file.first;
-					info.script_start = first_function->second;
-					return { info };
-				}
-			}
-		}
-
-		return {};
+		script_info_t info{};
+		info.file = std::move(lookup.file);
+		info.function = std::move(lookup.name);
+		return info;
 	}
 
 	class error final : public component_interface
@@ -361,6 +349,7 @@ namespace gsc
 			utils::hook::call(0x1316777_b, compile_error_stub); // ^
 			utils::hook::call(0x13168DD_b, find_variable_stub); // Scr_EmitFunction_Precompiled
 
+			/*
 			// Restore basic error messages for commonly used scr functions
 #define MEME_DETOUR(address, func) //func##_hook.create(address, func);
 
@@ -375,6 +364,7 @@ namespace gsc
 			MEME_DETOUR(0x1325220_b, scr_get_pointer_type);
 			MEME_DETOUR(0x1325580_b, scr_get_type);
 			MEME_DETOUR(0x1325610_b, scr_get_type_name);
+			*/
 		}
 	};
 }

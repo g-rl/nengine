@@ -27,10 +27,10 @@ namespace scripting
 
 	std::string function::get_name() const
 	{
-		if (scripting::script_function_table_rev.contains(this->pos_))
+		scripting::script_function_info info;
+		if (scripting::find_script_function(this->pos_, &info))
 		{
-			const auto& func = scripting::script_function_table_rev[this->pos_];
-			return utils::string::va("%s::%s", func.first.data(), func.second.data());
+			return utils::string::va("%s::%s", info.file.c_str(), info.name.c_str());
 		}
 
 		return "unknown function";

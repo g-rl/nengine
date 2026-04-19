@@ -18,16 +18,28 @@
 
 namespace scripting
 {
-	std::unordered_map<int, std::unordered_map<std::string, int>> fields_table;
-
-	std::unordered_map<std::string, std::unordered_map<std::string, const char*>> script_function_table;
-	std::unordered_map<std::string, std::vector<std::pair<std::string, const char*>>> script_function_table_sort;
-	std::unordered_map<const char*, std::pair<std::string, std::string>> script_function_table_rev;
-
-	std::string current_file;
-
 	namespace
 	{
+		std::unordered_map<int, std::unordered_map<std::string, int>> fields_table;
+
+		std::unordered_map<std::string, std::unordered_map<std::string, const char*>> script_function_table;
+		std::unordered_map<std::string, std::vector<std::pair<std::string, const char*>>> script_function_table_sort;
+		std::unordered_map<const char*, std::pair<std::string, std::string>> script_function_table_rev;
+
+		std::string current_file;
+
+		struct zp_gsc_script_info
+		{
+			const char* file;
+			const char* name;
+		};
+
+		using zp_gsc_find_function_t = int (*)(const char*, zp_gsc_script_info*);
+		using zp_gsc_get_current_file_t = const char* (*)();
+
+		zp_gsc_find_function_t zp_find_function = nullptr;
+		zp_gsc_get_current_file_t zp_get_current_file = nullptr;
+
 		utils::hook::detour scr_add_class_field_hook;
 
 		utils::hook::detour scr_set_thread_position_hook;
@@ -195,6 +207,65 @@ namespace scripting
 		shutdown_callbacks.push_back(callback);
 	}
 
+	bool find_script_function(const char* pos, script_function_info* out)
+	{
+		if (zp_find_function)
+		{
+			zp_gsc_script_info info{};
+			if (!zp_find_function(pos, &info))
+				return false;
+			if (out)
+			{
+				out->file = info.file ? info.file : "";
+				out->name = info.name ? info.name : "";
+			}
+			return true;
+		}
+
+		const auto rev_it = script_function_table_rev.find(pos);
+		if (rev_it != script_function_table_rev.end())
+		{
+			if (out)
+			{
+				out->file = rev_it->second.first;
+				out->name = rev_it->second.second;
+			}
+			return true;
+		}
+
+		for (const auto& file : script_function_table_sort)
+		{
+			if (file.first.find("/asm/") != std::string::npos)
+				continue;
+
+			for (auto i = file.second.begin(); i != file.second.end() && std::next(i) != file.second.end(); ++i)
+			{
+				const auto next = std::next(i);
+				if (pos >= i->second && pos < next->second)
+				{
+					if (out)
+					{
+						out->file = file.first;
+						out->name = i->first;
+					}
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	std::string get_current_file()
+	{
+		if (zp_get_current_file)
+		{
+			const auto cf = zp_get_current_file();
+			return cf ? cf : "";
+		}
+		return current_file;
+	}
+
 	class component final : public component_interface
 	{
 	public:
@@ -223,12 +294,27 @@ namespace scripting
 		}
 
 		void post_unpack() override
-		{//
-			scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub);
-			scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub);
-			process_script_hook.create(game::ProcessScript, process_script_stub);
+		{
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "iw9-mod"s)
+			{
+				scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub);
+				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub);
+				process_script_hook.create(game::ProcessScript, process_script_stub);
 
-			mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
+				mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
+			}
+			else
+			{
+				const auto version_dll = GetModuleHandleA("version.dll");
+				if (!version_dll)
+					return;
+
+				zp_find_function = reinterpret_cast<zp_gsc_find_function_t>(
+					GetProcAddress(version_dll, "zp_gsc_find_function"));
+				zp_get_current_file = reinterpret_cast<zp_gsc_get_current_file_t>(
+					GetProcAddress(version_dll, "zp_gsc_get_current_file"));
+			}
 		}
 	};
 }

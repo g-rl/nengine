@@ -120,10 +120,7 @@ public:
 		batch.add(SETUP_POINTER(game::I_CleanStr),
 			"24 40 49 81 C0 ? ? 00 00 BA 40 00 00 00 E8", SETUP_MOD(add(25).rip()));
 
-		if (game_ == "s4-mod")
-		{
-			batch.add(SETUP_POINTER(game::FindVariable), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48", GRAB_CALL);
-		}
+		batch.add(SETUP_POINTER(game::FindVariable), "74 ? 41 8B D6 E8 ? ? ? ? 8B ? 85 C0 75", SETUP_MOD(add(6).rip()));
 
 		batch.add(SETUP_POINTER(game::SL_ConvertToString), "E8 ? ? ? ? 45 33 F6 4C 8B E0", GRAB_CALL);
 

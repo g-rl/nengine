@@ -695,8 +695,8 @@ namespace gsc
 			}
 
 			// fix settext
-			//NetConstStrings_GetIndexPlusOneFromName_hook.create(game::NetConstStrings_GetIndexPlusOneFromName, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
-			//NetConstStrings_GetNameFromIndexPlusOne_hook.create(game::NetConstStrings_GetNameFromIndexPlusOne, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
+			NetConstStrings_GetIndexPlusOneFromName_hook.create(game::NetConstStrings_GetIndexPlusOneFromName, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
+			NetConstStrings_GetNameFromIndexPlusOne_hook.create(game::NetConstStrings_GetNameFromIndexPlusOne, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
 
 			// TODO: add iprintln printing to external console for ez debugging on any game
 		}
