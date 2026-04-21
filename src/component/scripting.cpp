@@ -285,12 +285,11 @@ namespace scripting
 					batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "E8 ? ? ? ? 65 48 8B 04 25 ? ? ? ? 48 8B CF 48 8B 14 18 33 C0", SETUP_MOD(add(1).rip()));
 			}
 
-			batch.add(SETUP_POINTER(game::Scr_AddClassField), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 0F B6 C2");
+			batch.add(SETUP_POINTER(game::Scr_AddClassField), "E8 ? ? ? 00 FF ? 48 8D ? ? 83 ? 0E 72 ? 48 8B 5C 24 ? 48 8B 74 24", GRAB_CALL);
 
-			batch.add(SETUP_POINTER(game::Scr_SetThreadPosition), "48 89 5C 24 ? 57 48 83 EC ? 49 8B D8 48 8B F9 44 8B C2");
+			batch.add(SETUP_POINTER(game::Scr_SetThreadPosition), "E8 ? ? ? 00 4C 8D 44 24 20 C6 44 24 28 ? 8B D0 48 89 5C 24 20 48 8B CF E8 ? ? ? ? 48", GRAB_CALL);
 
-			batch.add(SETUP_POINTER(game::ProcessScript), "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B F9 48 8B DA B9 ? ? ? ? 44 8D 41 ? E8 ? ? ? ?"
-				" 48 8B D3 B9 ? ? ? ? 48 8B F0 E8 ? ? ? ? 85 C0 75");
+			batch.add(SETUP_POINTER(game::ProcessScript), "E8 ? ? ? FF ? C0 75 0B 48 8B ? 48 8B ? E8 ? 00 00 00", SETUP_MOD(add(16).rip()));
 		}
 
 		void post_unpack() override

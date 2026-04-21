@@ -141,7 +141,7 @@ namespace patches
 		component()
 		{
 			const auto version_dll = GetModuleHandleA("version.dll");
-			if (!version_dll) 
+			if (!version_dll)
 				return;
 
 			const auto set_output_callback = reinterpret_cast<void(*)(void(*)(const char*))>(

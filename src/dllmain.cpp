@@ -26,13 +26,6 @@ namespace
 		{
 			try
 			{
-				// hina client workaround for now a
-				static const auto& game_ = identification::game::get_target_game().client_name;
-				if (game_ == "iw9-mod"s)
-				{
-					component_loader::find_signatures();
-				}
-
 				component_loader::post_unpack();
 			}
 			catch (const std::exception& e)
