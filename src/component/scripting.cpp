@@ -1,6 +1,8 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
+#include "component/call_spoofer.hpp"
+
 #include "component/gsc/script_extension.hpp"
 #include "component/gsc/script_loading.hpp"
 #include "component/filesystem.hpp"
@@ -26,6 +28,11 @@ namespace scripting
 		std::unordered_map<std::string, std::vector<std::pair<std::string, const char*>>> script_function_table_sort;
 		std::unordered_map<const char*, std::pair<std::string, std::string>> script_function_table_rev;
 
+		// iw9
+		std::unordered_map<std::uint64_t, std::unordered_map<std::uint64_t, const char*>> script_function_table_iw9;
+		std::unordered_map<std::uint64_t, std::vector<std::pair<std::uint64_t, const char*>>> script_function_table_sort_iw9;
+		std::unordered_map<const char*, std::pair<std::uint64_t, std::uint64_t>> script_function_table_rev_iw9;
+
 		std::string current_file;
 
 		struct zp_gsc_script_info
@@ -48,41 +55,54 @@ namespace scripting
 		std::string current_script_file;
 		unsigned int current_file_id{};
 
+		std::uint64_t current_script_file_iw9;
+
 		std::vector<std::function<void(bool, bool)>> shutdown_callbacks;
 
 		void scr_add_class_field_stub(game::scrContext_t* context,
 			unsigned int classnum, game::scr_string_t name, unsigned int canonical_string, unsigned int offset)
 		{
-			//printf("scr_add_class_field_stub");
-
+			printf("scr_add_class_field_stub");
 			const auto name_str = game::SL_ConvertToString(name);
-
 			if (fields_table[classnum].find(name_str) == fields_table[classnum].end())
 			{
 				fields_table[classnum][name_str] = offset;
 			}
-
 			scr_add_class_field_hook.invoke<void>(context, classnum, name, canonical_string, offset);
 		}
 
-		void process_script_stub(game::scrContext_t* context, const char* filename)
+		void scr_add_class_field_stub_iw9(game::scrContext_t* context,
+			unsigned int classnum, std::uint64_t name, unsigned int offset)
 		{
-			//printf("process_script_stub\n");
-
-			current_script_file = filename;
-			
-			const auto file_id = atoi(filename);
-			if (file_id)
+			printf("scr_add_class_field_stub_iw9\n");
+			const auto name_str = gsc::gsc_ctx->path_name(name);
+			if (fields_table[classnum].find(name_str) == fields_table[classnum].end())
 			{
-				current_file_id = static_cast<std::uint16_t>(file_id);
+				fields_table[classnum][name_str] = offset;
+			}
+			scr_add_class_field_hook.invoke<void>(context, classnum, name, offset);
+		}
+
+		void process_script_stub(game::scrContext_t* context, game::ScriptFile* scriptfile)
+		{
+			printf("process_script_stub\n");
+
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "iw9-mod"s)
+			{
+				current_script_file_iw9 = reinterpret_cast<std::uint64_t>(scriptfile->name);
+				current_script_file = gsc::get_script_name_iw9(reinterpret_cast<std::uint64_t>(scriptfile->name));
 			}
 			else
 			{
-				current_file_id = 0;
-				current_file = filename;
+				current_script_file = scriptfile->name;
+				current_file = gsc::get_script_name(scriptfile->name);
 			}
 
-			process_script_hook.invoke<void>(context, filename);
+			//printf("process_script_stub: script file is %s (%" PRIu64 ")\n", gsc::gsc_ctx->path_name(scriptfile->name).data(), scriptfile->name);
+			printf("process_script_stub 1\n");
+			call_spoofer::spoof_hook_invoke<void>(process_script_hook, context, scriptfile);
+			printf("process_script_stub 2\n");
 		}
 
 		inline game::XAssetType get_scriptfile_type(const std::string* name)
@@ -94,7 +114,7 @@ namespace scripting
 			return game::ASSET_TYPE_SCRIPTFILE;
 		}
 
-		void add_function_sort(unsigned int id, const char* pos)
+		void add_function_sort(std::uint64_t id, const char* pos)
 		{
 			std::string filename = current_file;
 			if (current_file_id)
@@ -106,7 +126,14 @@ namespace scripting
 			{
 				static const auto& game_ = identification::game::get_target_game().client_name;
 
-				auto* script = gsc::find_script(get_scriptfile_type(&game_), current_script_file.data(), false);
+				void* script = nullptr;
+				if (game_ == "iw9-mod"s)
+				{
+					printf("calling find_script_iw9 with name %" PRIu64 "\n", current_script_file_iw9);
+					gsc::find_script_iw9(get_scriptfile_type(&game_), current_script_file_iw9, false);
+				}
+				else
+					gsc::find_script(get_scriptfile_type(&game_), current_script_file.data(), false);
 
 				if (script != nullptr)
 				{
@@ -123,7 +150,8 @@ namespace scripting
 					}
 					else
 					{
-						end = &script->bytecode[script->bytecodeLen];
+						auto* script_ = reinterpret_cast<game::ScriptFile*>(script);
+						end = &script_->bytecode[script_->bytecodeLen];
 					}
 					script_function_table_sort[filename].emplace_back("__end__", end);
 				}
@@ -139,6 +167,30 @@ namespace scripting
 			const auto name = gsc::get_function_name(id);
 			script_function_table[file][name] = pos;
 			script_function_table_rev[pos] = {file, name};
+		}
+
+		void add_function_sort_iw9(std::uint64_t id, const char* pos)
+		{
+			if (!script_function_table_sort_iw9.contains(current_script_file_iw9))
+			{
+				const auto script = gsc::find_script_iw9(game::ASSET_TYPE_SCRIPTFILE_IW9, current_script_file_iw9, false);
+				if (script == nullptr)
+				{
+					return;
+				}
+
+				const auto end = &script->bytecode[script->bytecodeLen];
+				script_function_table_sort_iw9[current_script_file_iw9].emplace_back(0, end);
+			}
+
+			auto& itr = script_function_table_sort_iw9[current_script_file_iw9];
+			itr.insert(itr.end() - 1, { id, pos });
+		}
+
+		void add_function_iw9(const std::uint64_t file, std::uint64_t id, const char* pos)
+		{
+			script_function_table_iw9[file][id] = pos;
+			script_function_table_rev_iw9[pos] = { file, id };
 		}
 
 		void scr_set_thread_position_stub(game::scrContext_t* context, unsigned int thread_name, const char* code_pos)
@@ -158,13 +210,33 @@ namespace scripting
 			scr_set_thread_position_hook.invoke<void>(context, thread_name, code_pos);
 		}
 
+		// *(scrContext + 4688)
+		void scr_set_thread_position_stub_iw9(game::scrContext_t* context, std::uint64_t thread_name, const char* code_pos)
+		{
+			printf("scr_set_thread_position_stub_iw9\n");
+
+			// print thread_name
+			//printf("scr_set_thread_position_stub: %s, thread name %" PRIu64 "\n", current_file.data(), thread_name);
+
+			add_function_sort_iw9(thread_name, code_pos);
+			printf("scr_set_thread_position_stub_iw9 2\n");
+			add_function_iw9(current_script_file_iw9, thread_name, code_pos);
+			printf("scr_set_thread_position_stub_iw9 3\n");
+
+			scr_set_thread_position_hook.invoke<void>(context, thread_name, code_pos);
+			printf("scr_set_thread_position_stub_iw9 4\n");
+		}
+
 		void shutdown_game_pre(bool free_scripts)
 		{
 			if (free_scripts)
 			{
 				script_function_table_sort.clear();
+				script_function_table_sort_iw9.clear();
 				script_function_table.clear();
+				script_function_table_iw9.clear();
 				script_function_table_rev.clear();
+				script_function_table_rev_iw9.clear();
 			}
 
 			for (const auto& callback : shutdown_callbacks)
@@ -190,6 +262,8 @@ namespace scripting
 
 			void g_main_mp_shutdowngame_stub(bool full_clear)
 			{
+				printf("g_main_mp_shutdowngame_stub\n");
+
 				shutdown_game_pre(full_clear);
 				g_main_mp_shutdowngame_hook.invoke<void>(full_clear);
 				shutdown_game_post(full_clear);
@@ -222,8 +296,8 @@ namespace scripting
 			return true;
 		}
 
-		const auto rev_it = script_function_table_rev.find(pos);
-		if (rev_it != script_function_table_rev.end())
+		const auto rev_it = script_function_table_rev_iw9.find(pos);
+		if (rev_it != script_function_table_rev_iw9.end())
 		{
 			if (out)
 			{
@@ -233,10 +307,10 @@ namespace scripting
 			return true;
 		}
 
-		for (const auto& file : script_function_table_sort)
+		for (const auto& file : script_function_table_sort_iw9)
 		{
-			if (file.first.find("/asm/") != std::string::npos)
-				continue;
+			//if (file.first.find("/asm/") != std::string::npos)
+			//	continue;
 
 			for (auto i = file.second.begin(); i != file.second.end() && std::next(i) != file.second.end(); ++i)
 			{
@@ -297,8 +371,8 @@ namespace scripting
 			static const auto& game_ = identification::game::get_target_game().client_name;
 			if (game_ == "iw9-mod"s)
 			{
-				scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub);
-				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub);
+				scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub_iw9);
+				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub_iw9);
 				process_script_hook.create(game::ProcessScript, process_script_stub);
 
 				mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
@@ -318,4 +392,4 @@ namespace scripting
 	};
 }
 
-REGISTER_COMPONENT(scripting::component)
+//REGISTER_COMPONENT(scripting::component)

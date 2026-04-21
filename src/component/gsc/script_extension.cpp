@@ -187,7 +187,7 @@ namespace gsc
 
 				if (loaded_script)
 				{
-					const auto script = loaded_script->ptr;
+					const auto script = reinterpret_cast<game::ScriptFile*>(loaded_script->ptr);
 					assert(script);
 
 					const auto& pos_map = loaded_script->devmap;

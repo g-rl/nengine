@@ -40,14 +40,17 @@ namespace game
 	WEAK void(*DB_AllocXZoneMemory)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XBlock* archive_blocks) = nullptr;
 	WEAK void(*DB_AllocXZoneMemoryInternal)(std::uint64_t* block_size, const char* file_name, game::XZoneMemory* zone_mem, game::XBlock* archive_blocks,
 		int type) = nullptr;
+	
 	WEAK XAssetHeader(*DB_FindXAssetHeader)(XAssetType type, const char* name, int createDefault) = nullptr;
+	WEAK XAssetHeader_IW9(*DB_FindXAssetHeader_IW9)(XAssetType type, std::uint64_t name, int createDefault) = nullptr;
+
 	WEAK int(*DB_IsXAssetDefault)(XAssetType type, const char* name) = nullptr;
 	WEAK int(*DB_XAssetExists)(XAssetType type, const char* name) = nullptr;
-	WEAK int(*DB_GetRawBuffer)(const RawFile* rawfile, char* buf, int size) = nullptr;
+	WEAK int(*DB_GetRawBuffer)(void* rawfile, char* buf, int size) = nullptr;
 
 	// G
 	WEAK void(*G_MainMP_ShutdownGame)(bool fullclear) = nullptr;
-	WEAK void(*G_Spawn_LoadStructs)() = nullptr;
+	WEAK void(*GScr_LoadLevel)() = nullptr;
 
 	// Fence idk
 	WEAK void(*FenceManager_Frame)() = nullptr;
@@ -67,8 +70,12 @@ namespace game
 	WEAK void(*Scr_AddClassField)(game::scrContext_t* scr_context, std::uint8_t class_num, std::uint32_t name, std::uint32_t canonical_string,
 		std::uint32_t offset) = nullptr;
 	WEAK void(*Scr_SetThreadPosition)(game::scrContext_t* scr_context, int val) = nullptr;
+	
 	WEAK unsigned int(*Scr_LoadScript)(game::scrContext_t* scr_context, const char* filename) = nullptr;
+	WEAK unsigned int(*Scr_LoadScript_IW9)(game::scrContext_t* scr_context, std::uint64_t filename) = nullptr;
+
 	WEAK unsigned int(*Scr_GetFunctionHandle)(game::scrContext_t* scr_context, const char* filename, unsigned int handle) = nullptr;
+	WEAK unsigned int(*Scr_GetFunctionHandle_IW9)(game::scrContext_t* scr_context, std::uint64_t filename, unsigned int handle) = nullptr;
 	WEAK unsigned int(*Scr_ExecThread)(game::scrContext_t* scr_context, int handle, int num_param) = nullptr;
 	WEAK unsigned int(*Scr_FreeThread)(game::scrContext_t* scr_context, unsigned int handle) = nullptr;
 	WEAK void(*ProcessScript)(game::scrContext_t* scr_context, const char* filename) = nullptr;

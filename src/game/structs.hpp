@@ -506,10 +506,25 @@ namespace game
 		const char* buffer;
 	};
 
+	struct RawFile_IW9
+	{
+		const char* name; // 0
+		int pad; // 8
+		int compressedLen; // 12
+		int len; // 16
+		int bruh; // 20
+		const char* buffer; // 24
+	}; // 32
+
 	union XAssetHeader
 	{
 		RawFile* rawfile;
 		ScriptFile* scriptfile;
+	};
+
+	union XAssetHeader_IW9
+	{
+		ScriptFile_IW9* scriptfile;
 	};
 
 	/*

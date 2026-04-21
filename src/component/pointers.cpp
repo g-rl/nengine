@@ -41,7 +41,13 @@ public:
 				SETUP_MOD(add(11).rip()));
 		}
 
-		batch.add(SETUP_POINTER(game::DB_FindXAssetHeader), "E8 ? ? ? ? 44 8B C5 8D 4D", GRAB_CALL);
+		if (game_ == "iw9-mod"s)
+		{
+			batch.add(SETUP_POINTER(game::DB_FindXAssetHeader_IW9), "45 8B C8 45 33 C0 E9 ? 00 00 00"); // uses std::uint64_t duplicate for a2 name
+		}
+		
+		batch.add(SETUP_POINTER(game::DB_FindXAssetHeader), "E8 ? ? ? ? 44 8B C5 8D 4D", GRAB_CALL); // this resolves for IW9 for the real one
+
 		batch.add(SETUP_POINTER(game::DB_IsXAssetDefault), "E8 ? ? ? FF ? C0 75 0B 48 8B ? 48 8B CF E8 ? 00 00 00", GRAB_CALL); // inside ProcessScriptFile (IW8, S4, IW9)
 		batch.add(SETUP_POINTER(game::DB_XAssetExists), 
 			"B9 ? 00 00 00 E8 ? ? ? 00 ? C0 0F 84 ? ? 00 00 45 33 C0 ? 89 ? ? ? 01 00 00 48",
@@ -77,7 +83,36 @@ public:
 				}
 			}
 			return r.sub(offset);
-		});
+			});
+
+		//Scr_LoadScript_IW9
+		if (game_ == "iw9-mod"s)
+		{
+			batch.add(SETUP_POINTER(game::Scr_LoadScript_IW9), "48 8B DA 48 8B F9 BA ?? ?? 00 00 48 8D 4C 24 ?? E8 ?? ?? ?? FF 4C 8B", [](memory::scanned_result<void> r) {
+				std::uintptr_t offset = 0;
+				while (true) {
+					offset++;
+					auto buf = r.sub(offset).as<std::uint8_t*>();
+					if (buf[0] == 0x48 && buf[1] == 0x89 && buf[2] == 0x5C && buf[3] == 0x24 && buf[4] == 0x08) {
+						break;
+					}
+				}
+				return r.sub(offset);
+				});
+
+			// this is the bottom of the function, and we need to make something to scan up and find the beginning of it
+			batch.add(SETUP_POINTER(game::Scr_GetFunctionHandle_IW9), "49 2B D0 48 3B D1 73 ? 41 2B C0", [](memory::scanned_result<void> r) {
+				std::uintptr_t offset = 0;
+				while (true) {
+					offset++;
+					auto buf = r.sub(offset).as<std::uint8_t*>();
+					if (buf[0] == 0x48 && buf[1] == 0x89 && buf[2] == 0x5C && buf[3] == 0x24 && buf[4] == 0x08) {
+						break;
+					}
+				}
+				return r.sub(offset);
+				});
+		}
 
 		batch.add(SETUP_POINTER(game::Scr_ExecThread), "48 83 EC ? 33 C0 45 8B C8");
 		batch.add(SETUP_POINTER(game::Scr_FreeThread), "E8 ? ? ? ? 48 8B 4F ? 48 63 81", GRAB_CALL);
