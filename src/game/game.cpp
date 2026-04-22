@@ -59,11 +59,25 @@ namespace game
 		if (game_ != "iw8-mod"s)
 		{
 			auto hash = game::hash_scr_dvar(name);
+			//printf("%s has hash %" PRIX64 "\n", name, hash);
 			// 9 on S4, 10 on IW9
 			return game::Dvar_RegisterVariant_IW9(hash, 9 + (game_ == "iw9-mod"s), flags, &value, &domain, desc);
 		}
 
 		return game::Dvar_RegisterVariant(name, utils::string::dvar_checksum(name), 9, flags, &value, &domain, desc);
+	}
+
+	dvar_t* Dvar_RegisterBool(const char* name, bool value, DvarFlags flags, const char* desc)
+	{
+		static const auto& game_ = identification::game::get_target_game().client_name;
+		if (game_ == "iw9-mod"s)
+		{
+			auto hash = game::hash_scr_dvar(name);
+			//printf("%s has hash %" PRIX64 "\n", name, hash);
+			return game::Dvar_RegisterBool_IW9(hash, value, flags, desc);
+		}
+
+		return game::Dvar_RegisterBool_(name, value, flags, desc);
 	}
 
 	void Dvar_SetBool_Internal(game::dvar_t* dvar, bool value)

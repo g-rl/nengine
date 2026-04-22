@@ -7,7 +7,9 @@ namespace game
 	WEAK dvar_t* (*Dvar_FindVarByName)(const char* dvarName) = nullptr;
 	WEAK dvar_t* (*Dvar_FindVarByName_IW9)(unsigned __int64 dvarHash) = nullptr;
 
-	WEAK dvar_t* (*Dvar_RegisterBool)(const char* dvarName, bool value, DvarFlags flags, const char* desc) = nullptr;
+	WEAK dvar_t* (*Dvar_RegisterBool_)(const char* dvarName, bool value, DvarFlags flags, const char* desc) = nullptr;
+	WEAK dvar_t* (*Dvar_RegisterBool_IW9)(std::uint64_t dvarName, bool value, DvarFlags flags, const char* desc) = nullptr;
+
 	WEAK void (*CG_UpdateViewWeaponAnim)(unsigned int localClientNum) = nullptr;
 	WEAK bool (*BG_PlayerDualWieldingWeapon)(const void *weaponMap, const playerState_s *ps, const Weapon *r_weapon) = nullptr;
 
@@ -71,6 +73,7 @@ namespace game
 	WEAK void(*Scr_AddClassField)(game::scrContext_t* scr_context, std::uint8_t class_num, std::uint32_t name, std::uint32_t canonical_string,
 		std::uint32_t offset) = nullptr;
 	WEAK void(*Scr_SetThreadPosition)(game::scrContext_t* scr_context, int val) = nullptr;
+	WEAK void(*Scr_EmitFunction)()  = nullptr;
 	
 	WEAK unsigned int(*Scr_LoadScript)(game::scrContext_t* scr_context, const char* filename) = nullptr;
 	WEAK unsigned int(*Scr_LoadScript_IW9)(game::scrContext_t* scr_context, std::uint64_t filename) = nullptr;

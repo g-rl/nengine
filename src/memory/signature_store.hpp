@@ -48,6 +48,18 @@ namespace memory
 			offset_signatures_.push_back({ name, pattern, out, std::move(mod) });
 		}
 
+		void add_multi(const std::string& name, std::vector<void*>* out, const std::string& pattern,
+			std::size_t limit, mod_fn mod)
+		{
+			multi_signatures_.push_back({ name, pattern, out, limit, std::move(mod) });
+		}
+
+		void add_multi(const std::string& name, std::vector<void*>* out, const std::string& pattern,
+			std::size_t limit)
+		{
+			multi_signatures_.push_back({ name, pattern, out, limit, [](res r) { return r; } });
+		}
+
 		struct scan_stats
 		{
 			std::uint32_t found = 0;
@@ -121,6 +133,56 @@ namespace memory
 				}
 			}
 
+			for (auto& sig : multi_signatures_)
+			{
+				stats.total++;
+				sig.out->clear();
+
+				const auto key = make_key('M', sig.name, sig.pattern);
+				bool from_cache = false;
+				for (std::size_t i = 0; i < sig.limit; ++i)
+				{
+					char suffix[16];
+					_snprintf_s(suffix, _TRUNCATE, "#%zu", i);
+					const auto it = cache_.find(key + suffix);
+					if (it == cache_.end())
+					{
+						from_cache = false;
+						break;
+					}
+					sig.out->push_back(reinterpret_cast<void*>(game::base_address + it->second));
+					from_cache = true;
+				}
+
+				if (from_cache && sig.out->size() == sig.limit)
+				{
+					stats.found++;
+					continue;
+				}
+
+				sig.out->clear();
+				auto results = vectored_sig_scan(library_, sig.pattern, sig.limit);
+				if (!results.empty())
+				{
+					for (std::size_t i = 0; i < results.size(); ++i)
+					{
+						auto* p = sig.mod(results[i]).as<void*>();
+						sig.out->push_back(p);
+						char suffix[16];
+						_snprintf_s(suffix, _TRUNCATE, "#%zu", i);
+						cache_[key + suffix] = reinterpret_cast<std::uint64_t>(p) - game::base_address;
+					}
+					cache_dirty = true;
+					stats.found++;
+					printf(("[sig] multi: " + sig.name + " -> %zu matches (limit %zu)\n").c_str(),
+						sig.out->size(), sig.limit);
+				}
+				else
+				{
+					printf(("[sig] MISS multi: " + sig.name + " (" + sig.pattern + ")\n").c_str());
+				}
+			}
+
 			if (cache_dirty)
 			{
 				save_cache();
@@ -144,6 +206,15 @@ namespace memory
 			std::string pattern;
 			std::uint32_t* out;
 			offset_mod_fn mod;
+		};
+
+		struct multi_entry
+		{
+			std::string name;
+			std::string pattern;
+			std::vector<void*>* out;
+			std::size_t limit;
+			mod_fn mod;
 		};
 
 		static std::string make_key(char kind, const std::string& name, const std::string& pattern)
@@ -208,6 +279,7 @@ namespace memory
 		utils::nt::library library_;
 		std::vector<entry> signatures_;
 		std::vector<offset_entry> offset_signatures_;
+		std::vector<multi_entry> multi_signatures_;
 
 		bool cache_loaded_ = false;
 		std::uint32_t cache_game_hash_ = 0;
@@ -216,6 +288,7 @@ namespace memory
 }
 
 #define SETUP_POINTER(name) #name, reinterpret_cast<void**>(&name)
+#define SETUP_MULTI_POINTER(name) #name, &(name)
 #define SETUP_MOD(chain) [](memory::scanned_result<void> r) { return r.chain; }
 #define GRAB_CALL SETUP_MOD(add(1).rip())
 

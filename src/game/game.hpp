@@ -119,7 +119,8 @@ namespace game
 		T* address_;
 	};
 
-	dvar_t* Dvar_RegisterString(const char* name, const char* str, game::DvarFlags flags, const char* desc);
+	dvar_t* Dvar_RegisterString(const char* name, const char* str, DvarFlags flags, const char* desc);
+	dvar_t* Dvar_RegisterBool(const char* dvarName, bool value, DvarFlags flags, const char* desc);
 }
 
 size_t operator"" _b(const size_t ptr);

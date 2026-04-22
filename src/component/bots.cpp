@@ -93,7 +93,7 @@ namespace bots
 			{
 				bot_id %= bot_names.size();
 				const auto& entry = bot_names.at(bot_id++);
-				name = ("%.*s", static_cast<int>(entry.size()), entry.data());
+				name = utils::string::va("%.*s", static_cast<int>(entry.size()), entry.data());
 			}
 
 			return call_spoofer::spoof_hook_invoke<void*>(SV_ClientMP_ConnectBot_hook, result, name, headModelIndex, bodyModelIndex, lol);

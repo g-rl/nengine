@@ -28,6 +28,11 @@ namespace gsc
 		std::string unknown_function_error;
 
 		void* FindVariable_call{};
+		void* CompileError_bonus_call{};
+
+		std::vector<void*> compile_error_sites_common; // S4 (2) / IW8 v1 (1)
+		std::vector<void*> compile_error_sites_iw8_extra; // IW8 (2)
+		std::vector<void*> compile_error_sites_iw9; // IW9 v2 (2)
 
 		void scr_emit_function_stub(game::scrContext_t* context, std::uint32_t filename, std::uint32_t thread_name, char* code_pos)
 		{
@@ -94,8 +99,8 @@ namespace gsc
 		{
 			get_unknown_function_error(code_pos);
 			const auto error_msg = utils::string::va("script link error\n%s", unknown_function_error.data());
-			game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n", error_msg);
 			printf("%s\n", error_msg);
+			game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n", error_msg);
 		}
 		
 		std::uint32_t find_variable_stub(game::scrContext_t* context, std::uint32_t parent_id, std::uint32_t thread_name)
@@ -105,6 +110,7 @@ namespace gsc
 			{
 				get_unknown_function_error(thread_name);
 				const auto error_msg = utils::string::va("script link error\n%s", unknown_function_error.data());
+				printf("%s\n", error_msg);
 				game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n", error_msg);
 			}
 			return res;
@@ -117,7 +123,8 @@ namespace gsc
 			{
 				get_unknown_function_error(thread_name);
 				const auto error_msg = utils::string::va("DEV ERROR 1141 FindVariable\n%s", unknown_function_error.data());
-				game::Com_Error(1, "%s\n", error_msg);
+				printf("%s\n", error_msg);
+				game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n", error_msg);
 			}
 			return res;
 		}
@@ -306,6 +313,19 @@ namespace gsc
 			scr_error(va(__FUNCTION__ ": parameter %u does not exist", index + 1));
 			return nullptr;
 		}
+
+		inline std::uint64_t base_off(const void* p)
+		{
+			return reinterpret_cast<std::uint64_t>(p) - game::base_address;
+		}
+
+		void apply_compile_error_hooks(const std::vector<void*>& sites, const char* tag)
+		{
+			for (auto* site : sites)
+			{
+				utils::hook::call(site, compile_error_stub);
+			}
+		}
 	}
 
 	class error final : public component_interface
@@ -313,49 +333,63 @@ namespace gsc
 	public:
 		void find_signatures(memory::signature_store& batch) override
 		{
+			static const auto& game_ = identification::game::get_target_game().client_name;
+
+			batch.add(SETUP_POINTER(game::Scr_EmitFunction), "48 89 5C 24 10 48 89 6C 24 18 56 57 41 56 48 83 EC 60 48 B8 FF");
+
 			batch.add(SETUP_POINTER(FindVariable_call), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48");
+
+			if (game_ == "iw9-mod"s)
+			{
+				batch.add(SETUP_POINTER(CompileError_bonus_call),
+					"48 8B 5C 24 50 48 8B D1 48 8B CB 4D ? C5 E8 30 0D 00 00", SETUP_MOD(add(14)));
+
+				// IW9 Sys_Error call sites
+				batch.add_multi(SETUP_MULTI_POINTER(compile_error_sites_iw9),
+					"18 ? ? ? ? ? FF 48 8B 5C 24 38 4D 8B C7 48 8B CB 48 ? D7 E8 ? ? 00 00", 2, SETUP_MOD(add(21)));
+			}
+			else
+			{
+				// S4 has 2, IW8 has 1
+				batch.add_multi(SETUP_MULTI_POINTER(compile_error_sites_common),
+					"4C 8D 05 ? ? ? ? 48 8B CB E8 ? ? 00 00 ? 8B 16 44 8B C7 8B",
+					(game_ == "s4-mod"s ? 2 : 1), SETUP_MOD(add(10)));
+
+				if (game_ == "iw8-mod"s)
+				{
+					// extra CompileError sites
+					batch.add_multi(SETUP_MULTI_POINTER(compile_error_sites_iw8_extra),
+						"4C 8D 05 ? ? ? ? 48 8B D6 48 8B CB E8 ? ? 00 00", 2, SETUP_MOD(add(13)));
+				}
+			}
 		}
 
 		void post_unpack() override
 		{
 			static const auto& game_ = identification::game::get_target_game().client_name;
-			if (game_ == "s4-mod"s)
-			{
-				scr_emit_function_hook.create(0x21AE6F0_b, scr_emit_function_stub);
 
-				// change Sys_Error -> Com_Error + advanced messages A
-				utils::hook::call(0x21AE566_b, compile_error_stub); // CompileError (LinkFile)
-				utils::hook::call(0x21AE656_b, compile_error_stub); // ^
-				utils::hook::call(FindVariable_call, find_variable_stub); // Scr_EmitFunction_Precompiled
-				return;
-			}
-			else if (game_ == "iw9-mod"s)
+			if (game_ == "iw9-mod"s)
 			{
-				scr_emit_function_hook.create(0x2796D20_b, scr_emit_function_stub_iw9);
+				scr_emit_function_hook.create(game::Scr_EmitFunction, scr_emit_function_stub_iw9);
 
-				// change Sys_Error -> Com_Error + advanced messages
-				utils::hook::call(0x279658B_b, compile_error_stub); // CompileError (LinkFile)
-				utils::hook::call(0x27968F7_b, compile_error_stub); // ^
-				utils::hook::call(0x2796AAA_b, compile_error_stub); // idk 3rd one
-				utils::hook::call(0x2796E17_b, find_variable_stub_iw9); // Scr_EmitFunction_Precompiled
+				utils::hook::call(FindVariable_call, find_variable_stub_iw9); // Scr_EmitFunction_Precompiled
+
+				apply_compile_error_hooks(compile_error_sites_iw9, "iw9");
+				if (CompileError_bonus_call)
+					utils::hook::call(CompileError_bonus_call, compile_error_stub);
+
 				return;
 			}
 
-			if (!identification::game::is("1.20.4-replay"))
+			// IW8 and S4 are pretty much the same
+			scr_emit_function_hook.create(game::Scr_EmitFunction, scr_emit_function_stub);
+			utils::hook::call(FindVariable_call, find_variable_stub); // Scr_EmitFunction_Precompiled
+
+			apply_compile_error_hooks(compile_error_sites_common, "s4/iw8 common");
+			if (game_ == "iw8-mod"s)
 			{
-#ifdef _DEBUG
-				printf("script errors are not included in this verison of the game\n");
-#endif
-				return;
+				apply_compile_error_hooks(compile_error_sites_iw8_extra, "iw8 extra");
 			}
-
-			// TODO: this works great in IW8, but we need to make it multi-game now
-			scr_emit_function_hook.create(0x1316800_b, scr_emit_function_stub);
-
-			// change Sys_Error -> Com_Error + advanced messages
-			utils::hook::call(0x13166DE_b, compile_error_stub); // CompileError (LinkFile)
-			utils::hook::call(0x1316777_b, compile_error_stub); // ^
-			utils::hook::call(0x13168DD_b, find_variable_stub); // Scr_EmitFunction_Precompiled
 
 			/*
 			// Restore basic error messages for commonly used scr functions
@@ -377,4 +411,4 @@ namespace gsc
 	};
 }
 
-//REGISTER_COMPONENT(gsc::error)
+REGISTER_COMPONENT(gsc::error)
