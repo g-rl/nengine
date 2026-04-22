@@ -27,12 +27,6 @@ namespace scripting
 
 	std::string function::get_name() const
 	{
-		scripting::script_function_info info;
-		if (scripting::find_script_function(this->pos_, &info))
-		{
-			return utils::string::va("%s::%s", info.file.c_str(), info.name.c_str());
-		}
-
 		return "unknown function";
 	}
 }

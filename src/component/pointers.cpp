@@ -53,12 +53,12 @@ public:
 			"B9 ? 00 00 00 E8 ? ? ? 00 ? C0 0F 84 ? ? 00 00 45 33 C0 ? 89 ? ? ? 01 00 00 48",
 			SETUP_MOD(add(6).rip()));
 
-		batch.add(SETUP_POINTER(game::NetConstStrings_GetIndexPlusOneFromName), "E8 ? ? ? ? 33 C9 84 C0 0F 45 4C 24 ? 89 0B", GRAB_CALL);
+		batch.add(SETUP_POINTER(game::NetConstStrings_GetIndexPlusOneFromName), "B9 ? 00 00 00 E8 ? ? ? ? 33 C9 84 C0 0F 45 4C 24 ? 89 0B", SETUP_MOD(add(6).rip()));
 		batch.add(SETUP_POINTER(game::NetConstStrings_GetNameFromIndexPlusOne), "B9 0C 00 00 00 E8 ? ? ? ?? 84 C0 74 ? 48 ? ? ? ? B2", SETUP_MOD(add(6).rip()));
 
 		batch.add(SETUP_POINTER(game::Com_FrontEnd_IsInFrontEnd), "E8 ? ? ? 00 84 C0 74 ? E8 ? ? FF FF 84 C0 75 ? E8", GRAB_CALL);
 
-		batch.add(SETUP_POINTER(game::ScriptContext_Server), "E8 ? ? ? ? 4C 8B C3 41 8B D7", GRAB_CALL);
+		batch.add(SETUP_POINTER(game::ScriptContext_Server), "48 83 EC ? E8 ? ? ? ? 48 8B F0 48 8D ? ? ? ? ? 33 ? ? 8B", SETUP_MOD(add(5).rip()));
 
 		batch.add(SETUP_POINTER(game::Scr_LoadScript), "48 8B DA 48 8B F9 BA ?? ?? 00 00 48 8D 4C 24 ?? E8 ?? ?? ?? FF 4C 8B", [](memory::scanned_result<void> r) {
 			std::uintptr_t offset = 0;
@@ -156,6 +156,7 @@ public:
 			"24 40 49 81 C0 ? ? 00 00 BA 40 00 00 00 E8", SETUP_MOD(add(25).rip()));
 
 		batch.add(SETUP_POINTER(game::FindVariable), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48", GRAB_CALL);
+		batch.add(SETUP_POINTER(game::FindVariable_IW9), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48", GRAB_CALL);
 
 		batch.add(SETUP_POINTER(game::SL_ConvertToString), "E8 ? ? ? ? 45 33 F6 4C 8B E0", GRAB_CALL);
 

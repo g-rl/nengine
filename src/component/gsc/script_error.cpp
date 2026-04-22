@@ -22,7 +22,8 @@ namespace gsc
 	{
 		utils::hook::detour scr_emit_function_hook;
 
-		std::uint32_t current_filename = 0;
+		std::uint32_t current_filename;
+		std::uint64_t current_filename_iw9;
 
 		std::string unknown_function_error;
 
@@ -32,6 +33,29 @@ namespace gsc
 		{
 			current_filename = filename;
 			scr_emit_function_hook.invoke<void>(context, filename, thread_name, code_pos);
+		}
+
+		void scr_emit_function_stub_iw9(game::scrContext_t* context, std::uint64_t filename, std::uint64_t thread_name, char* code_pos)
+		{
+			current_filename_iw9 = filename;
+			scr_emit_function_hook.invoke<void>(context, filename, thread_name, code_pos);
+		}
+
+		void get_unknown_function_error(const char* code_pos)
+		{
+			const auto current = scripting::get_current_file();
+			const auto function = scripting::find_function_iw9(code_pos);
+			if (function.has_value())
+			{
+				const auto& pos = function.value();
+				unknown_function_error = std::format(
+					"while processing function '{}' in script '{}':\nunknown script '{}'", get_function_name(pos.first), get_script_name_iw9(pos.second), current
+				);
+			}
+			else
+			{
+				unknown_function_error = std::format("unknown script '{}'", current);
+			}
 		}
 
 		std::string get_filename_name()
@@ -46,30 +70,20 @@ namespace gsc
 			return scripting::get_token(id);
 		}
 
-		void get_unknown_function_error(const char* code_pos)
-		{
-			const auto current = scripting::get_current_file();
-			const auto function = find_function(code_pos);
-			if (function.has_value())
-			{
-				const auto& pos = function.value();
-				unknown_function_error = std::format(
-					"while processing function '{}' in script '{}':\nunknown script '{}'", pos.function, pos.file, current
-				);
-			}
-			else
-			{
-				unknown_function_error = std::format("unknown script '{}'", current);
-			}
-		}
-
 		void get_unknown_function_error(std::uint32_t thread_name)
 		{
-			printf("get_unknown_function_error\n");
 			const auto filename = get_filename_name();
-			printf("get_unknown_function_error 2\n");
 			const auto name = scripting::get_token(thread_name);
-			printf("get_unknown_function_error 3\n");
+
+			unknown_function_error = std::format(
+				"while processing script '{}':\nunknown function '{}::{}'", scripting::get_current_file(), filename, name
+			);
+		}
+
+		void get_unknown_function_error(std::uint64_t thread_name)
+		{
+			const auto filename = gsc::get_script_name_iw9(current_filename_iw9);
+			const auto name = scripting::get_token(thread_name);
 
 			unknown_function_error = std::format(
 				"while processing script '{}':\nunknown function '{}::{}'", scripting::get_current_file(), filename, name
@@ -78,23 +92,8 @@ namespace gsc
 
 		void compile_error_stub(game::scrContext_t* context, const char* code_pos)
 		{
-			printf("[compile_error] code_pos=%p  current_file='%s'\n", code_pos, scripting::get_current_file().c_str());
-
-			const auto function = find_function(code_pos);
-			if (function.has_value())
-			{
-				printf("[compile_error] enclosing: %s :: %s\n",
-					function->file.data(), function->function.data());
-			}
-			else
-			{
-				printf("[compile_error] enclosing: (not found — code_pos outside any known function range)\n");
-			}
-
 			get_unknown_function_error(code_pos);
-			const auto error_msg = utils::string::va(
-				"script link error\n%s",
-				unknown_function_error.data());
+			const auto error_msg = utils::string::va("script link error\n%s", unknown_function_error.data());
 			game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n", error_msg);
 			printf("%s\n", error_msg);
 		}
@@ -104,11 +103,21 @@ namespace gsc
 			const auto res = game::FindVariable(context, parent_id, thread_name);
 			if (!res)
 			{
-				printf("find_Variable bruh\n");
 				get_unknown_function_error(thread_name);
-				printf("find_Variable bruh 2\n");
 				const auto error_msg = utils::string::va("script link error\n%s", unknown_function_error.data());
 				game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n", error_msg);
+			}
+			return res;
+		}
+
+		std::uint64_t find_variable_stub_iw9(game::scrContext_t* context, std::uint32_t parent_id, char a3, std::uint64_t thread_name)
+		{
+			auto res = game::FindVariable_IW9(context, parent_id, a3, thread_name);
+			if (!res)
+			{
+				get_unknown_function_error(thread_name);
+				const auto error_msg = utils::string::va("DEV ERROR 1141 FindVariable\n%s", unknown_function_error.data());
+				game::Com_Error(1, "%s\n", error_msg);
 			}
 			return res;
 		}
@@ -299,18 +308,6 @@ namespace gsc
 		}
 	}
 
-	std::optional<script_info_t> find_function(const char* pos)
-	{
-		scripting::script_function_info lookup;
-		if (!scripting::find_script_function(pos, &lookup))
-			return {};
-
-		script_info_t info{};
-		info.file = std::move(lookup.file);
-		info.function = std::move(lookup.name);
-		return info;
-	}
-
 	class error final : public component_interface
 	{
 	public:
@@ -321,7 +318,8 @@ namespace gsc
 
 		void post_unpack() override
 		{
-			if (identification::game::get_target_game().client_name == "s4-mod"s)
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "s4-mod"s)
 			{
 				scr_emit_function_hook.create(0x21AE6F0_b, scr_emit_function_stub);
 
@@ -329,7 +327,17 @@ namespace gsc
 				utils::hook::call(0x21AE566_b, compile_error_stub); // CompileError (LinkFile)
 				utils::hook::call(0x21AE656_b, compile_error_stub); // ^
 				utils::hook::call(FindVariable_call, find_variable_stub); // Scr_EmitFunction_Precompiled
+				return;
+			}
+			else if (game_ == "iw9-mod"s)
+			{
+				scr_emit_function_hook.create(0x2796D20_b, scr_emit_function_stub_iw9);
 
+				// change Sys_Error -> Com_Error + advanced messages
+				utils::hook::call(0x279658B_b, compile_error_stub); // CompileError (LinkFile)
+				utils::hook::call(0x27968F7_b, compile_error_stub); // ^
+				utils::hook::call(0x2796AAA_b, compile_error_stub); // idk 3rd one
+				utils::hook::call(0x2796E17_b, find_variable_stub_iw9); // Scr_EmitFunction_Precompiled
 				return;
 			}
 
@@ -369,4 +377,4 @@ namespace gsc
 	};
 }
 
-REGISTER_COMPONENT(gsc::error)
+//REGISTER_COMPONENT(gsc::error)

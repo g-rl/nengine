@@ -55,6 +55,7 @@ namespace game
 	// Fence idk
 	WEAK void(*FenceManager_Frame)() = nullptr;
 	WEAK unsigned int(*FindVariable)(scrContext_t* context, unsigned int parentId, unsigned int name) = nullptr;
+	WEAK std::uint64_t(*FindVariable_IW9)(scrContext_t* context, unsigned int parentId, char a3, std::uint64_t thread_name) = nullptr;
 
 	// I
 	WEAK char* (*I_CleanStr)(char* string) = nullptr;
@@ -75,7 +76,7 @@ namespace game
 	WEAK unsigned int(*Scr_LoadScript_IW9)(game::scrContext_t* scr_context, std::uint64_t filename) = nullptr;
 
 	WEAK unsigned int(*Scr_GetFunctionHandle)(game::scrContext_t* scr_context, const char* filename, unsigned int handle) = nullptr;
-	WEAK unsigned int(*Scr_GetFunctionHandle_IW9)(game::scrContext_t* scr_context, std::uint64_t filename, unsigned int handle) = nullptr;
+	WEAK unsigned int(*Scr_GetFunctionHandle_IW9)(game::scrContext_t* scr_context, std::uint64_t filename, std::uint64_t handle) = nullptr;
 	WEAK unsigned int(*Scr_ExecThread)(game::scrContext_t* scr_context, int handle, int num_param) = nullptr;
 	WEAK unsigned int(*Scr_FreeThread)(game::scrContext_t* scr_context, unsigned int handle) = nullptr;
 	WEAK void(*ProcessScript)(game::scrContext_t* scr_context, const char* filename) = nullptr;

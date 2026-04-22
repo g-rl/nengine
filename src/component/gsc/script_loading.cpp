@@ -21,8 +21,8 @@
 
 namespace gsc
 {
-	std::unique_ptr<xsk::gsc::iw8::context> gsc_ctx = std::make_unique<xsk::gsc::iw8::context>();
-	std::unique_ptr<xsk::gsc::iw9::context> gsc_ctx_iw9 = std::make_unique<xsk::gsc::iw9::context>();
+	std::unique_ptr<xsk::gsc::iw8::context> gsc_ctx = std::make_unique<xsk::gsc::iw8::context>(xsk::gsc::instance::server);
+	std::unique_ptr<xsk::gsc::iw9::context> gsc_ctx_iw9 = std::make_unique<xsk::gsc::iw9::context>(xsk::gsc::instance::server);
 
 	std::unordered_map<std::string, loaded_script_t> loaded_scripts;
 	std::unordered_map<std::uint64_t, loaded_script_t> loaded_scripts_iw9;
@@ -58,7 +58,7 @@ namespace gsc
 		{
 			char* buf = nullptr;
 			char* pos = nullptr;
-			const std::uint64_t size = 0x100000i64;
+			const std::uint64_t size = 0x50000i64;
 		} script_memory;
 
 		char* allocate_buffer(size_t size)
@@ -99,8 +99,7 @@ namespace gsc
 			free_script_memory();
 		}
 
-		utils::hook::detour db_alloc_x_zone_memory_internal_hook;
-		void db_alloc_x_zone_memory_internal_stub(unsigned __int64* blockSize, const char* filename, game::XZoneMemory* zoneMem, game::XBlock* archiveBlocks, int type)
+		void db_alloc_x_zone_memory_internal(unsigned __int64* blockSize, const char* filename, game::XZoneMemory* zoneMem, game::XBlock* archiveBlocks, int type)
 		{
 			bool patch = false; // ugly fix for script memory allocation
 
@@ -110,18 +109,26 @@ namespace gsc
 				printf("patching memory for '%s'\n", ALLOCATE_FASTFILE);
 			}
 
-			// TODO: type is different all below this
 			if (patch)
 			{
 				blockSize[ALLOCATE_SCRIPT_POOL] += script_memory.size;
 			}
 
-			db_alloc_x_zone_memory_internal_hook.invoke<void>(blockSize, filename, zoneMem, archiveBlocks, type);
+			game::DB_AllocXZoneMemoryInternal(blockSize, filename, zoneMem, archiveBlocks, type);
 
 			if (patch)
 			{
 				blockSize[ALLOCATE_SCRIPT_POOL] -= script_memory.size;
 				script_mem_buf = archiveBlocks[ALLOCATE_SCRIPT_POOL].data + blockSize[ALLOCATE_SCRIPT_POOL];
+			}
+		}
+
+		utils::hook::detour db_alloc_x_zone_memory_internal_hook;
+		void db_alloc_x_zone_memory_internal_stub(unsigned __int64* blockSize, const char* filename, game::XZoneMemory* zoneMem, game::XBlock* archiveBlocks)
+		{
+			for (auto i = 0; i < 4; ++i)
+			{
+				db_alloc_x_zone_memory_internal(blockSize, filename, zoneMem, archiveBlocks, i);
 			}
 		}
 
@@ -263,8 +270,6 @@ namespace gsc
 				return nullptr;
 			}
 
-			printf("load_custom_script_iw9 past vlobby\n");
-
 			// put this above to override vlobby scripts
 			if (const auto itr = loaded_scripts_iw9.find(path_id); itr != loaded_scripts_iw9.end())
 			{
@@ -281,8 +286,8 @@ namespace gsc
 
 			try
 			{
-				auto& compiler = gsc_ctx->compiler();
-				auto& assembler = gsc_ctx->assembler();
+				auto& compiler = gsc_ctx_iw9->compiler();
+				auto& assembler = gsc_ctx_iw9->assembler();
 
 				std::vector<std::uint8_t> data;
 				data.assign(source_buffer.begin(), source_buffer.end());
@@ -290,8 +295,8 @@ namespace gsc
 				const auto assembly_ptr = compiler.compile(real_name, data);
 				const auto& [bytecode, stack, devmap] = assembler.assemble(*assembly_ptr);
 
-				const auto script_file_ptr = static_cast<game::ScriptFile_IW9*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile_IW9)));
-				auto file_name = gsc_ctx->path_id(real_name.data());
+				auto* script_file_ptr = static_cast<game::ScriptFile_IW9*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile_IW9)));
+				auto file_name = gsc_ctx_iw9->path_id(real_name.data());
 				script_file_ptr->name = file_name;
 
 				script_file_ptr->len = static_cast<int>(stack.size);
@@ -315,11 +320,11 @@ namespace gsc
 				loaded_scripts_iw9.insert(std::make_pair(file_name, loaded_script));
 
 				// precache all functions in their hashed form for later - this helps us with human readable errors
-				// a std::uint64_t should map to a gsc_ctx->path_name
+				// a std::uint64_t should map to a gsc_ctx_iw9->path_name
 				// this is cleared on shutdown next to loaded_scripts
 				for (const auto& func : assembly_ptr->functions)
 				{
-					auto bruh = gsc_ctx->hash_id(func->name);
+					auto bruh = gsc_ctx_iw9->hash_id(func->name);
 					script_function_names[bruh] = func->name;
 				}
 
@@ -340,6 +345,17 @@ namespace gsc
 
 		std::string get_script_file_name(const std::string& name)
 		{
+			static const auto& game_ = identification::game::get_target_game().client_name;
+
+			if (game_ == "iw9-mod"s)
+			{
+				const auto id = gsc_ctx_iw9->hash_id(name);
+				if (id)
+				{
+					return std::to_string(id);
+				}
+			}
+
 			const auto id = gsc_ctx->token_id(name);
 			if (!id)
 			{
@@ -401,19 +417,14 @@ namespace gsc
 				return;
 			}
 
-			printf("uhhh\n");
-
-			const auto main_handle = game::Scr_GetFunctionHandle_IW9(scr_context, path_id, gsc_ctx->token_id("main"));
-			printf("ok so wut\n");
+			const auto main_handle = game::Scr_GetFunctionHandle_IW9(scr_context, path_id, gsc_ctx_iw9->hash_id("main"));
 			if (main_handle)
 			{
 				printf("Loaded '%s::main'\n", name.data());
 				main_handles[name] = main_handle;
 			}
 
-			printf("oh\n");
-
-			const auto init_handle = game::Scr_GetFunctionHandle_IW9(scr_context, path_id, gsc_ctx->token_id("init"));
+			const auto init_handle = game::Scr_GetFunctionHandle_IW9(scr_context, path_id, gsc_ctx_iw9->hash_id("init"));
 			if (init_handle)
 			{
 				printf("Loaded '%s::init'\n", name.data());
@@ -429,13 +440,11 @@ namespace gsc
 
 			if (game_ == "iw9-mod"s)
 			{
-				const auto path_id = gsc_ctx->path_id(name.data());
-				printf("[load_script] caching and loading script %" PRIu64 " (%s)\n", path_id, name.data());
+				const auto path_id = gsc_ctx_iw9->path_id(name.data());
+				//printf("[load_script] caching and loading script %" PRIu64 " (%s)\n", path_id, name.data());
 				cached_ids[path_id] = name;
 
-				printf("1\n");
 				load_script_iw9(scr_context, path_id, name);
-				printf("2\n");
 			}
 			else
 			{
@@ -502,7 +511,6 @@ namespace gsc
 		void load_scripts(const std::filesystem::path& root_dir, const std::filesystem::path& subfolder)
 		{
 			std::filesystem::path script_dir = root_dir / subfolder;
-			printf("load_scripts: looking in '%s'\n", script_dir.generic_string().data());
 			if (!utils::io::directory_exists(script_dir.generic_string()))
 			{
 				return;
@@ -516,8 +524,6 @@ namespace gsc
 					continue;
 				}
 
-				printf("hmmmmm well\n");
-
 				std::filesystem::path path(script);
 				const auto relative = path.lexically_relative(root_dir).generic_string();
 				load_script(relative);
@@ -526,10 +532,8 @@ namespace gsc
 
 		void load_scripts()
 		{
-			printf("huhhh?\n");
 			if (!game::Com_FrontEnd_IsInFrontEnd())
 			{
-				printf("yay!\n");
 				for (const auto& path : filesystem::get_search_paths())
 				{
 					load_scripts(path, "scripts/"); // meant to override stock GSC
@@ -566,7 +570,11 @@ namespace gsc
 				xsk::gsc::build::dev :
 				xsk::gsc::build::prod;
 
-			gsc_ctx->init(comp_mode, init_compiler_internal);
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "iw9-mod"s)
+				gsc_ctx_iw9->init(comp_mode, init_compiler_internal);
+			else
+				gsc_ctx->init(comp_mode, init_compiler_internal);
 		}
 
 		void scr_begin_load_scripts_stub(game::scrContext_t* context, char threadMode, unsigned int a3)
@@ -578,20 +586,16 @@ namespace gsc
 
 		void scr_begin_load_scripts_stub_iw9(void* a1, char a2)
 		{
-			printf("scr_begin_load_scripts_stub_iw9\n");
 			init_compiler();
 			scr_begin_load_scripts_hook.invoke<void>(a1, a2);
-			printf("scr_begin_load_scripts_stub_iw9 2\n");
 			load_scripts();
-			printf("scr_begin_load_scripts_stub_iw9 3\n");
 		}
 
 		void scr_end_load_scripts_stub(game::scrContext_t* context)
 		{
-			printf("scr_end_load_scripts_stub\n");
 			gsc_ctx->cleanup();
+			gsc_ctx_iw9->cleanup();
 			scr_end_load_scripts_hook.invoke<void>(context);
-			printf("scr_end_load_scripts_stub 2\n");
 		}
 
 		struct custom_text_slot
@@ -684,8 +688,6 @@ namespace gsc
 
 	game::ScriptFile_IW9* find_script_iw9(game::XAssetType type, std::uint64_t name, int allow_create_default)
 	{
-		printf("find_script_iw9: name is %llu\n", name);
-
 		auto real_name = get_script_name_iw9(name);
 
 		auto* script = load_custom_script_iw9(name, real_name);
@@ -738,7 +740,7 @@ namespace gsc
 		{
 			return cached_ids[hash];
 		}
-		return gsc_ctx->path_name(hash);
+		return gsc_ctx_iw9->path_name(hash);
 	}
 
 	std::string get_function_name(std::uint64_t id)
@@ -757,7 +759,7 @@ namespace gsc
 		void find_signatures(memory::signature_store& batch) override 
 		{
 			static const auto& game_ = identification::game::get_target_game().client_name;
-			if (identification::game::is("1.20.4") || identification::game::is("1.20.4-replay") || game_ == "iw9-mod"s)
+			if (game_ == "iw9-mod"s || identification::game::is("1.20.4") || identification::game::is("1.20.4-replay"))
 			{
 				batch.add(SETUP_POINTER(game::DB_AllocXZoneMemory), "E8 ? ? ? ? 4C 8B 7C 24 ? 33 D2 41 B8", GRAB_CALL);
 				batch.add(SETUP_POINTER(game::DB_AllocXZoneMemoryInternal), "E8 ? ? ? ? 48 8B 8F ? ? ? ? 4C 8B C6", GRAB_CALL);
@@ -817,11 +819,12 @@ namespace gsc
 				ASSET_TYPE_SCRIPTFILE = game::ASSET_TYPE_SCRIPTFILE_IW9;
 			}
 
-			if (identification::game::is("1.20.4-replay") // we handle 1.20.4-replay seperately
-				|| is_game_iw9 // but also support IW9 with duplicate functions
+			if (is_game_iw9 // support IW9 with duplicate functions
+				|| identification::game::is("1.20.4-replay") // we handle 1.20.4-replay seperately
 				)
 			{
-				db_alloc_x_zone_memory_internal_hook.create(game::DB_AllocXZoneMemoryInternal, db_alloc_x_zone_memory_internal_stub); // allocation
+				// IW9 & S4 hook the original and handle the < 4 check ourselves
+				db_alloc_x_zone_memory_internal_hook.create(game::DB_AllocXZoneMemory, db_alloc_x_zone_memory_internal_stub); // allocation
 
 				scr_end_load_scripts_hook.create(game::Scr_EndLoadScripts, scr_end_load_scripts_stub);
 

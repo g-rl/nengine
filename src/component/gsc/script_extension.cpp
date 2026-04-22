@@ -169,58 +169,23 @@ namespace gsc
 
 		void print_callstack()
 		{
+			/*
 			const auto context = game::ScriptContext_Server();
 			for (auto frame = context->function_frame; frame != context->function_frame_start; --frame)
 			{
-				const auto pos = frame == context->function_frame ? context->m_fs_real.pos.m_scriptPos : frame->fs.pos.m_scriptPos;
-				const auto script_info = find_function(pos);
+				const auto pos = frame == context->function_frame ? context->pos.m_scriptPos : frame->fs.pos.m_scriptPos;
+				const auto function = find_function(frame->fs.pos.m_scriptPos);
 
-				if (!script_info.has_value())
+				if (function.has_value())
 				{
-					printf("\tat unknown location %p\n", pos);
-					continue;
-				}
-
-				const auto& function = script_info->function;
-				const auto& file = script_info->file;
-				const auto* loaded_script = gsc::get_loaded_script(file);
-
-				if (loaded_script)
-				{
-					const auto script = reinterpret_cast<game::ScriptFile*>(loaded_script->ptr);
-					assert(script);
-
-					const auto& pos_map = loaded_script->devmap;
-
-					auto position = static_cast<std::uint32_t>(pos - script->bytecode);
-					for (auto i = 0; i < 8; ++i)
-					{
-						auto position_fixup = position + i;
-						if (pos_map.contains(position_fixup))
-						{
-							position = position_fixup;
-							break;
-						}
-					}
-
-					if (pos_map.contains(position))
-					{
-						const auto& info = pos_map.at(position);
-
-						printf("\tat function \"%s\" in file \"%s\" (line %d, col %d)\n",
-							function.data(), file.data(), info.line, info.column);
-					}
-					else
-					{
-						goto NO_DEVMAP;
-					}
+					printf("\tat function \"%s\" in file \"%s.gsc\"\n", function.value().first.data(), function.value().second.data());
 				}
 				else
 				{
-				NO_DEVMAP:
-					printf("\tat function \"%s\" in file \"%s\"\n", function.data(), file.data());
+					printf("\tat unknown location %p\n", pos);
 				}
 			}
+			*/
 
 			/*
 			const auto context = game::ScriptContext_Server();

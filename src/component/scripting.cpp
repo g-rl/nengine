@@ -62,7 +62,6 @@ namespace scripting
 		void scr_add_class_field_stub(game::scrContext_t* context,
 			unsigned int classnum, game::scr_string_t name, unsigned int canonical_string, unsigned int offset)
 		{
-			printf("scr_add_class_field_stub");
 			const auto name_str = game::SL_ConvertToString(name);
 			if (fields_table[classnum].find(name_str) == fields_table[classnum].end())
 			{
@@ -74,8 +73,7 @@ namespace scripting
 		void scr_add_class_field_stub_iw9(game::scrContext_t* context,
 			unsigned int classnum, std::uint64_t name, unsigned int offset)
 		{
-			printf("scr_add_class_field_stub_iw9\n");
-			const auto name_str = gsc::gsc_ctx->path_name(name);
+			const auto name_str = gsc::gsc_ctx_iw9->path_name(name);
 			if (fields_table[classnum].find(name_str) == fields_table[classnum].end())
 			{
 				fields_table[classnum][name_str] = offset;
@@ -85,13 +83,11 @@ namespace scripting
 
 		void process_script_stub(game::scrContext_t* context, game::ScriptFile* scriptfile)
 		{
-			printf("process_script_stub\n");
-
 			static const auto& game_ = identification::game::get_target_game().client_name;
 			if (game_ == "iw9-mod"s)
 			{
 				current_script_file_iw9 = reinterpret_cast<std::uint64_t>(scriptfile->name);
-				current_script_file = gsc::get_script_name_iw9(reinterpret_cast<std::uint64_t>(scriptfile->name));
+				current_file = gsc::get_script_name_iw9(reinterpret_cast<std::uint64_t>(scriptfile->name));
 			}
 			else
 			{
@@ -100,9 +96,7 @@ namespace scripting
 			}
 
 			//printf("process_script_stub: script file is %s (%" PRIu64 ")\n", gsc::gsc_ctx->path_name(scriptfile->name).data(), scriptfile->name);
-			printf("process_script_stub 1\n");
 			call_spoofer::spoof_hook_invoke<void>(process_script_hook, context, scriptfile);
-			printf("process_script_stub 2\n");
 		}
 
 		inline game::XAssetType get_scriptfile_type(const std::string* name)
@@ -129,7 +123,7 @@ namespace scripting
 				void* script = nullptr;
 				if (game_ == "iw9-mod"s)
 				{
-					printf("calling find_script_iw9 with name %" PRIu64 "\n", current_script_file_iw9);
+					//printf("calling find_script_iw9 with name %" PRIu64 "\n", current_script_file_iw9);
 					gsc::find_script_iw9(get_scriptfile_type(&game_), current_script_file_iw9, false);
 				}
 				else
@@ -213,18 +207,9 @@ namespace scripting
 		// *(scrContext + 4688)
 		void scr_set_thread_position_stub_iw9(game::scrContext_t* context, std::uint64_t thread_name, const char* code_pos)
 		{
-			printf("scr_set_thread_position_stub_iw9\n");
-
-			// print thread_name
-			//printf("scr_set_thread_position_stub: %s, thread name %" PRIu64 "\n", current_file.data(), thread_name);
-
 			add_function_sort_iw9(thread_name, code_pos);
-			printf("scr_set_thread_position_stub_iw9 2\n");
 			add_function_iw9(current_script_file_iw9, thread_name, code_pos);
-			printf("scr_set_thread_position_stub_iw9 3\n");
-
 			scr_set_thread_position_hook.invoke<void>(context, thread_name, code_pos);
-			printf("scr_set_thread_position_stub_iw9 4\n");
 		}
 
 		void shutdown_game_pre(bool free_scripts)
@@ -262,8 +247,6 @@ namespace scripting
 
 			void g_main_mp_shutdowngame_stub(bool full_clear)
 			{
-				printf("g_main_mp_shutdowngame_stub\n");
-
 				shutdown_game_pre(full_clear);
 				g_main_mp_shutdowngame_hook.invoke<void>(full_clear);
 				shutdown_game_post(full_clear);
@@ -271,7 +254,7 @@ namespace scripting
 		}
 	}
 
-	std::string get_token(unsigned int id)
+	std::string get_token(std::uint64_t id)
 	{
 		return scripting::find_token(id);
 	}
@@ -281,63 +264,31 @@ namespace scripting
 		shutdown_callbacks.push_back(callback);
 	}
 
-	bool find_script_function(const char* pos, script_function_info* out)
-	{
-		if (zp_find_function)
-		{
-			zp_gsc_script_info info{};
-			if (!zp_find_function(pos, &info))
-				return false;
-			if (out)
-			{
-				out->file = info.file ? info.file : "";
-				out->name = info.name ? info.name : "";
-			}
-			return true;
-		}
-
-		const auto rev_it = script_function_table_rev_iw9.find(pos);
-		if (rev_it != script_function_table_rev_iw9.end())
-		{
-			if (out)
-			{
-				out->file = rev_it->second.first;
-				out->name = rev_it->second.second;
-			}
-			return true;
-		}
-
-		for (const auto& file : script_function_table_sort_iw9)
-		{
-			//if (file.first.find("/asm/") != std::string::npos)
-			//	continue;
-
-			for (auto i = file.second.begin(); i != file.second.end() && std::next(i) != file.second.end(); ++i)
-			{
-				const auto next = std::next(i);
-				if (pos >= i->second && pos < next->second)
-				{
-					if (out)
-					{
-						out->file = file.first;
-						out->name = i->first;
-					}
-					return true;
-				}
-			}
-		}
-
-		return false;
-	}
-
 	std::string get_current_file()
 	{
 		if (zp_get_current_file)
 		{
 			const auto cf = zp_get_current_file();
-			return cf ? cf : "";
+			if (cf) return cf;
 		}
 		return current_file;
+	}
+
+	std::optional<std::pair<std::uint64_t, std::uint64_t>> find_function_iw9(const char* pos)
+	{
+		for (const auto& file : script_function_table_sort_iw9)
+		{
+			for (auto i = file.second.begin(); i != file.second.end() && std::next(i) != file.second.end(); ++i)
+			{
+				const auto next = std::next(i);
+				if (pos >= i->second && pos < next->second)
+				{
+					return { std::make_pair(i->first, file.first) };
+				}
+			}
+		}
+
+		return {};
 	}
 
 	class component final : public component_interface
@@ -361,7 +312,17 @@ namespace scripting
 
 			batch.add(SETUP_POINTER(game::Scr_AddClassField), "E8 ? ? ? 00 FF ? 48 8D ? ? 83 ? 0E 72 ? 48 8B 5C 24 ? 48 8B 74 24", GRAB_CALL);
 
-			batch.add(SETUP_POINTER(game::Scr_SetThreadPosition), "E8 ? ? ? 00 4C 8D 44 24 20 C6 44 24 28 ? 8B D0 48 89 5C 24 20 48 8B CF E8 ? ? ? ? 48", GRAB_CALL);
+			batch.add(SETUP_POINTER(game::Scr_SetThreadPosition), "E8 ? ? ? 00 4C 8D 44 24 20 C6 44 24 28 ? 8B D0 48 89 5C 24 20 48 8B CF E8 ? ? ? ? 48", [](memory::scanned_result<void> r) {
+				std::uintptr_t offset = 0;
+				while (true) {
+					offset++;
+					auto buf = r.sub(offset).as<std::uint8_t*>();
+					if (buf[0] == 0x48 && buf[1] == 0x89 && buf[2] == 0x5C && buf[3] == 0x24 && buf[4] == 0x08) {
+						break;
+					}
+				}
+				return r.sub(offset);
+				});
 
 			batch.add(SETUP_POINTER(game::ProcessScript), "E8 ? ? ? FF ? C0 75 0B 48 8B ? 48 8B ? E8 ? 00 00 00", SETUP_MOD(add(16).rip()));
 		}
@@ -392,4 +353,4 @@ namespace scripting
 	};
 }
 
-//REGISTER_COMPONENT(scripting::component)
+REGISTER_COMPONENT(scripting::component)

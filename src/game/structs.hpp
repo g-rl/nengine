@@ -670,6 +670,7 @@ namespace game
 	enum XFileBlock
 	{
 		XFILE_BLOCK_SCRIPT = 6,
+		XFILE_BLOCK_SCRIPT_IW9 = 8,
 		MAX_XFILE_COUNT = 8,
 	};
 

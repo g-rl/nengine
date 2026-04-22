@@ -17,6 +17,7 @@ namespace gsc
 	};
 
 	extern std::unique_ptr<xsk::gsc::iw8::context> gsc_ctx;
+	extern std::unique_ptr<xsk::gsc::iw9::context> gsc_ctx_iw9;
 
 	game::ScriptFile* find_script(game::XAssetType type, const char* name, int allow_create_default);
 	game::ScriptFile_IW9* find_script_iw9(game::XAssetType type, std::uint64_t name, int allow_create_default);

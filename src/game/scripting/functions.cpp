@@ -79,7 +79,7 @@ namespace scripting
 		}
 	}
 
-	inline std::string find_token(std::uint32_t id)
+	inline std::string find_token(std::uint64_t id)
 	{
 		static const auto& game_ = identification::game::get_target_game().client_name;
 
@@ -106,7 +106,7 @@ namespace scripting
 		return gsc::gsc_ctx->token_name(id);
 	}
 
-	std::string find_token_single(std::uint32_t id)
+	std::string find_token_single(std::uint64_t id)
 	{
 		return find_token(id);
 	}
