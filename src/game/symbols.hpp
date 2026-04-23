@@ -29,6 +29,8 @@ namespace game
 
 	WEAK void(*Cmd_AddCommandInternal)(const char* cmdName, void(), cmd_function_s* allocedCmd) = nullptr;
 
+	WEAK char* (*Core_strcpy_va)(char* out, char* fmt, ...) = nullptr;
+
 	// Dvar
 	//WEAK int(*Dvar_GetIntSafe)(const char* dvar_name) = nullptr;
 	WEAK dvar_t* (*Dvar_RegisterVariant)(const char* dvar_name, std::uint32_t checksum, std::uint8_t type, game::DvarFlags flags, game::DvarValue* value,

@@ -33,6 +33,8 @@ namespace patches
 		std::vector<std::pair<std::string, std::string>> neura_load_entries;
 		size_t neura_load_index = 0;
 
+		void* GameMessageVA_Stub{};
+
 		void render_pm_debug()
 		{
 			// if nothing is going on, we dont use this
@@ -135,6 +137,13 @@ namespace patches
 		return utils::hook::invoke<char*>(0x13F3010_b, a2, a3, a4);
 	}
 
+	utils::hook::detour make_game_message_hook;
+	char* make_game_message_stub_iw9(char* a1, char* a2, int a3, const char* a4)
+	{
+		printf("[GScr_MakeGameMessage] %s\n", a4);
+		return game::Core_strcpy_va(a1, a2, a3, a4);
+	}
+
 	class component final : public component_interface
 	{
 	public:
@@ -185,9 +194,25 @@ namespace patches
 			}
 		}
 
+		void find_signatures(memory::signature_store& batch) override
+		{
+			batch.add(SETUP_POINTER(GameMessageVA_Stub), 
+				"E8 ? ? ? ? 48 8B BC 24 ? ? ? ? 48 8B B4 24 ? ? ? ? 48 8B 9C 24 ? ? 00 00 83");
+
+			batch.add(SETUP_POINTER(game::Core_strcpy_va),
+				"E8 ? ? ? ? 48 8B BC 24 ? ? ? ? 48 8B B4 24 ? ? ? ? 48 8B 9C 24 ? ? 00 00 83",
+				GRAB_CALL);
+		}
+
 		void post_unpack() override
 		{
-			if (identification::game::is("1.20.4-replay"))
+			static const auto& game_ = identification::game::get_target_game().client_name;
+
+			if (game_ == "iw9-mod"s)
+			{
+				utils::hook::call(GameMessageVA_Stub, make_game_message_stub_iw9);
+			}
+			else if (identification::game::is("1.20.4-replay"))
 			{
 				//sv_kick_client_num_hook.create(0x36C160_b, sv_kick_client_num_stub);
 
