@@ -166,10 +166,7 @@ namespace weapon
 	void CG_UpdateViewWeaponAnim_stub(unsigned int localClientNum)
 	{
 		if (game::dvar_is_enabled_safe(freeze_anim_dvar))
-		{
-			printf("freeze anim enabled\n");
 			return;
-		}
 
 		call_spoofer::spoof_hook_invoke<void>(CG_UpdateViewWeaponAnim_hook, localClientNum);
 	}
@@ -210,32 +207,17 @@ namespace weapon
 				batch.add(SETUP_POINTER(game::PM_BeginWeaponChange_sig),
 					"C6 44 24 20 01 48 8B ? 48 8B ? E8",
 					SETUP_MOD(add(12).rip()));
-
-				batch.add(SETUP_POINTER(game::CG_UpdateViewWeaponAnim),
-					"8B CF E8 ? ? ? ? 8B CF E8 ? ? ? ? 48 8B 93",
-					SETUP_MOD(add(3).rip()));
 			}
-			else // ship builds do some things a tiny bit diff, supports IW8, S4, IW9
+			else
 			{
 				batch.add(SETUP_POINTER(game::PM_BeginWeaponChange_sig),
 					"C6 44 24 20 01 48 8B ? 48 8B ? E8 ? ? ? ? 48 8B ? ? ? 48 8B ? ? ? 48 83 ? ? 5F",
 					SETUP_MOD(add(12).rip()));
-
-				// trace all the way back to 48 89 5C 24 10 to get the function since we are down in it
-				batch.add(SETUP_POINTER(game::CG_UpdateViewWeaponAnim),
-					"88 ? ? ? ? 00 41 83 ? ? 07",
-					[](memory::scanned_result<void> r) {
-						std::uintptr_t offset = 0;
-						while (true) {
-							offset++;
-							auto buf = r.sub(offset).as<std::uint8_t*>();
-							if (buf[0] == 0x48 && buf[1] == 0x89 && buf[2] == 0x5C && buf[3] == 0x24 && buf[4] == 0x10) {
-								break;
-							}
-						}
-						return r.sub(offset);
-					});
 			}
+
+			batch.add(SETUP_POINTER(game::CG_UpdateViewWeaponAnim),
+				"E8 ? ? ? ? E8 ? ? ? ? 8B CB E8 ? ? ? ? 8B CB E8 ? ? ? ? 8B CB 48 83 C4 20",
+				SETUP_MOD(add(20).rip()));
 
 			batch.add(SETUP_POINTER(game::PM_Weapon_Idle_sig),
 				"7F 0A 33 D2 48 8B CF E8 ? ? ? ? 4C 8B",
@@ -311,7 +293,7 @@ namespace weapon
 				sprint_swaps_dvar = game::Dvar_RegisterBool("pan_sprintswaps", false, game::DVAR_NOFLAG, "");
 				instashoots_dvar = game::Dvar_RegisterBool("pan_instashoots", false, game::DVAR_NOFLAG, "");
 				always_canswap_dvar = game::Dvar_RegisterBool("pan_alwayscanswap", false, game::DVAR_NOFLAG, "");
-				freeze_anim_dvar = game::Dvar_RegisterBool("pan_freezeanim", false, game::DVAR_NOFLAG, "");			// TODO: IW9 is either hooking wrong function, or needs fixed
+				freeze_anim_dvar = game::Dvar_RegisterBool("pan_freezeanim", false, game::DVAR_NOFLAG, "");
 				canzooms_dvar = game::Dvar_RegisterBool("pan_canzooms", false, game::DVAR_NOFLAG, "");				// TODO: IW9 just crashes trying to do pm->cmd.buttons code
 				always_altswap_dvar = game::Dvar_RegisterBool("pan_alwaysaltswap", false, game::DVAR_NOFLAG, "");
 			}, scheduler::main);

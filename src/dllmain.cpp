@@ -45,6 +45,7 @@ namespace
 		utils::io::remove_file("__game_dx12_ship_replay");
 		utils::io::remove_file("__ModernWarfare");
 		utils::io::remove_file("__Vanguard");
+		utils::io::remove_file("__cod");
 		utils::io::remove_file("Data/data/CASCRepair.mrk"); // E_REPAIR (28)
 	}
 
