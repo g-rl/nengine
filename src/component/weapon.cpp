@@ -59,7 +59,7 @@ namespace weapon
 	void PM_BeginWeaponChange_stub(game::pmove_t* pm, game::pml_t* pml,
 		const game::Weapon* newweapon, bool isNewAlternate, bool quick)
 	{
-		if (game::dvar_is_enabled_safe(always_canswap_dvar))
+		if (game::dvar_is_enabled_safe(always_altswap_dvar))
 		{
 			quick = true;
 		}
@@ -125,13 +125,8 @@ namespace weapon
 			return;
 
 		auto weap_state = get_weap_state_ptr(pm, 0);
-		if (weap_state && weap_state->weaponState != game::WEAPON_RAISING)
+		if (!weap_state || weap_state->weaponState != game::WEAPON_RAISING)
 			return;
-
-		if (!weap_state)
-		{
-			return;
-		}
 
 		const game::Weapon* currentWeapon = game::BG_GetCurrentWeaponForPlayer_sig(get_weapon_map(pm), pm->ps);
 		const bool dualWielding = game::BG_PlayerDualWieldingWeapon(get_weapon_map(pm), pm->ps, currentWeapon);
@@ -318,7 +313,7 @@ namespace weapon
 				always_canswap_dvar = game::Dvar_RegisterBool("pan_alwayscanswap", false, game::DVAR_NOFLAG, "");
 				freeze_anim_dvar = game::Dvar_RegisterBool("pan_freezeanim", false, game::DVAR_NOFLAG, "");			// TODO: IW9 is either hooking wrong function, or needs fixed
 				canzooms_dvar = game::Dvar_RegisterBool("pan_canzooms", false, game::DVAR_NOFLAG, "");				// TODO: IW9 just crashes trying to do pm->cmd.buttons code
-				always_altswap_dvar = game::Dvar_RegisterBool("pan_alwaysaltswap", false, game::DVAR_NOFLAG, "");	// TODO: ?
+				always_altswap_dvar = game::Dvar_RegisterBool("pan_alwaysaltswap", false, game::DVAR_NOFLAG, "");
 			}, scheduler::main);
 
 			if (nop_target_1)
