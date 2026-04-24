@@ -115,7 +115,7 @@ namespace colors
 		__int64 color_index_stub(char a1)
 		{
 			// set the ^: value to rainbow here - this check is inside RB_LookupColor, which is inlined on replay..?
-			const auto rgb = hsv_to_rgb({ static_cast<uint8_t>((game::Sys_Milliseconds() / 100) % 256), 255, 255 });
+			const auto rgb = hsv_to_rgb({ static_cast<uint8_t>((game::Sys_Milliseconds() / 30) % 256), 255, 255 });
 			*reinterpret_cast<DWORD*>(rainbow_color_override_addr) = 0xFF000000u | rgb;
 
 			return call_spoofer::spoof_hook_invoke<__int64>(ColorIndex_hook, a1);

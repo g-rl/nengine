@@ -112,6 +112,7 @@ namespace game
 	WEAK uint64_t(*PM_GetWeaponFireButton_sig)(const pmove_t* pm, const Weapon* weapon, int hand, bool fromGamepad) = nullptr;
 	WEAK const Weapon*(*BG_GetCurrentWeaponForPlayer_sig)(void* weaponMap, const playerState_s* ps) = nullptr;
 	WEAK int(*BG_PlayerLastWeaponHand_sig)(void* weaponMap, playerState_s* ps) = nullptr;
+	WEAK bool(*PM_IsSprinting)(playerState_s* pm) = nullptr;
 
 	/***************************************************************
 	 * Functions

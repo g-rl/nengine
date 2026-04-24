@@ -77,11 +77,7 @@ namespace weapon
 
 		call_spoofer::spoof_hook_invoke<void>(PM_BeginWeaponChange_hook, pm, pml, newweapon, isNewAlternate, quick);
 
-		const auto* sprint_state = get_sprint_state_ptr(pm);
-		const bool isSprinting = sprint_state->lastSprintStart
-			&& sprint_state->lastSprintStart > sprint_state->lastSprintEnd;
-
-		if (isSprinting)
+		if (game::PM_IsSprinting(pm->ps))
 		{
 			for (int i = 0; i < 2; i++)
 			{
@@ -129,9 +125,13 @@ namespace weapon
 			return;
 
 		auto weap_state = get_weap_state_ptr(pm, 0);
-
-		if (weap_state->weaponState != game::WEAPON_RAISING)
+		if (weap_state && weap_state->weaponState != game::WEAPON_RAISING)
 			return;
+
+		if (!weap_state)
+		{
+			return;
+		}
 
 		const game::Weapon* currentWeapon = game::BG_GetCurrentWeaponForPlayer_sig(get_weapon_map(pm), pm->ps);
 		const bool dualWielding = game::BG_PlayerDualWieldingWeapon(get_weapon_map(pm), pm->ps, currentWeapon);
@@ -139,7 +139,7 @@ namespace weapon
 			return;
 
 		unsigned int zoomButton = 0x20000;
-		if (pm->cmd.buttons & zoomButton)
+		if (pm && pm->cmd.buttons & zoomButton)
 		{
 			weap_state->weaponState = game::WEAPON_READY;
 			weap_state->weaponTime = 0;
@@ -158,7 +158,11 @@ namespace weapon
 			}
 		}
 
-		canzooms_check(pm);
+		const auto game_ = identification::game::get_target_game().client_name;
+		if (game_ != "iw9-mod"s)
+		{
+			canzooms_check(pm);
+		}
 
 		PM_Weapon_hook.invoke<void>(pm, pml);
 	}
@@ -168,6 +172,7 @@ namespace weapon
 	{
 		if (game::dvar_is_enabled_safe(freeze_anim_dvar))
 		{
+			printf("freeze anim enabled\n");
 			return;
 		}
 
@@ -201,6 +206,9 @@ namespace weapon
 					"48 8B F9 E8 ? ? FE FF 84 C0 0F 85 ? ? 00 00 48 89 9C 24 48 01",
 					SETUP_MOD(add(4).rip()));
 			}
+
+			batch.add(SETUP_POINTER(game::PM_IsSprinting),
+				"8B 81 ? ? 00 00 85 C0 74 0B 3B 81 ? ? 00 00 7E 03 B0 01 C3");
 
 			if (identification::game::is("1.20.4-replay"))
 			{
@@ -273,9 +281,9 @@ namespace weapon
 				"4D 8B ? 48 8B ? ? ? 00 00 ? 8B ? E8 ? ? ? ? 85 C0 78 ?? 48",
 				SETUP_OFFSET_MOD(add(6).as<std::uint32_t&>()));
 
+			/*
 			if (identification::game::is("1.20.4-replay"))
 			{
-				// 44 89 BF [disp32] = mov [rdi+disp32], r15d  — disp at byte 3
 				batch.add(SETUP_OFFSET(pmove_weapState_offset),
 					"44 89 ? ? ? 00 00 48 8D 0D ? ? ? ? 44 89 ? ? ? 00 00 0F",
 					SETUP_OFFSET_MOD(add(3).as<std::uint32_t&>() - 36));
@@ -287,6 +295,12 @@ namespace weapon
 					"89 ? ? ? 00 00 48 8D 0D ? ? ? ? 89 ? ? ? 00 00 0F",
 					SETUP_OFFSET_MOD(add(2).as<std::uint32_t&>() - 36));
 			}
+			*/
+
+			// this seems to work for every game lol
+			batch.add(SETUP_OFFSET(pmove_weapState_offset),
+				"8B 89 ? ? 00 00 8B D1 44 8B 83 ? ? 00 00 0F",
+				SETUP_OFFSET_MOD(add(2).as<std::uint32_t&>()));
 
 			// ps_sprintState_offset: cmp [rbx+disp32], 0 — disp at byte 12
 			// 1.20: 0x31C, 1.38: 0x32C — single sig covers both
@@ -302,9 +316,9 @@ namespace weapon
 				sprint_swaps_dvar = game::Dvar_RegisterBool("pan_sprintswaps", false, game::DVAR_NOFLAG, "");
 				instashoots_dvar = game::Dvar_RegisterBool("pan_instashoots", false, game::DVAR_NOFLAG, "");
 				always_canswap_dvar = game::Dvar_RegisterBool("pan_alwayscanswap", false, game::DVAR_NOFLAG, "");
-				freeze_anim_dvar = game::Dvar_RegisterBool("pan_freezeanim", false, game::DVAR_NOFLAG, "");
-				canzooms_dvar = game::Dvar_RegisterBool("pan_canzooms", false, game::DVAR_NOFLAG, "");
-				always_altswap_dvar = game::Dvar_RegisterBool("pan_alwaysaltswap", false, game::DVAR_NOFLAG, "");
+				freeze_anim_dvar = game::Dvar_RegisterBool("pan_freezeanim", false, game::DVAR_NOFLAG, "");			// TODO: IW9 is either hooking wrong function, or needs fixed
+				canzooms_dvar = game::Dvar_RegisterBool("pan_canzooms", false, game::DVAR_NOFLAG, "");				// TODO: IW9 just crashes trying to do pm->cmd.buttons code
+				always_altswap_dvar = game::Dvar_RegisterBool("pan_alwaysaltswap", false, game::DVAR_NOFLAG, "");	// TODO: ?
 			}, scheduler::main);
 
 			if (nop_target_1)

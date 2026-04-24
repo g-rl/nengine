@@ -48,7 +48,7 @@ namespace gsc
 
 		char* script_mem_buf = nullptr;
 
-		//std::vector<std::function<void()>> begin_scripts_callbacks;
+		std::vector<std::function<void()>> begin_scripts_callbacks;
 
 		const char* ALLOCATE_FASTFILE;
 		int ALLOCATE_SCRIPT_POOL;
@@ -565,6 +565,9 @@ namespace gsc
 
 		void init_compiler()
 		{
+			for (const auto& callback : begin_scripts_callbacks)
+				callback();
+
 			const bool dev_script = developer_script ? developer_script->current.enabled : false;
 			const auto comp_mode = dev_script ?
 				xsk::gsc::build::dev :
@@ -708,12 +711,10 @@ namespace gsc
 		return nullptr;
 	}
 
-	/*
 	void on_begin_scripts(const std::function<void()>& callback)
 	{
 		begin_scripts_callbacks.push_back(callback);
 	}
-	*/
 
 	inline std::string get_script_name(const char* name, bool ignore_cache)
 	{
@@ -889,8 +890,6 @@ namespace gsc
 			// fix settext
 			NetConstStrings_GetIndexPlusOneFromName_hook.create(game::NetConstStrings_GetIndexPlusOneFromName, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
 			NetConstStrings_GetNameFromIndexPlusOne_hook.create(game::NetConstStrings_GetNameFromIndexPlusOne, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
-
-			// TODO: add iprintln printing to external console for ez debugging on any game
 		}
 	};
 }

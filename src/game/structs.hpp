@@ -1294,16 +1294,16 @@ namespace game
 	// =========================================================================
 	struct PlayerActiveWeaponState
 	{
-		int prevWeapAnim;                            // 0x00
+		int prevWeapAnim;                            // 0x00 (IW9 1.25: ps offset is 2140 for 0, 2264 for 1)
 		int weapAnim;                                // 0x04
 		int weaponPrevFireTime;                      // 0x08
 		int weaponFireTime;                          // 0x0C
 		int nextFireTimeCounter;                     // 0x10
-		int weaponTime;                              // 0x14
-		int weaponDelay;                             // 0x18
-		int weaponStartingKickTime;                  // 0x1C
-		int weaponEndingKickTime;                    // 0x20
-		int weaponState;                             // 0x24
+		int weaponTime;                              // 0x14 (2160, 2284 iw9 1.25)
+		int weaponDelay;                             // 0x18 2164
+		int weaponStartingKickTime;                  // 0x1C 2168
+		int weaponEndingKickTime;                    // 0x20 2172
+		int weaponState;                             // 0x24 (2176, 2300 iw9 1.25)
 		int weapHandFlags;                           // 0x28
 		int weaponFrameTimeRemainder;                // 0x2C
 		int rechamberNextFireTime;                   // 0x30
@@ -1315,6 +1315,19 @@ namespace game
 		int weaponFiredAtMaxCharge;                  // 0x48
 		int queuedActionState;                       // 0x4C
 	}; // Size: 0x50 (80)
+
+	struct PlayerActiveWeaponState_IW9
+	{
+		PlayerActiveWeaponState legacy; // its pretty much the same make up for a lot of this
+		char unk[44];
+	}; // size is 124 (8B 89 ? ? 00 00 8B D1 44 8B 83 ? ? 00 00 0F)
+	// IW9 is 124 maybe?
+
+	struct playerState_s_IW9
+	{
+		char pad[2140]; // 0
+		PlayerActiveWeaponState_IW9 weaponState[2];
+	}; // ?
 
 	static_assert(sizeof(PlayerActiveWeaponState) == 0x50);
 
@@ -1342,15 +1355,15 @@ namespace game
 	// =========================================================================
 	struct SprintState
 	{
-		int sprintButtonUpRequired;                  // 0x00
-		int sprintRestore;                           // 0x04
-		int sprintRestoreDelayStart;                 // 0x08
-		int sprintDelay;                             // 0x0C
-		int lastSprintStart;                         // 0x10
-		int lastSprintEnd;                           // 0x14
-		int lastSuperSprintStart;                    // 0x18
-		int lastSuperSprintEnd;                      // 0x1C
-		int sprintStartMaxLength;                    // 0x20
+		int sprintButtonUpRequired;                  // 0x00 796 (IW9 1168)
+		int sprintRestore;                           // 0x04 800
+		int sprintRestoreDelayStart;                 // 0x08 804
+		int sprintDelay;                             // 0x0C 808
+		int lastSprintStart;                         // 0x10 812 (IW9 1184)
+		int lastSprintEnd;                           // 0x14 816 (IW9 1188)
+		int lastSuperSprintStart;                    // 0x18 820
+		int lastSuperSprintEnd;                      // 0x1C 824
+		int sprintStartMaxLength;                    // 0x20 832
 	}; // Size: 0x24 (36)
 
 	static_assert(sizeof(SprintState) == 0x24);
