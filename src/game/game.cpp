@@ -56,12 +56,15 @@ namespace game
 		value.string = utils::memory::duplicate_string(str); // not sure if needed lmao
 
 		static const auto& game_ = identification::game::get_target_game().client_name;
-		if (game_ != "iw8-mod"s)
+		if (game_ == "s4-mod"s)
 		{
 			auto hash = game::hash_scr_dvar(name);
-			//printf("%s has hash %" PRIX64 "\n", name, hash);
-			// 9 on S4, 10 on IW9
-			return game::Dvar_RegisterVariant_IW9(hash, 9 + (game_ == "iw9-mod"s), flags, &value, &domain, desc);
+			return game::Dvar_RegisterVariant_IW9(hash, 9, flags, &value, &domain, desc);
+		}
+		else if (game_ == "iw9-mod"s)
+		{
+			auto hash = game::hash_scr_dvar_iw9(name);
+			return game::Dvar_RegisterVariant_IW9(hash, 10, flags, &value, &domain, desc);
 		}
 
 		return game::Dvar_RegisterVariant(name, utils::string::dvar_checksum(name), 9, flags, &value, &domain, desc);
@@ -70,10 +73,14 @@ namespace game
 	dvar_t* Dvar_RegisterBool(const char* name, bool value, DvarFlags flags, const char* desc)
 	{
 		static const auto& game_ = identification::game::get_target_game().client_name;
-		if (game_ == "iw9-mod"s)
+		if (game_ == "s4-mod"s)
 		{
 			auto hash = game::hash_scr_dvar(name);
-			//printf("%s has hash %" PRIX64 "\n", name, hash);
+			return game::Dvar_RegisterBool_IW9(hash, value, flags, desc);
+		}
+		else if (game_ == "iw9-mod"s)
+		{
+			auto hash = game::hash_scr_dvar_iw9(name);
 			return game::Dvar_RegisterBool_IW9(hash, value, flags, desc);
 		}
 
