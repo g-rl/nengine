@@ -125,8 +125,8 @@ namespace bots
 			static const auto& game_ = identification::game::get_target_game().client_name;
 			if (game_ == "iw8-mod"s)
 				get_bot_name_hook.create(game::SV_BotGetRandomName, get_random_bot_name);
-			//else
-			//	SV_ClientMP_ConnectBot_hook.create(game::SV_ClientMP_ConnectBot, SV_ClientMP_ConnectBot_call);
+			else
+				SV_ClientMP_ConnectBot_hook.create(game::SV_ClientMP_ConnectBot, SV_ClientMP_ConnectBot_call);
 
 			// clear bot names and reset ID on game shutdown to allow new names to be added without restarting
 			scripting::on_shutdown([](bool /*free_scripts*/, bool post_shutdown)
