@@ -123,12 +123,12 @@ public:
 			batch.add(SETUP_POINTER(game::Dvar_FindVarByName_IW9), "E8 ? ? ? ? 48 8B CB 48 63 50", GRAB_CALL);
 		//batch.add(SETUP_POINTER(game::Dvar_GetIntSafe), "E8 ? ? ? ? 8B D0 85 C0 75 ? 38 05", GRAB_CALL);
 
-		if (game_ == "iw9-mod"s)
-			batch.add(SETUP_POINTER(game::Dvar_RegisterBool_IW9), "E8 ? ? ? ? C5 FA 10 0D ? ? ? ? C5 FA 10 1D ? ? ? ? C5 F8 28 D1", GRAB_CALL);
-		else if (game_ == "iw8-mod"s)
+		if (game_ == "iw8-mod"s)
 			batch.add(SETUP_POINTER(game::Dvar_RegisterBool_), "E8 ? ? ? ? 48 8B F0 F6 46", GRAB_CALL);
+		else if (game_ == "s4-mod"s)
+			batch.add(SETUP_POINTER(game::Dvar_RegisterBool_IW9), "E8 ? ? AD 00 F6 40 ? 08", GRAB_CALL);
 		else
-			batch.add(SETUP_POINTER(game::Dvar_RegisterBool_), "E8 ? ? AD 00 F6 40 ? 08", GRAB_CALL);
+			batch.add(SETUP_POINTER(game::Dvar_RegisterBool_IW9), "E8 ? ? ? ? C5 FA 10 0D ? ? ? ? C5 FA 10 1D ? ? ? ? C5 F8 28 D1", GRAB_CALL);
 
 		if (game_ == "iw8-mod"s)
 		{

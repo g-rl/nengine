@@ -323,7 +323,10 @@ namespace gsc
 		{
 			for (auto* site : sites)
 			{
-				utils::hook::call(site, compile_error_stub);
+				if (site)
+				{
+					utils::hook::call(site, compile_error_stub);
+				}
 			}
 		}
 	}
@@ -335,12 +338,12 @@ namespace gsc
 		{
 			static const auto& game_ = identification::game::get_target_game().client_name;
 
-			batch.add(SETUP_POINTER(game::Scr_EmitFunction), "48 89 5C 24 10 48 89 6C 24 18 56 57 41 56 48 83 EC 60 48 B8 FF");
-
 			batch.add(SETUP_POINTER(FindVariable_call), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48");
 
 			if (game_ == "iw9-mod"s)
 			{
+				batch.add(SETUP_POINTER(game::Scr_EmitFunction), "48 89 5C 24 10 48 89 6C 24 18 56 57 41 56 48 83 EC 60 48 B8 FF");
+
 				batch.add(SETUP_POINTER(CompileError_bonus_call),
 					"48 8B 5C 24 50 48 8B D1 48 8B CB 4D ? C5 E8 30 0D 00 00", SETUP_MOD(add(14)));
 
@@ -350,6 +353,10 @@ namespace gsc
 			}
 			else
 			{
+				// long sig but i think it works for all builds
+				batch.add(SETUP_POINTER(game::Scr_EmitFunction), 
+					"48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 56 41 57 48 83 EC ? 41 8B E8 8B ? 44 8B C2");
+
 				// S4 has 2, IW8 has 1
 				batch.add_multi(SETUP_MULTI_POINTER(compile_error_sites_common),
 					"4C 8D 05 ? ? ? ? 48 8B CB E8 ? ? 00 00 ? 8B 16 44 8B C7 8B",

@@ -254,11 +254,13 @@ namespace patches
 					return scheduler::cond_continue;
 				}
 
-				std::string current_data = game::get_current(neura_session_data_current)->string;
-				if (current_data.empty())
+				const auto* current_data_dvar = game::get_current(neura_session_data_current);
+				if (!current_data_dvar)
 				{
 					return scheduler::cond_continue;
 				}
+
+				std::string current_data = current_data_dvar->string;
 
 				auto sep = current_data.find(':');
 				if (sep != std::string::npos)
@@ -268,7 +270,6 @@ namespace patches
 					utils::io::write_file(std::format("neura/{}", key), data);
 				}
 
-				// signal GSC that we've read this entry
 				game::get_current(neura_session_read_complete)->enabled = true;
 
 				return scheduler::cond_continue;
@@ -297,7 +298,8 @@ namespace patches
 					static std::string count_str;
 					count_str = std::to_string(neura_load_entries.size());
 
-					game::get_current(neura_session_data_count)->string = count_str.c_str();
+					if (neura_session_data_count)
+						game::get_current(neura_session_data_count)->string = count_str.c_str();
 
 					if (neura_load_entries.empty())
 					{

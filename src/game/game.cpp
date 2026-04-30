@@ -45,6 +45,9 @@ namespace game
 			return false;
 
 		auto current = get_current(dvar);
+		if (!current)
+			return false;
+
 		return current->enabled;
 	}
 
