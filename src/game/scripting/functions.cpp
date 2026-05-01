@@ -48,34 +48,7 @@ namespace scripting
 
 		int find_function_index(const std::string& name, [[maybe_unused]] const bool prefer_global)
 		{
-			const auto target = utils::string::to_lower(name);
-			auto const& first = gsc::gsc_ctx->func_map();
-			auto const& second = gsc::gsc_ctx->meth_map();
-
-			if (!prefer_global)
-			{
-				if (const auto itr = second.find(name); itr != second.end())
-				{
-					return static_cast<int>(itr->second);
-				}
-
-				if (const auto itr = first.find(name); itr != first.end())
-				{
-					return static_cast<int>(itr->second);
-				}
-			}
-
-			if (const auto itr = first.find(name); itr != first.end())
-			{
-				return static_cast<int>(itr->second);
-			}
-
-			if (const auto itr = second.find(name); itr != second.end())
-			{
-				return static_cast<int>(itr->second);
-			}
-
-			return -1;
+			return gsc::find_builtin_index(name, prefer_global);
 		}
 	}
 
@@ -86,7 +59,8 @@ namespace scripting
 		if (game_ == "s4-mod"s)
 		{
 			const auto& map = s4_token_map();
-			if (const auto it = map.find(id); it != map.end())
+			const auto token = static_cast<std::uint32_t>(id);
+			if (const auto it = map.find(token); it != map.end())
 			{
 				return it->second;
 			}
@@ -103,7 +77,7 @@ namespace scripting
 			return std::to_string(id);
 		}
 
-		return gsc::gsc_ctx->token_name(id);
+		return gsc::token_name(id);
 	}
 
 	std::string find_token_single(std::uint64_t id)

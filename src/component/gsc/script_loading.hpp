@@ -26,6 +26,22 @@ namespace gsc
 
 	void on_begin_scripts(const std::function<void()>& callback);
 
+	std::uint32_t token_id(const std::string& name);
+	std::string token_name(std::uint64_t id);
+
+	std::string builtin_function_name(std::uint64_t id);
+	std::string builtin_method_name(std::uint64_t id);
+	bool builtin_function_exists(const std::string& name);
+	bool builtin_method_exists(const std::string& name);
+	std::uint16_t builtin_function_id(const std::string& name);
+	std::uint16_t builtin_method_id(const std::string& name);
+	void add_builtin_function(const std::string& name, std::uint16_t id);
+	void add_builtin_method(const std::string& name, std::uint16_t id);
+	int find_builtin_index(const std::string& name, bool prefer_global);
+
+	std::optional<std::string> opcode_name(std::uint8_t opcode);
+	bool is_builtin_call_opcode(std::uint8_t opcode);
+
 	std::string get_function_name(game::name_or_hash raw_name);
 
 	std::string get_script_name(const char* name);

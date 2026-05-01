@@ -167,7 +167,6 @@ namespace scripting
 			current_script_file_asset = current_script_file;
 			current_file = gsc::get_script_name(current_script_file);
 
-			//printf("process_script_stub: script file is %s (%" PRIu64 ")\n", gsc::gsc_ctx->path_name(scriptfile->name).data(), scriptfile->name);
 			call_spoofer::spoof_hook_invoke<void>(process_script_hook, context, scriptfile);
 		}
 

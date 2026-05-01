@@ -68,7 +68,7 @@ namespace gsc
 			builtin_function func = func_table[function_id - context->m_funcBegin]; // game does this for the stock func table
 			if (func == nullptr)
 			{
-				scr_error(utils::string::va("builtin function \"%s\" doesn't exist", gsc_ctx->func_name(current_function_id).data()), true);
+				scr_error(utils::string::va("builtin function \"%s\" doesn't exist", builtin_function_name(current_function_id).data()), true);
 				return;
 			}
 
@@ -115,7 +115,7 @@ namespace gsc
 			builtin_method meth = meth_table[function_id - context->m_methBegin];
 			if (meth == nullptr)
 			{
-				scr_error(utils::string::va("builtin method \"%s\" doesn't exist", gsc_ctx->meth_name(current_function_id).data()), true);
+				scr_error(utils::string::va("builtin method \"%s\" doesn't exist", builtin_method_name(current_function_id).data()), true);
 				return;
 			}
 
@@ -146,25 +146,17 @@ namespace gsc
 		{
 			if (current_function_id > func_table_count)
 			{
-				printf("in call to builtin method \"%s\"%s\n", gsc_ctx->meth_name(current_function_id).data(), error.data());
+				printf("in call to builtin method \"%s\"%s\n", builtin_method_name(current_function_id).data(), error.data());
 			}
 			else
 			{
-				printf("in call to builtin function \"%s\"%s\n", gsc_ctx->func_name(current_function_id).data(), error.data());
+				printf("in call to builtin function \"%s\"%s\n", builtin_function_name(current_function_id).data(), error.data());
 			}
 		}
 
 		std::optional<std::string> get_opcode_name(const std::uint8_t opcode)
 		{
-			try
-			{
-				const auto index = gsc_ctx->opcode_enum(opcode);
-				return { gsc_ctx->opcode_name(index) };
-			}
-			catch (...)
-			{
-				return {};
-			}
+			return opcode_name(opcode);
 		}
 
 		void print_callstack()
@@ -245,8 +237,7 @@ namespace gsc
 				? utils::string::va(": %s", gsc_error_msg.value().data())
 				: "";
 
-			if ((opcode_id >= gsc_ctx->opcode_id(xsk::gsc::opcode::OP_CallBuiltin0) && opcode_id <= gsc_ctx->opcode_id(xsk::gsc::opcode::OP_CallBuiltin))
-				|| (opcode_id >= gsc_ctx->opcode_id(xsk::gsc::opcode::OP_CallBuiltinMethod0) && opcode_id <= gsc_ctx->opcode_id(xsk::gsc::opcode::OP_CallBuiltinMethod)))
+			if (is_builtin_call_opcode(opcode_id))
 			{
 				builtin_call_error(error_str);
 			}
@@ -368,15 +359,15 @@ namespace gsc
 	{
 		void add(const std::string& name, builtin_function function)
 		{
-			if (gsc_ctx->func_exists(name))
+			if (builtin_function_exists(name))
 			{
-				const auto id = gsc_ctx->func_id(name);
+				const auto id = builtin_function_id(name);
 				functions[id] = function;
 			}
 			else
 			{
 				const auto id = ++function_id_start;
-				gsc_ctx->func_add(name, id);
+				add_builtin_function(name, id);
 				functions[id] = function;
 			}
 		}
@@ -386,15 +377,15 @@ namespace gsc
 	{
 		void add(const std::string& name, builtin_method method)
 		{
-			if (gsc_ctx->meth_exists(name))
+			if (builtin_method_exists(name))
 			{
-				const auto id = gsc_ctx->meth_id(name);
+				const auto id = builtin_method_id(name);
 				methods[id] = method;
 			}
 			else
 			{
 				const auto id = ++method_id_start;
-				gsc_ctx->meth_add(name, id);
+				add_builtin_method(name, id);
 				methods[id] = method;
 			}
 		}

@@ -30,6 +30,35 @@ namespace gsc
 
 	namespace
 	{
+		template <typename Callback>
+		decltype(auto) with_current_context(Callback&& callback)
+		{
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "s4-mod"s)
+			{
+				return callback(*gsc_ctx_s4);
+			}
+
+			if (game_ == "iw9-mod"s)
+			{
+				return callback(*gsc_ctx_iw9);
+			}
+
+			return callback(*gsc_ctx);
+		}
+
+		template <typename Callback>
+		decltype(auto) with_token_context(Callback&& callback)
+		{
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "s4-mod"s)
+			{
+				return callback(*gsc_ctx_s4);
+			}
+
+			return callback(*gsc_ctx);
+		}
+
 		void* DB_GetRawBuffer_call{};
 		void* FindXAssetHeaderScript_call{};
 		void* IsXAssetDefaultScript_call{};
@@ -227,69 +256,90 @@ namespace gsc
 
 			try
 			{
-				auto& compiler = gsc_ctx->compiler();
-				auto& assembler = gsc_ctx->assembler();
-
-				std::vector<std::uint8_t> data;
-				data.assign(source_buffer.begin(), source_buffer.end());
-
-				const auto assembly_ptr = compiler.compile(real_name, data);
-				const auto& [bytecode, stack, devmap] = assembler.assemble(*assembly_ptr);
-
-				const auto script_file_ptr = static_cast<game::ScriptFile*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile)));
-				
-				if (game_ == "iw9-mod"s)
+				return with_current_context([&](auto& ctx) -> game::ScriptFile*
 				{
-					auto new_file_name = gsc_ctx_iw9->path_id(real_name.data());
-					script_file_ptr->raw_name.hash = new_file_name;
-				}
-				else
-					script_file_ptr->raw_name.name = file_name.name;
+					auto& compiler = ctx.compiler();
+					auto& assembler = ctx.assembler();
 
-				script_file_ptr->len = static_cast<int>(stack.size);
-				script_file_ptr->bytecodeLen = static_cast<int>(bytecode.size);
+					std::vector<std::uint8_t> data;
+					data.assign(source_buffer.begin(), source_buffer.end());
 
-				const auto stack_size = static_cast<std::uint32_t>(stack.size + 1);
-				const auto byte_code_size = static_cast<std::uint32_t>(bytecode.size + 1);
+					const auto assembly_ptr = compiler.compile(real_name, data);
+					const auto& [bytecode, stack, devmap] = assembler.assemble(*assembly_ptr);
 
-				script_file_ptr->buffer = static_cast<char*>(scriptfile_allocator.allocate(stack_size));
-				std::memcpy(const_cast<char*>(script_file_ptr->buffer), stack.data, stack.size);
+					const auto stack_size = static_cast<std::uint32_t>(stack.size + 1);
+					const auto byte_code_size = static_cast<std::uint32_t>(bytecode.size + 1);
+					auto* stack_buffer = static_cast<char*>(scriptfile_allocator.allocate(stack_size));
+					auto* bytecode_buffer = allocate_buffer(byte_code_size);
 
-				script_file_ptr->bytecode = allocate_buffer(byte_code_size);
-				std::memcpy(script_file_ptr->bytecode, bytecode.data, bytecode.size);
+					std::memcpy(stack_buffer, stack.data, stack.size);
+					std::memcpy(bytecode_buffer, bytecode.data, bytecode.size);
 
-				script_file_ptr->compressedLen = 0;
-
-				loaded_script_t loaded_script{};
-				loaded_script.ptr = script_file_ptr;
-				loaded_script.devmap = parse_devmap(devmap);
-
-				// this code isn't really ran much, so i dont care to make it static
-				static const auto store_loaded = [](game::name_or_hash file_name, loaded_script_t loaded_script)
-				{
-					if (game_ == "iw9-mod"s)
+					void* script_ptr{};
+					if (game_ == "s4-mod"s)
 					{
-						loaded_scripts_iw9.insert(std::make_pair(file_name.hash, loaded_script));
+						const auto script_file_ptr = static_cast<game::ScriptFile_S4*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile_S4)));
+						script_file_ptr->name = file_name.name;
+						script_file_ptr->idk = nullptr;
+						script_file_ptr->compressedLen = 0;
+						script_file_ptr->len = static_cast<int>(stack.size);
+						script_file_ptr->bytecodeLen = static_cast<int>(bytecode.size);
+						script_file_ptr->pad = 0;
+						script_file_ptr->buffer = stack_buffer;
+						script_file_ptr->bytecode = bytecode_buffer;
+						script_ptr = script_file_ptr;
 					}
 					else
 					{
-						loaded_scripts.insert(std::make_pair(file_name.name, loaded_script));
-					}
-				};
-				store_loaded(file_name, loaded_script);
+						const auto script_file_ptr = static_cast<game::ScriptFile*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile)));
+						if (game_ == "iw9-mod"s)
+						{
+							script_file_ptr->raw_name.hash = gsc_ctx_iw9->path_id(real_name.data());
+						}
+						else
+						{
+							script_file_ptr->raw_name.name = file_name.name;
+						}
 
-				if (game_ == "iw9-mod"s)
-				{
-					for (const auto& func : assembly_ptr->functions)
+						script_file_ptr->compressedLen = 0;
+						script_file_ptr->len = static_cast<int>(stack.size);
+						script_file_ptr->bytecodeLen = static_cast<int>(bytecode.size);
+						script_file_ptr->buffer = stack_buffer;
+						script_file_ptr->bytecode = bytecode_buffer;
+						script_ptr = script_file_ptr;
+					}
+
+					loaded_script_t loaded_script{};
+					loaded_script.ptr = script_ptr;
+					loaded_script.devmap = parse_devmap(devmap);
+
+					// this code isn't really ran much, so i dont care to make it static
+					static const auto store_loaded = [](game::name_or_hash file_name, loaded_script_t loaded_script)
 					{
-						auto bruh = gsc_ctx_iw9->hash_id(func->name);
-						script_function_names[bruh] = func->name;
+						if (game_ == "iw9-mod"s)
+						{
+							loaded_scripts_iw9.insert(std::make_pair(file_name.hash, loaded_script));
+						}
+						else
+						{
+							loaded_scripts.insert(std::make_pair(file_name.name, loaded_script));
+						}
+					};
+					store_loaded(file_name, loaded_script);
+
+					if (game_ == "iw9-mod"s)
+					{
+						for (const auto& func : assembly_ptr->functions)
+						{
+							auto bruh = gsc_ctx_iw9->hash_id(func->name);
+							script_function_names[bruh] = func->name;
+						}
 					}
-				}
 
-				printf("Loaded custom gsc '%s'\n", real_name.data());
+					printf("Loaded custom gsc '%s'\n", real_name.data());
 
-				return script_file_ptr;
+					return reinterpret_cast<game::ScriptFile*>(script_ptr);
+				});
 			}
 			catch (const std::exception& e)
 			{
@@ -315,7 +365,7 @@ namespace gsc
 				}
 			}
 
-			const auto id = gsc_ctx->token_id(name);
+			const auto id = token_id(name);
 			if (!id)
 			{
 				return name;
@@ -412,14 +462,14 @@ namespace gsc
 					return;
 				}
 
-				const auto main_handle = game::Scr_GetFunctionHandle(scr_context, name.data(), gsc_ctx->token_id("main"));
+				const auto main_handle = game::Scr_GetFunctionHandle(scr_context, name.data(), token_id("main"));
 				if (main_handle)
 				{
 					printf("Loaded '%s::main'\n", name.data());
 					main_handles[name] = main_handle;
 				}
 
-				const auto init_handle = game::Scr_GetFunctionHandle(scr_context, name.data(), gsc_ctx->token_id("init"));
+				const auto init_handle = game::Scr_GetFunctionHandle(scr_context, name.data(), token_id("init"));
 				if (init_handle)
 				{
 					printf("Loaded '%s::init'\n", name.data());
@@ -534,10 +584,10 @@ namespace gsc
 				xsk::gsc::build::prod;
 
 			static const auto& game_ = identification::game::get_target_game().client_name;
-			if (game_ == "iw9-mod"s)
-				gsc_ctx_iw9->init(comp_mode, init_compiler_internal);
-			else
-				gsc_ctx->init(comp_mode, init_compiler_internal);
+			with_current_context([&](auto& ctx)
+			{
+				ctx.init(comp_mode, init_compiler_internal);
+			});
 		}
 
 		void scr_begin_load_scripts_stub(game::scrContext_t* context, char threadMode, unsigned int a3)
@@ -557,6 +607,7 @@ namespace gsc
 		void scr_end_load_scripts_stub(game::scrContext_t* context)
 		{
 			gsc_ctx->cleanup();
+			gsc_ctx_s4->cleanup();
 			gsc_ctx_iw9->cleanup();
 			scr_end_load_scripts_hook.invoke<void>(context);
 		}
@@ -667,6 +718,146 @@ namespace gsc
 		begin_scripts_callbacks.push_back(callback);
 	}
 
+	std::uint32_t token_id(const std::string& name)
+	{
+		return with_token_context([&](auto& ctx) -> std::uint32_t
+		{
+			return static_cast<std::uint32_t>(ctx.token_id(name));
+		});
+	}
+
+	std::string token_name(std::uint64_t id)
+	{
+		return with_token_context([&](auto& ctx) -> std::string
+		{
+			return ctx.token_name(static_cast<std::uint32_t>(id));
+		});
+	}
+
+	std::string builtin_function_name(std::uint64_t id)
+	{
+		return with_current_context([&](auto& ctx) -> std::string
+		{
+			return ctx.func_name(static_cast<std::uint16_t>(id));
+		});
+	}
+
+	std::string builtin_method_name(std::uint64_t id)
+	{
+		return with_current_context([&](auto& ctx) -> std::string
+		{
+			return ctx.meth_name(static_cast<std::uint16_t>(id));
+		});
+	}
+
+	bool builtin_function_exists(const std::string& name)
+	{
+		return with_current_context([&](auto& ctx) -> bool
+		{
+			return ctx.func_exists(name);
+		});
+	}
+
+	bool builtin_method_exists(const std::string& name)
+	{
+		return with_current_context([&](auto& ctx) -> bool
+		{
+			return ctx.meth_exists(name);
+		});
+	}
+
+	std::uint16_t builtin_function_id(const std::string& name)
+	{
+		return with_current_context([&](auto& ctx) -> std::uint16_t
+		{
+			return static_cast<std::uint16_t>(ctx.func_id(name));
+		});
+	}
+
+	std::uint16_t builtin_method_id(const std::string& name)
+	{
+		return with_current_context([&](auto& ctx) -> std::uint16_t
+		{
+			return static_cast<std::uint16_t>(ctx.meth_id(name));
+		});
+	}
+
+	void add_builtin_function(const std::string& name, std::uint16_t id)
+	{
+		with_current_context([&](auto& ctx)
+		{
+			ctx.func_add(name, id);
+		});
+	}
+
+	void add_builtin_method(const std::string& name, std::uint16_t id)
+	{
+		with_current_context([&](auto& ctx)
+		{
+			ctx.meth_add(name, id);
+		});
+	}
+
+	int find_builtin_index(const std::string& name, const bool prefer_global)
+	{
+		const auto target = utils::string::to_lower(name);
+		return with_current_context([&](auto& ctx) -> int
+		{
+			const auto& functions = ctx.func_map();
+			const auto& methods = ctx.meth_map();
+
+			if (!prefer_global)
+			{
+				if (const auto itr = methods.find(target); itr != methods.end())
+				{
+					return static_cast<int>(itr->second);
+				}
+
+				if (const auto itr = functions.find(target); itr != functions.end())
+				{
+					return static_cast<int>(itr->second);
+				}
+			}
+
+			if (const auto itr = functions.find(target); itr != functions.end())
+			{
+				return static_cast<int>(itr->second);
+			}
+
+			if (const auto itr = methods.find(target); itr != methods.end())
+			{
+				return static_cast<int>(itr->second);
+			}
+
+			return -1;
+		});
+	}
+
+	std::optional<std::string> opcode_name(const std::uint8_t opcode)
+	{
+		try
+		{
+			return with_current_context([&](auto& ctx) -> std::optional<std::string>
+			{
+				const auto index = ctx.opcode_enum(opcode);
+				return { ctx.opcode_name(index) };
+			});
+		}
+		catch (...)
+		{
+			return {};
+		}
+	}
+
+	bool is_builtin_call_opcode(const std::uint8_t opcode)
+	{
+		return with_current_context([&](auto& ctx) -> bool
+		{
+			return (opcode >= ctx.opcode_id(xsk::gsc::opcode::OP_CallBuiltin0) && opcode <= ctx.opcode_id(xsk::gsc::opcode::OP_CallBuiltin))
+				|| (opcode >= ctx.opcode_id(xsk::gsc::opcode::OP_CallBuiltinMethod0) && opcode <= ctx.opcode_id(xsk::gsc::opcode::OP_CallBuiltinMethod));
+		});
+	}
+
 	inline std::string get_script_name(const char* name)
 	{
 		std::string real_name = name;
@@ -674,11 +865,7 @@ namespace gsc
 
 		if (id)
 		{
-			static const auto& game_ = identification::game::get_target_game().client_name;
-			if (game_ == "s4-mod"s)
-				real_name = gsc_ctx_s4->token_name(id);
-			else
-				real_name = gsc_ctx->token_name(id);
+			real_name = token_name(id);
 		}
 
 		return real_name;
