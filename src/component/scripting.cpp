@@ -24,16 +24,54 @@ namespace scripting
 	{
 		std::unordered_map<int, std::unordered_map<std::string, int>> fields_table;
 
-		std::unordered_map<std::string, std::unordered_map<std::string, const char*>> script_function_table;
-		std::unordered_map<std::string, std::vector<std::pair<std::string, const char*>>> script_function_table_sort;
-		std::unordered_map<const char*, std::pair<std::string, std::string>> script_function_table_rev;
+		bool is_iw9()
+		{
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			return game_ == "iw9-mod"s;
+		}
 
-		// iw9
-		std::unordered_map<std::uint64_t, std::unordered_map<std::uint64_t, const char*>> script_function_table_iw9;
-		std::unordered_map<std::uint64_t, std::vector<std::pair<std::uint64_t, const char*>>> script_function_table_sort_iw9;
-		std::unordered_map<const char*, std::pair<std::uint64_t, std::uint64_t>> script_function_table_rev_iw9;
+		struct name_or_hash_hash
+		{
+			std::size_t operator()(const game::name_or_hash value) const
+			{
+				if (is_iw9())
+				{
+					return std::hash<std::uint64_t>{}(value.hash);
+				}
 
-		std::string current_file;
+				return std::hash<std::string>{}(value.name ? value.name : "");
+			}
+		};
+
+		struct name_or_hash_equal
+		{
+			bool operator()(const game::name_or_hash lhs, const game::name_or_hash rhs) const
+			{
+				if (is_iw9())
+				{
+					return lhs.hash == rhs.hash;
+				}
+
+				if (lhs.name == rhs.name)
+				{
+					return true;
+				}
+
+				if (!lhs.name || !rhs.name)
+				{
+					return false;
+				}
+
+				return std::strcmp(lhs.name, rhs.name) == 0;
+			}
+		};
+
+		using script_function_map = std::unordered_map<game::name_or_hash, const char*, name_or_hash_hash, name_or_hash_equal>;
+
+		std::unordered_map<game::name_or_hash, script_function_map, name_or_hash_hash, name_or_hash_equal> script_function_table;
+		std::unordered_map<game::name_or_hash, std::vector<std::pair<game::name_or_hash, const char*>>, name_or_hash_hash, name_or_hash_equal> script_function_table_sort;
+		std::unordered_map<const char*, std::pair<game::name_or_hash, game::name_or_hash>> script_function_table_rev;
+		std::unordered_set<std::string> script_name_pool;
 
 		struct zp_gsc_script_info
 		{
@@ -52,12 +90,45 @@ namespace scripting
 		utils::hook::detour scr_set_thread_position_hook;
 		utils::hook::detour process_script_hook;
 
-		std::string current_script_file;
-		unsigned int current_file_id{};
-
-		std::uint64_t current_script_file_iw9;
+		game::name_or_hash current_script_file;
+		game::name_or_hash current_script_file_asset;
+		std::string current_file;
 
 		std::vector<std::function<void(bool, bool)>> shutdown_callbacks;
+
+		const char* intern_script_name(std::string name)
+		{
+			return script_name_pool.emplace(std::move(name)).first->c_str();
+		}
+
+		game::name_or_hash make_name_key(const char* name)
+		{
+			game::name_or_hash result{};
+			result.name = name;
+			return result;
+		}
+
+		game::name_or_hash make_name_key(std::string name)
+		{
+			return make_name_key(intern_script_name(std::move(name)));
+		}
+
+		game::name_or_hash make_hash_key(const std::uint64_t hash)
+		{
+			game::name_or_hash result{};
+			result.hash = hash;
+			return result;
+		}
+
+		game::name_or_hash make_function_key(const std::uint64_t id)
+		{
+			return is_iw9() ? make_hash_key(id) : make_name_key(get_token(id));
+		}
+
+		game::name_or_hash make_end_key()
+		{
+			return is_iw9() ? make_hash_key(0) : make_name_key("__end__");
+		}
 
 		void scr_add_class_field_stub(game::scrContext_t* context,
 			unsigned int classnum, game::scr_string_t name, unsigned int canonical_string, unsigned int offset)
@@ -81,19 +152,20 @@ namespace scripting
 			scr_add_class_field_hook.invoke<void>(context, classnum, name, offset);
 		}
 
-		void process_script_stub(game::scrContext_t* context, game::ScriptFile* scriptfile)
+		void process_script_stub(game::scrContext_t* context, const char* filename)
 		{
-			static const auto& game_ = identification::game::get_target_game().client_name;
-			if (game_ == "iw9-mod"s)
-			{
-				current_script_file_iw9 = reinterpret_cast<std::uint64_t>(scriptfile->name);
-				current_file = gsc::get_script_name_iw9(reinterpret_cast<std::uint64_t>(scriptfile->name));
-			}
-			else
-			{
-				current_script_file = scriptfile->name;
-				current_file = gsc::get_script_name(scriptfile->name);
-			}
+			current_script_file_asset = make_name_key(filename);
+			current_file = gsc::get_script_name(filename);
+			current_script_file = make_name_key(current_file);
+
+			call_spoofer::spoof_hook_invoke<void>(process_script_hook, context, filename);
+		}
+
+		void process_script_stub_iw9(game::scrContext_t* context, game::ScriptFile* scriptfile)
+		{
+			current_script_file = make_hash_key(scriptfile->raw_name.hash);
+			current_script_file_asset = current_script_file;
+			current_file = gsc::get_script_name(current_script_file);
 
 			//printf("process_script_stub: script file is %s (%" PRIu64 ")\n", gsc::gsc_ctx->path_name(scriptfile->name).data(), scriptfile->name);
 			call_spoofer::spoof_hook_invoke<void>(process_script_hook, context, scriptfile);
@@ -108,107 +180,81 @@ namespace scripting
 			return game::ASSET_TYPE_SCRIPTFILE;
 		}
 
-		void add_function_sort(std::uint64_t id, const char* pos)
+		void add_function_sort(game::name_or_hash id, const char* pos)
 		{
-			std::string filename = current_file;
-			if (current_file_id)
-			{
-				filename = scripting::get_token(current_file_id);
-			}
-
-			if (!script_function_table_sort.contains(filename))
+			if (!script_function_table_sort.contains(current_script_file))
 			{
 				static const auto& game_ = identification::game::get_target_game().client_name;
 
-				void* script = nullptr;
-				if (game_ == "iw9-mod"s)
+				void* script = gsc::find_script(get_scriptfile_type(&game_), current_script_file_asset, false);
+
+				if (script == nullptr)
 				{
-					//printf("calling find_script_iw9 with name %" PRIu64 "\n", current_script_file_iw9);
-					gsc::find_script_iw9(get_scriptfile_type(&game_), current_script_file_iw9, false);
+					return;
+				}
+
+				const char* end = nullptr;
+				if (game_ == "s4-mod"s)
+				{
+					auto* s4 = reinterpret_cast<game::ScriptFile_S4*>(script);
+					end = &s4->bytecode[s4->bytecodeLen];
 				}
 				else
-					gsc::find_script(get_scriptfile_type(&game_), current_script_file.data(), false);
-
-				if (script != nullptr)
 				{
-					const char* end = nullptr;
-					if (game_ == "s4-mod"s)
-					{
-						auto* s4 = reinterpret_cast<game::ScriptFile_S4*>(script);
-						end = &s4->bytecode[s4->bytecodeLen];
-					}
-					else if (game_ == "iw9-mod"s)
-					{
-						auto* iw9 = reinterpret_cast<game::ScriptFile_IW9*>(script);
-						end = &iw9->bytecode[iw9->bytecodeLen];
-					}
-					else
-					{
-						auto* script_ = reinterpret_cast<game::ScriptFile*>(script);
-						end = &script_->bytecode[script_->bytecodeLen];
-					}
-					script_function_table_sort[filename].emplace_back("__end__", end);
+					auto* script_ = reinterpret_cast<game::ScriptFile*>(script);
+					end = &script_->bytecode[script_->bytecodeLen];
 				}
+
+				script_function_table_sort[current_script_file].emplace_back(make_end_key(), end);
 			}
 
-			const auto name = gsc::get_function_name(id);
-			auto& itr = script_function_table_sort[filename];
-			itr.insert(itr.end() - 1, {name, pos});
+			const auto name = make_function_key(id.token);
+			auto& itr = script_function_table_sort[current_script_file];
+			itr.insert(itr.end() - 1, { name, pos });
 		}
 
-		void add_function(const std::string& file, unsigned int id, const char* pos)
+		void add_function(game::name_or_hash file, game::name_or_hash id, const char* pos)
 		{
-			const auto name = gsc::get_function_name(id);
-			script_function_table[file][name] = pos;
-			script_function_table_rev[pos] = {file, name};
+			script_function_table[file][id] = pos;
+			script_function_table_rev[pos] = {file, id};
 		}
 
 		void add_function_sort_iw9(std::uint64_t id, const char* pos)
 		{
-			if (!script_function_table_sort_iw9.contains(current_script_file_iw9))
+			if (!script_function_table_sort.contains(current_script_file))
 			{
-				const auto script = gsc::find_script_iw9(game::ASSET_TYPE_SCRIPTFILE_IW9, current_script_file_iw9, false);
+				const auto script = gsc::find_script(game::ASSET_TYPE_SCRIPTFILE_IW9, current_script_file_asset, false);
 				if (script == nullptr)
 				{
 					return;
 				}
 
 				const auto end = &script->bytecode[script->bytecodeLen];
-				script_function_table_sort_iw9[current_script_file_iw9].emplace_back(0, end);
+				script_function_table_sort[current_script_file].emplace_back(make_end_key(), end);
 			}
 
-			auto& itr = script_function_table_sort_iw9[current_script_file_iw9];
-			itr.insert(itr.end() - 1, { id, pos });
+			const auto name = make_function_key(id);
+			auto& itr = script_function_table_sort[current_script_file];
+			itr.insert(itr.end() - 1, { name, pos });
 		}
 
 		void add_function_iw9(const std::uint64_t file, std::uint64_t id, const char* pos)
 		{
-			script_function_table_iw9[file][id] = pos;
-			script_function_table_rev_iw9[pos] = { file, id };
+			add_function(make_hash_key(file), make_hash_key(id), pos);
 		}
 
-		void scr_set_thread_position_stub(game::scrContext_t* context, unsigned int thread_name, const char* code_pos)
+		void scr_set_thread_position_stub(game::scrContext_t* context, game::name_or_hash thread_name, const char* code_pos)
 		{
 			add_function_sort(thread_name, code_pos);
-
-			if (current_file_id)
-			{
-				const auto name = get_token(current_file_id);
-				add_function(name, thread_name, code_pos);
-			}
-			else
-			{
-				add_function(current_file, thread_name, code_pos);
-			}
+			add_function(current_script_file, make_function_key(thread_name.token), code_pos);
 
 			scr_set_thread_position_hook.invoke<void>(context, thread_name, code_pos);
 		}
 
-		// *(scrContext + 4688)
 		void scr_set_thread_position_stub_iw9(game::scrContext_t* context, std::uint64_t thread_name, const char* code_pos)
 		{
 			add_function_sort_iw9(thread_name, code_pos);
-			add_function_iw9(current_script_file_iw9, thread_name, code_pos);
+			add_function_iw9(current_script_file.hash, thread_name, code_pos);
 			scr_set_thread_position_hook.invoke<void>(context, thread_name, code_pos);
 		}
 
@@ -217,11 +263,9 @@ namespace scripting
 			if (free_scripts)
 			{
 				script_function_table_sort.clear();
-				script_function_table_sort_iw9.clear();
 				script_function_table.clear();
-				script_function_table_iw9.clear();
 				script_function_table_rev.clear();
-				script_function_table_rev_iw9.clear();
+				script_name_pool.clear();
 			}
 
 			for (const auto& callback : shutdown_callbacks)
@@ -274,9 +318,9 @@ namespace scripting
 		return current_file;
 	}
 
-	std::optional<std::pair<std::uint64_t, std::uint64_t>> find_function_iw9(const char* pos)
+	std::optional<std::pair<game::name_or_hash, game::name_or_hash>> find_function(const char* pos)
 	{
-		for (const auto& file : script_function_table_sort_iw9)
+		for (const auto& file : script_function_table_sort)
 		{
 			for (auto i = file.second.begin(); i != file.second.end() && std::next(i) != file.second.end(); ++i)
 			{
@@ -334,12 +378,17 @@ namespace scripting
 			{
 				scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub_iw9);
 				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub_iw9);
-				process_script_hook.create(game::ProcessScript, process_script_stub);
+				process_script_hook.create(game::ProcessScript, process_script_stub_iw9);
 
 				mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
 			}
 			else
 			{
+				scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub);
+				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub);
+				process_script_hook.create(game::ProcessScript, process_script_stub);
+				mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
+
 				const auto version_dll = GetModuleHandleA("version.dll");
 				if (!version_dll)
 					return;

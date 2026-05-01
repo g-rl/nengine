@@ -1,5 +1,6 @@
 #pragma once
 #include <xsk/gsc/engine/iw8.hpp>
+#include <xsk/gsc/engine/s4.hpp>
 #include <xsk/gsc/engine/iw9.hpp>
 
 namespace gsc
@@ -19,15 +20,15 @@ namespace gsc
 	extern std::unique_ptr<xsk::gsc::iw8::context> gsc_ctx;
 	extern std::unique_ptr<xsk::gsc::iw9::context> gsc_ctx_iw9;
 
-	game::ScriptFile* find_script(game::XAssetType type, const char* name, int allow_create_default);
-	game::ScriptFile_IW9* find_script_iw9(game::XAssetType type, std::uint64_t name, int allow_create_default);
+	game::ScriptFile* find_script(game::XAssetType type, game::name_or_hash name, int allow_create_default);
 
 	loaded_script_t* get_loaded_script(const std::string& name);
 
 	void on_begin_scripts(const std::function<void()>& callback);
 
-	std::string get_function_name(std::uint64_t id);
+	std::string get_function_name(game::name_or_hash raw_name);
 
-	std::string get_script_name(const char* name, bool ignore_cache = false);
+	std::string get_script_name(const char* name);
+	std::string get_script_name(game::name_or_hash raw_name);
 	std::string get_script_name_iw9(std::uint64_t hash);
 }

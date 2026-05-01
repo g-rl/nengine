@@ -49,12 +49,12 @@ namespace gsc
 		void get_unknown_function_error(const char* code_pos)
 		{
 			const auto current = scripting::get_current_file();
-			const auto function = scripting::find_function_iw9(code_pos);
+			const auto function = scripting::find_function(code_pos);
 			if (function.has_value())
 			{
 				const auto& pos = function.value();
 				unknown_function_error = std::format(
-					"while processing function '{}' in script '{}':\nunknown script '{}'", get_function_name(pos.first), get_script_name_iw9(pos.second), current
+					"while processing function '{}' in script '{}':\nunknown script '{}'", get_function_name(pos.first), get_script_name(pos.second), current
 				);
 			}
 			else
@@ -109,7 +109,7 @@ namespace gsc
 			if (!res)
 			{
 				get_unknown_function_error(thread_name);
-				const auto error_msg = utils::string::va("script link error\n%s", unknown_function_error.data());
+				const auto error_msg = utils::string::va("(FindVariable) script link error\n%s", unknown_function_error.data());
 				printf("%s\n", error_msg);
 				game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n", error_msg);
 			}
@@ -122,13 +122,14 @@ namespace gsc
 			if (!res)
 			{
 				get_unknown_function_error(thread_name);
-				const auto error_msg = utils::string::va("DEV ERROR 1141 FindVariable\n%s", unknown_function_error.data());
+				const auto error_msg = utils::string::va("(FindVariable) script link error\n%s", unknown_function_error.data());
 				printf("%s\n", error_msg);
 				game::Com_Error(game::ERR_SCRIPT_DROP, "%s\n", error_msg);
 			}
 			return res;
 		}
 
+		/*
 		utils::hook::detour scr_get_object_hook;
 		utils::hook::detour scr_get_const_string_hook;
 		utils::hook::detour scr_get_const_istring_hook;
@@ -313,6 +314,7 @@ namespace gsc
 			scr_error(va(__FUNCTION__ ": parameter %u does not exist", index + 1));
 			return nullptr;
 		}
+		*/
 
 		inline std::uint64_t base_off(const void* p)
 		{

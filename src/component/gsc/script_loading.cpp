@@ -22,6 +22,7 @@
 namespace gsc
 {
 	std::unique_ptr<xsk::gsc::iw8::context> gsc_ctx = std::make_unique<xsk::gsc::iw8::context>(xsk::gsc::instance::server);
+	std::unique_ptr<xsk::gsc::s4::context> gsc_ctx_s4 = std::make_unique<xsk::gsc::s4::context>(xsk::gsc::instance::server);
 	std::unique_ptr<xsk::gsc::iw9::context> gsc_ctx_iw9 = std::make_unique<xsk::gsc::iw9::context>(xsk::gsc::instance::server);
 
 	std::unordered_map<std::string, loaded_script_t> loaded_scripts;
@@ -189,16 +190,31 @@ namespace gsc
 			return pos_map;
 		}
 
-		game::ScriptFile* load_custom_script(const char* file_name, const std::string& real_name)
+		game::ScriptFile* load_custom_script(game::name_or_hash file_name, const std::string& real_name)
 		{
+			// override vlobby scripts
 			if (game::Com_FrontEnd_IsInFrontEnd())
 			{
 				return nullptr;
 			}
 
-			if (const auto itr = loaded_scripts.find(file_name); itr != loaded_scripts.end())
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			static const auto find_loaded = [](game::name_or_hash file_name) -> void*
 			{
-				return reinterpret_cast<game::ScriptFile*>(itr->second.ptr);
+				if (game_ == "iw9-mod"s)
+				{
+					const auto itr = loaded_scripts_iw9.find(file_name.hash);
+					return itr != loaded_scripts_iw9.end() ? itr->second.ptr : nullptr;
+				}
+
+				// iw8 and s4 use this
+				const auto itr = loaded_scripts.find(file_name.name);
+				return itr != loaded_scripts.end() ? itr->second.ptr : nullptr;
+			};
+
+			if (const auto ptr = find_loaded(file_name))
+			{
+				return reinterpret_cast<game::ScriptFile*>(ptr);
 			}
 
 			std::string source_buffer{};
@@ -206,6 +222,8 @@ namespace gsc
 			{
 				return nullptr;
 			}
+
+			printf("Loading custom gsc '%s'\n", real_name.data());
 
 			try
 			{
@@ -219,7 +237,14 @@ namespace gsc
 				const auto& [bytecode, stack, devmap] = assembler.assemble(*assembly_ptr);
 
 				const auto script_file_ptr = static_cast<game::ScriptFile*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile)));
-				script_file_ptr->name = file_name;
+				
+				if (game_ == "iw9-mod"s)
+				{
+					auto new_file_name = gsc_ctx_iw9->path_id(real_name.data());
+					script_file_ptr->raw_name.hash = new_file_name;
+				}
+				else
+					script_file_ptr->raw_name.name = file_name.name;
 
 				script_file_ptr->len = static_cast<int>(stack.size);
 				script_file_ptr->bytecodeLen = static_cast<int>(bytecode.size);
@@ -238,94 +263,28 @@ namespace gsc
 				loaded_script_t loaded_script{};
 				loaded_script.ptr = script_file_ptr;
 				loaded_script.devmap = parse_devmap(devmap);
-				loaded_scripts.insert(std::make_pair(file_name, loaded_script));
 
-				// TODO
-				for (const auto& func : assembly_ptr->functions)
+				// this code isn't really ran much, so i dont care to make it static
+				static const auto store_loaded = [](game::name_or_hash file_name, loaded_script_t loaded_script)
 				{
-					auto bruh = 0; // gsc_ctx->token_id(func->name);
-					printf("caching function '%s' with id %u\n", func->name.data(), bruh);
-					script_function_names[bruh] = func->name;
-				}
+					if (game_ == "iw9-mod"s)
+					{
+						loaded_scripts_iw9.insert(std::make_pair(file_name.hash, loaded_script));
+					}
+					else
+					{
+						loaded_scripts.insert(std::make_pair(file_name.name, loaded_script));
+					}
+				};
+				store_loaded(file_name, loaded_script);
 
-				printf("Loaded custom gsc '%s'\n", real_name.data());
-
-				return script_file_ptr;
-			}
-			catch (const std::exception& e)
-			{
-				printf("*********** script compile error *************\n");
-				printf("failed to compile '%s':\n%s\n", real_name.data(), e.what());
-				printf("**********************************************\n");
-				return nullptr;
-			}
-
-			return nullptr;
-		}
-
-		game::ScriptFile_IW9* load_custom_script_iw9(std::uint64_t path_id, const std::string& real_name)
-		{
-			if (game::Com_FrontEnd_IsInFrontEnd())
-			{
-				return nullptr;
-			}
-
-			// put this above to override vlobby scripts
-			if (const auto itr = loaded_scripts_iw9.find(path_id); itr != loaded_scripts_iw9.end())
-			{
-				return reinterpret_cast<game::ScriptFile_IW9*>(itr->second.ptr);
-			}
-
-			std::string source_buffer{};
-			if (!read_raw_script_file(real_name, &source_buffer) || source_buffer.empty())
-			{
-				return nullptr;
-			}
-
-			printf("Loading custom gsc '%s'\n", real_name.data());
-
-			try
-			{
-				auto& compiler = gsc_ctx_iw9->compiler();
-				auto& assembler = gsc_ctx_iw9->assembler();
-
-				std::vector<std::uint8_t> data;
-				data.assign(source_buffer.begin(), source_buffer.end());
-
-				const auto assembly_ptr = compiler.compile(real_name, data);
-				const auto& [bytecode, stack, devmap] = assembler.assemble(*assembly_ptr);
-
-				auto* script_file_ptr = static_cast<game::ScriptFile_IW9*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile_IW9)));
-				auto file_name = gsc_ctx_iw9->path_id(real_name.data());
-				script_file_ptr->name = file_name;
-
-				script_file_ptr->len = static_cast<int>(stack.size);
-				script_file_ptr->bytecodeLen = static_cast<int>(bytecode.size);
-
-				const auto stack_size = static_cast<std::uint32_t>(stack.size + 1);
-				const auto byte_code_size = static_cast<std::uint32_t>(bytecode.size + 1);
-
-				script_file_ptr->buffer = allocate_buffer(stack_size);
-				std::memcpy(script_file_ptr->buffer, stack.data, stack.size);
-
-				script_file_ptr->bytecode = allocate_buffer(byte_code_size);
-				std::memcpy(script_file_ptr->bytecode, bytecode.data, bytecode.size);
-
-				script_file_ptr->pad = 0; // idk what this is, just 0 it
-				script_file_ptr->compressedLen = 0;
-
-				loaded_script_t loaded_script{};
-				loaded_script.ptr = script_file_ptr;
-				loaded_script.devmap = parse_devmap(devmap);
-				loaded_scripts_iw9.insert(std::make_pair(file_name, loaded_script));
-
-				// precache all functions in their hashed form for later - this helps us with human readable errors
-				// a std::uint64_t should map to a gsc_ctx_iw9->path_name
-				// this is cleared on shutdown next to loaded_scripts
-				for (const auto& func : assembly_ptr->functions)
+				if (game_ == "iw9-mod"s)
 				{
-					auto bruh = gsc_ctx_iw9->hash_id(func->name);
-					script_function_names[bruh] = func->name;
+					for (const auto& func : assembly_ptr->functions)
+					{
+						auto bruh = gsc_ctx_iw9->hash_id(func->name);
+						script_function_names[bruh] = func->name;
+					}
 				}
 
 				printf("Loaded custom gsc '%s'\n", real_name.data());
@@ -469,18 +428,19 @@ namespace gsc
 			}
 		}
 
-		int db_is_x_asset_default_stub(game::XAssetType type, const char* name)
+		int db_is_x_asset_default_stub(game::XAssetType type, game::name_or_hash name)
 		{
-			if (loaded_scripts.contains(name))
-				return 0;
-			return db_is_x_asset_default_hook.invoke<int>(type, name);
-		}
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "iw9-mod"s)
+			{
+				if (loaded_scripts_iw9.contains(name.hash))
+					return 0;
+				return db_is_x_asset_default_hook.invoke<int>(type, name.hash);
+			}
 
-		int db_is_x_asset_default_stub_iw9(game::XAssetType type, std::uint64_t name)
-		{
-			if (loaded_scripts_iw9.contains(name))
+			if (loaded_scripts.contains(name.name))
 				return 0;
-			return db_is_x_asset_default_hook.invoke<int>(type, name);
+			return db_is_x_asset_default_hook.invoke<int>(type, name.name);
 		}
 
 		utils::hook::detour gscr_load_level_hook;
@@ -676,7 +636,7 @@ namespace gsc
 		}
 	}
 
-	game::ScriptFile* find_script(game::XAssetType type, const char* name, int allow_create_default)
+	game::ScriptFile* find_script(game::XAssetType type, game::name_or_hash name, int allow_create_default)
 	{
 		auto real_name = get_script_name(name);
 
@@ -686,20 +646,11 @@ namespace gsc
 			return script;
 		}
 
-		return game::DB_FindXAssetHeader(type, name, allow_create_default).scriptfile;
-	}
+		static const auto& game_ = identification::game::get_target_game().client_name;
+		if (game_ == "iw9-mod"s)
+			return game::DB_FindXAssetHeader_IW9(type, name.hash, allow_create_default).scriptfile;
 
-	game::ScriptFile_IW9* find_script_iw9(game::XAssetType type, std::uint64_t name, int allow_create_default)
-	{
-		auto real_name = get_script_name_iw9(name);
-
-		auto* script = load_custom_script_iw9(name, real_name);
-		if (script)
-		{
-			return script;
-		}
-
-		return game::DB_FindXAssetHeader_IW9(type, name, allow_create_default).scriptfile;
+		return game::DB_FindXAssetHeader(type, name.name, allow_create_default).scriptfile;
 	}
 
 	loaded_script_t* get_loaded_script(const std::string& name)
@@ -716,20 +667,18 @@ namespace gsc
 		begin_scripts_callbacks.push_back(callback);
 	}
 
-	inline std::string get_script_name(const char* name, bool ignore_cache)
+	inline std::string get_script_name(const char* name)
 	{
 		std::string real_name = name;
 		const auto id = static_cast<std::uint16_t>(std::atoi(name));
 
 		if (id)
 		{
-			// check if the id passed through is actually our script
-			if (!ignore_cache && cached_ids.contains(id))
-			{
-				return cached_ids[id];
-			}
-
-			real_name = gsc_ctx->token_name(id);
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "s4-mod"s)
+				real_name = gsc_ctx_s4->token_name(id);
+			else
+				real_name = gsc_ctx->token_name(id);
 		}
 
 		return real_name;
@@ -744,9 +693,24 @@ namespace gsc
 		return gsc_ctx_iw9->path_name(hash);
 	}
 
-	std::string get_function_name(std::uint64_t id)
+	std::string get_script_name(game::name_or_hash raw_name)
 	{
-		if (const auto itr = script_function_names.find(id); itr != script_function_names.end())
+		static const auto& game_ = identification::game::get_target_game().client_name;
+		if (game_ == "iw9-mod"s)
+		{
+			return get_script_name_iw9(raw_name.hash);
+		}
+
+		return get_script_name(raw_name.name);
+	}
+
+	std::string get_function_name(game::name_or_hash raw_name)
+	{
+		static const auto& game_ = identification::game::get_target_game().client_name;
+		if (game_ != "iw9-mod"s)
+			return raw_name.name;
+
+		if (const auto itr = script_function_names.find(raw_name.hash); itr != script_function_names.end())
 		{
 			return itr->second;
 		}
@@ -833,16 +797,15 @@ namespace gsc
 				{
 					utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub_iw9); // load our scripts with an uncompressed stack
 					scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub_iw9);
-					db_is_x_asset_default_hook.create(game::DB_IsXAssetDefault, db_is_x_asset_default_stub_iw9);
-					utils::hook::call(FindXAssetHeaderScript_call, find_script_iw9); // ProcessScript: hook xasset functions to return our own custom scripts
 				}
 				else
 				{
 					utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);
 					scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub);
-					db_is_x_asset_default_hook.create(game::DB_IsXAssetDefault, db_is_x_asset_default_stub);
-					utils::hook::call(FindXAssetHeaderScript_call, find_script);
 				}
+
+				utils::hook::call(FindXAssetHeaderScript_call, find_script);
+				db_is_x_asset_default_hook.create(game::DB_IsXAssetDefault, db_is_x_asset_default_stub);
 
 				gscr_load_level_hook.create(game::GScr_LoadLevel, gscr_load_level_stub); // execute handles
 

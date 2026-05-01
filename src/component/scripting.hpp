@@ -9,5 +9,5 @@ namespace scripting
 	//std::optional<std::string> get_canonical_string(const unsigned int id);
 	std::string get_token(std::uint64_t id);
 
-	std::optional<std::pair<std::uint64_t, std::uint64_t>> find_function_iw9(const char* pos);
+	std::optional<std::pair<game::name_or_hash, game::name_or_hash>> find_function(const char* pos);
 }

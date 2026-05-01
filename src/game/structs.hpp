@@ -465,15 +465,22 @@ namespace game
 		void(__fastcall* function)();
 	};
 
-	struct ScriptFile
+	union name_or_hash
 	{
 		const char* name;
-		int compressedLen;
-		int len;
-		int bytecodeLen;
-		char* buffer;
-		char* bytecode;
+		unsigned int token;
+		std::uint64_t hash;
 	};
+
+	struct ScriptFile
+	{
+		name_or_hash raw_name; // 0
+		int compressedLen; // 8
+		int len; // 12
+		int bytecodeLen; // 16
+		char* buffer; // 24
+		char* bytecode; // 32
+	}; // 40
 
 	struct ScriptFile_S4
 	{
@@ -486,17 +493,6 @@ namespace game
 		char* buffer; // 32
 		char* bytecode; // 40
 	}; // 48
-
-	struct ScriptFile_IW9
-	{
-		std::uint64_t name; // 0
-		int compressedLen; // 8
-		int len; // 12
-		int bytecodeLen; // 16
-		int pad; // 20 (idk)
-		char* buffer; // 24
-		char* bytecode; // 32
-	}; // 40
 
 	struct RawFile
 	{
@@ -524,7 +520,7 @@ namespace game
 
 	union XAssetHeader_IW9
 	{
-		ScriptFile_IW9* scriptfile;
+		ScriptFile* scriptfile;
 	};
 
 	/*
