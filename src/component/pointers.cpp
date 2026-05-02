@@ -60,17 +60,25 @@ public:
 
 		batch.add(SETUP_POINTER(game::ScriptContext_Server), "48 83 EC ? E8 ? ? ? ? 48 8B F0 48 8D ? ? ? ? ? 33 ? ? 8B", SETUP_MOD(add(5).rip()));
 
-		batch.add(SETUP_POINTER(game::Scr_LoadScript), "48 8B DA 48 8B F9 BA ?? ?? 00 00 48 8D 4C 24 ?? E8 ?? ?? ?? FF 4C 8B", [](memory::scanned_result<void> r) {
-			std::uintptr_t offset = 0;
-			while (true) {
-				offset++;
-				auto buf = r.sub(offset).as<std::uint8_t*>();
-				if (buf[0] == 0x48 && buf[1] == 0x89 && buf[2] == 0x5C && buf[3] == 0x24 && buf[4] == 0x08) {
-					break;
+		if (game_ == "s4-mod"s)
+		{
+			// no clue
+			batch.add(SETUP_POINTER(game::Scr_LoadScript), "40 53 55 56 57 41 54 48 81 EC 70 04 00 00 48 8B 05 ? ? ? ? 48");
+		}
+		else
+		{
+			batch.add(SETUP_POINTER(game::Scr_LoadScript), "48 8B DA 48 8B F9 BA ?? ?? 00 00 48 8D 4C 24 ?? E8 ?? ?? ?? FF 4C 8B", [](memory::scanned_result<void> r) {
+				std::uintptr_t offset = 0;
+				while (true) {
+					offset++;
+					auto buf = r.sub(offset).as<std::uint8_t*>();
+					if (buf[0] == 0x48 && buf[1] == 0x89 && buf[2] == 0x5C && buf[3] == 0x24) {
+						break;
+					}
 				}
-			}
-			return r.sub(offset);
-		});
+				return r.sub(offset);
+				});
+		}
 
 		// this is the bottom of the function, and we need to make something to scan up and find the beginning of it
 		batch.add(SETUP_POINTER(game::Scr_GetFunctionHandle), "49 2B D0 48 3B D1 73 ? 41 2B C0", [](memory::scanned_result<void> r) {
@@ -78,7 +86,7 @@ public:
 			while (true) {
 				offset++;
 				auto buf = r.sub(offset).as<std::uint8_t*>();
-				if (buf[0] == 0x48 && buf[1] == 0x89 && buf[2] == 0x5C && buf[3] == 0x24 && buf[4] == 0x08) {
+				if (buf[0] == 0x48 && buf[1] == 0x89 && buf[2] == 0x5C && buf[3] == 0x24) {
 					break;
 				}
 			}

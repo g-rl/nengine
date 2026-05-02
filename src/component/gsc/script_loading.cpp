@@ -578,7 +578,7 @@ namespace gsc
 			for (const auto& callback : begin_scripts_callbacks)
 				callback();
 
-			const bool dev_script = developer_script ? developer_script->current.enabled : false;
+			const bool dev_script = true; // developer_script ? developer_script->current.enabled : false;
 			const auto comp_mode = dev_script ?
 				xsk::gsc::build::dev :
 				xsk::gsc::build::prod;
@@ -593,7 +593,13 @@ namespace gsc
 		void scr_begin_load_scripts_stub(game::scrContext_t* context, char threadMode, unsigned int a3)
 		{
 			init_compiler();
-			scr_begin_load_scripts_hook.invoke<void>(context, threadMode, a3);
+
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "s4-mod"s)
+				scr_begin_load_scripts_hook.invoke<void>(context, threadMode);
+			else
+				scr_begin_load_scripts_hook.invoke<void>(context, threadMode, a3);
+
 			load_scripts();
 		}
 
@@ -606,6 +612,7 @@ namespace gsc
 
 		void scr_end_load_scripts_stub(game::scrContext_t* context)
 		{
+			printf("scr_end_load_scripts_stub\n");
 			gsc_ctx->cleanup();
 			gsc_ctx_s4->cleanup();
 			gsc_ctx_iw9->cleanup();
@@ -911,47 +918,50 @@ namespace gsc
 		void find_signatures(memory::signature_store& batch) override 
 		{
 			static const auto& game_ = identification::game::get_target_game().client_name;
-			if (game_ == "iw9-mod"s || identification::game::is("1.20.4") || identification::game::is("1.20.4-replay"))
+			if ( (game_ == "iw8-mod"s && identification::game::is_less_or_eq("1.23")) )
+				return;
+
+			batch.add(SETUP_POINTER(game::DB_AllocXZoneMemory), "E8 ? ? 00 00 4C 8B ? ? ? 33 D2 41 B8", GRAB_CALL);
+			batch.add(SETUP_POINTER(game::DB_AllocXZoneMemoryInternal), "E8 ? ? ? ? 48 8B 8F ? ? ? ? 4C 8B C6", GRAB_CALL);
+			batch.add(SETUP_POINTER(game::GScr_LoadLevel), "E8 ? ? ? ? 33 D2 33 C9 E8 ? ? 00 00 83 ? 01 75 0C 48 8B", GRAB_CALL);
+
+			if (game_ == "iw9-mod"s)
 			{
-				batch.add(SETUP_POINTER(game::DB_AllocXZoneMemory), "E8 ? ? ? ? 4C 8B 7C 24 ? 33 D2 41 B8", GRAB_CALL);
-				batch.add(SETUP_POINTER(game::DB_AllocXZoneMemoryInternal), "E8 ? ? ? ? 48 8B 8F ? ? ? ? 4C 8B C6", GRAB_CALL);
-				batch.add(SETUP_POINTER(game::GScr_LoadLevel), "E8 ? ? ? ? 33 D2 33 C9 E8 ? ? 00 00 83 ? 01 75 0C 48 8B", GRAB_CALL);
-
-				if (game_ == "iw9-mod"s)
-				{
-					batch.add(SETUP_POINTER(game::Scr_BeginLoadScripts), "48 89 5C 24 08 57 48 83 EC 20 48 8B D9 C6 81 7C 12 00 00 01 88 91 7D 12 00 00 E8");
-					batch.add(SETUP_POINTER(FindXAssetHeaderScript_call), "E8 ? ? ? FF B9 ? 00 00 00 48 8B D8 48 8B 10 E8 ? ? ? ? ? C0 75 0B 48"); // ProcessScript
-				}
-				else
-				{
-					batch.add(SETUP_POINTER(game::Scr_BeginLoadScripts), "E8 ? ? ? ? C7 44 24 ? ? ? ? ? E8 ? ? ? ? 85 C0", GRAB_CALL);
-					batch.add(SETUP_POINTER(FindXAssetHeaderScript_call), "E8 ? ? ? FF 48 8B D3 B9 ? 00 00 00 48 8B F0 E8 ? ? ? FF 85 C0 75 0B 48 8B ? 48 8B ? E8 1E 00 00 00");
-				}
-
-				batch.add(SETUP_POINTER(game::Scr_EndLoadScripts), "48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 E8 ? ? ? ? 48 8B CF E8");
-
-				if (identification::game::is_greater_or_eq("1.53.0")) {
-					batch.add(SETUP_POINTER(DB_GetRawBuffer_call), "E8 ? ? ? ? 48 8B 47 ? 4C 63 67");
-					batch.add(SETUP_POINTER(game::DB_GetRawBuffer), "E8 ? ? ? ? 48 8B 47 ? 4C 63 67", GRAB_CALL);
-				}
-				else {
-					// this also works on IW9
-					batch.add(SETUP_POINTER(DB_GetRawBuffer_call), "E8 ? ? ? ? 41 6B ? ? ? 00 00 1F 48 8B 4F 20 ? 63 ? 10");
-					batch.add(SETUP_POINTER(game::DB_GetRawBuffer), "E8 ? ? ? ? 41 6B ? ? ? 00 00 1F 48 8B 4F 20 ? 63 ? 10", GRAB_CALL);
-				}
-
-				if (game_ == "iw9-mod"s)
-					batch.add(SETUP_POINTER(IsXAssetDefaultScript_call), "8B 10 E8 ? ? ? FF ? C0 ? ? 48 8B ? 48 8B ? E8 ? 00 00 00", SETUP_MOD(add(2))); // ProcessScript
-				else if (identification::game::is("1.20.4-replay"))
-					batch.add(SETUP_POINTER(IsXAssetDefaultScript_call), "E8 9D 42 E9 FF 85 C0 74 12 33 C0 48 8B 5C 24 30");
-				else
-					batch.add(SETUP_POINTER(IsXAssetDefaultScript_call), "E8 ?? ?? ?? FF 85 C0 ?? ?? 48 8B ?? 48 8B ?? E8 1E 00 00 00");
+				batch.add(SETUP_POINTER(game::Scr_BeginLoadScripts), "48 89 5C 24 08 57 48 83 EC 20 48 8B D9 C6 81 7C 12 00 00 01 88 91 7D 12 00 00 E8");
+				batch.add(SETUP_POINTER(FindXAssetHeaderScript_call), "E8 ? ? ? FF B9 ? 00 00 00 48 8B D8 48 8B 10 E8 ? ? ? ? ? C0 75 0B 48"); // ProcessScript
 			}
+			else
+			{
+				batch.add(SETUP_POINTER(game::Scr_BeginLoadScripts), "E8 ? ? ? ? C7 44 24 ? ? ? ? ? E8 ? ? ? ? 85 C0", GRAB_CALL);
+				batch.add(SETUP_POINTER(FindXAssetHeaderScript_call), "E8 ? ? ? FF 48 8B D3 B9 ? 00 00 00 48 8B F0 E8 ? ? ? FF 85 C0 75 0B 48 8B ? 48 8B ? E8 1E 00 00 00");
+			}
+
+			batch.add(SETUP_POINTER(game::Scr_EndLoadScripts), "48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 E8 ? ? ? ? 48 8B CF E8");
+
+			if (identification::game::is_greater_or_eq("1.53.0")) {
+				batch.add(SETUP_POINTER(DB_GetRawBuffer_call), "E8 ? ? ? ? 48 8B 47 ? 4C 63 67");
+				batch.add(SETUP_POINTER(game::DB_GetRawBuffer), "E8 ? ? ? ? 48 8B 47 ? 4C 63 67", GRAB_CALL);
+			}
+			else {
+				// this also works on IW9
+				batch.add(SETUP_POINTER(DB_GetRawBuffer_call), "E8 ? ? ? ? 41 6B ? ? ? 00 00 1F 48 8B 4F ? ? 63");
+				batch.add(SETUP_POINTER(game::DB_GetRawBuffer), "E8 ? ? ? ? 41 6B ? ? ? 00 00 1F 48 8B 4F ? ? 63", GRAB_CALL);
+			}
+
+			if (game_ == "iw9-mod"s)
+				batch.add(SETUP_POINTER(IsXAssetDefaultScript_call), "8B 10 E8 ? ? ? FF ? C0 ? ? 48 8B ? 48 8B ? E8 ? 00 00 00", SETUP_MOD(add(2))); // ProcessScript
+			else if (identification::game::is("1.20.4-replay"))
+				batch.add(SETUP_POINTER(IsXAssetDefaultScript_call), "E8 9D 42 E9 FF 85 C0 74 12 33 C0 48 8B 5C 24 30");
+			else
+				batch.add(SETUP_POINTER(IsXAssetDefaultScript_call), "E8 ?? ?? ?? FF 85 C0 ?? ?? 48 8B ?? 48 8B ?? E8 1E 00 00 00");
 		}
 
 		void post_unpack() override
 		{
 			static const auto& game_ = identification::game::get_target_game().client_name;
+			if ((game_ == "iw8-mod"s && identification::game::is_less_or_eq("1.23")))
+				return;
+
 			const auto is_game_iw9 = game_ == "iw9-mod"s;
 
 			ALLOCATE_FASTFILE = "code_post_gfx";
@@ -960,7 +970,7 @@ namespace gsc
 
 			if (game_ == "s4-mod"s)
 			{
-				ALLOCATE_FASTFILE = "global_shared";
+				ALLOCATE_FASTFILE = "global_mp";
 				ALLOCATE_SCRIPT_POOL = 8;
 				ASSET_TYPE_SCRIPTFILE = game::ASSET_TYPE_SCRIPTFILE_S4;
 			}
@@ -971,41 +981,36 @@ namespace gsc
 				ASSET_TYPE_SCRIPTFILE = game::ASSET_TYPE_SCRIPTFILE_IW9;
 			}
 
-			if (is_game_iw9 // support IW9 with duplicate functions
-				|| identification::game::is("1.20.4-replay") // we handle 1.20.4-replay seperately
-				)
+			// IW9 & S4 hook the original and handle the < 4 check ourselves
+			db_alloc_x_zone_memory_internal_hook.create(game::DB_AllocXZoneMemory, db_alloc_x_zone_memory_internal_stub); // allocation
+
+			scr_end_load_scripts_hook.create(game::Scr_EndLoadScripts, scr_end_load_scripts_stub);
+
+			if (is_game_iw9)
 			{
-				// IW9 & S4 hook the original and handle the < 4 check ourselves
-				db_alloc_x_zone_memory_internal_hook.create(game::DB_AllocXZoneMemory, db_alloc_x_zone_memory_internal_stub); // allocation
-
-				scr_end_load_scripts_hook.create(game::Scr_EndLoadScripts, scr_end_load_scripts_stub);
-
-				if (is_game_iw9)
-				{
-					utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub_iw9); // load our scripts with an uncompressed stack
-					scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub_iw9);
-				}
-				else
-				{
-					utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);
-					scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub);
-				}
-
-				utils::hook::call(FindXAssetHeaderScript_call, find_script);
-				db_is_x_asset_default_hook.create(game::DB_IsXAssetDefault, db_is_x_asset_default_stub);
-
-				gscr_load_level_hook.create(game::GScr_LoadLevel, gscr_load_level_stub); // execute handles
-
-				// clear memory (SV_GameMP_ShutdownGameVM)
-				scripting::on_shutdown([](bool free_scripts, bool is_post_shutdown)
-				{
-					if (free_scripts && is_post_shutdown)
-					{
-						printf("clearing script memory...\n");
-						clear();
-					}
-				});
+				utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub_iw9); // load our scripts with an uncompressed stack
+				scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub_iw9);
 			}
+			else
+			{
+				utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);
+				scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub);
+			}
+
+			utils::hook::call(FindXAssetHeaderScript_call, find_script);
+			db_is_x_asset_default_hook.create(game::DB_IsXAssetDefault, db_is_x_asset_default_stub);
+
+			gscr_load_level_hook.create(game::GScr_LoadLevel, gscr_load_level_stub); // execute handles
+
+			// clear memory (SV_GameMP_ShutdownGameVM)
+			scripting::on_shutdown([](bool free_scripts, bool is_post_shutdown)
+			{
+				if (free_scripts && is_post_shutdown)
+				{
+					//printf("clearing script memory...\n");
+					clear();
+				}
+			});
 
 			// disable patchStrings from ZeroProxy
 			if (game_ == "iw8-mod"s)
@@ -1014,7 +1019,7 @@ namespace gsc
 				if (patch_strings_dvar)
 				{
 #ifdef _DEBUG
-					printf("setting ZeroProxy ncs_patchStrings to 0\n");
+					//printf("setting ZeroProxy ncs_patchStrings to 0\n");
 #endif
 
 					game::Dvar_SetBool_Internal(patch_strings_dvar, false);
@@ -1031,9 +1036,6 @@ namespace gsc
 
 			if (xp_dec_dvar)
 			{
-#ifdef _DEBUG
-				printf("setting xp dec to 0\n");
-#endif
 				//game::Dvar_SetBool_Internal(xp_dec_dvar, false);
 			}
 
