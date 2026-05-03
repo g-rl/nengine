@@ -61,16 +61,9 @@ namespace gsc
 		std::string get_emit_filename()
 		{
 			if (is_iw9())
-			{
 				return gsc::get_script_name_iw9(current_filename_iw9);
-			}
 
-			const auto* filename_str = game::SL_ConvertToString(static_cast<game::scr_string_t>(current_filename));
-			if (!filename_str) return "<unknown>";
-
-			const auto id = std::atoi(filename_str);
-			if (!id) return filename_str;
-			return scripting::get_token(id);
+			return scripting::get_token(current_filename);
 		}
 
 		std::string resolve_function_name(std::uint64_t thread_name)
@@ -86,7 +79,7 @@ namespace gsc
 
 		void build_unknown_function_error(const char* code_pos)
 		{
-			const auto current = scripting::get_current_script_file();
+			const auto current = scripting::get_current_file();
 			const auto function = scripting::find_function(code_pos);
 			if (function.has_value())
 			{
@@ -108,7 +101,7 @@ namespace gsc
 
 			unknown_function_error = std::format(
 				"while processing script '{}':\nunknown function '{}::{}'",
-				scripting::get_current_script_file(), filename, name
+				scripting::get_current_file(), filename, name
 			);
 		}
 

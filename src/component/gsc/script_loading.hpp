@@ -20,7 +20,7 @@ namespace gsc
 	extern std::unique_ptr<xsk::gsc::iw8::context> gsc_ctx;
 	extern std::unique_ptr<xsk::gsc::iw9::context> gsc_ctx_iw9;
 
-	game::ScriptFile* find_script(game::XAssetType type, game::name_or_hash name, int allow_create_default);
+	game::ScriptFile_S4* find_script(game::XAssetType type, game::name_or_hash name, int allow_create_default);
 
 	loaded_script_t* get_loaded_script(const std::string& name);
 

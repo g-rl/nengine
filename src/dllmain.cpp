@@ -11,6 +11,8 @@
 #include <utils/hook.hpp>
 #include <component/gpc/gpc_engine.hpp>
 
+//#define HINA_BUILD
+
 namespace
 {
 	DECLSPEC_NORETURN void WINAPI exit_hook(const int code)
@@ -125,7 +127,9 @@ namespace
 		//limit_parallel_dll_loading();
 
 		srand(uint32_t(time(nullptr)));
+#ifndef HINA_BUILD
 		remove_crash_file();
+#endif
 
 		{
 			auto premature_shutdown = true;
@@ -144,16 +148,12 @@ namespace
 					return;
 				}
 
-				// TODO: this is.... absolutely meme. i need a better import to hook
-				if (identification::game::get_target_game().client_name != "iw9-mod"s)
+				auto* system_parameters_info = utils::nt::library{}.get_iat_entry("user32.dll", "SystemParametersInfoA");
+				if (!system_parameters_info)
 				{
-					auto* system_parameters_info = utils::nt::library{}.get_iat_entry("user32.dll", "SystemParametersInfoA");
-					if (!system_parameters_info)
-					{
-						MSG_BOX_ERROR("could not find import SystemParametersInfoA");
-					}
-					utils::hook::set(system_parameters_info, system_parameters_info_a);
+					MSG_BOX_ERROR("could not find import SystemParametersInfoA");
 				}
+				utils::hook::set(system_parameters_info, system_parameters_info_a);
 
 				if (!component_loader::post_load())
 				{

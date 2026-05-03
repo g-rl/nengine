@@ -489,7 +489,6 @@ namespace game
 		int compressedLen; // 16
 		int len; // 20
 		int bytecodeLen; // 24
-		int pad; // 28 ????
 		char* buffer; // 32
 		char* bytecode; // 40
 	}; // 48
@@ -515,12 +514,12 @@ namespace game
 	union XAssetHeader
 	{
 		RawFile* rawfile;
-		ScriptFile* scriptfile;
+		ScriptFile_S4* scriptfile;
 	};
 
 	union XAssetHeader_IW9
 	{
-		ScriptFile* scriptfile;
+		ScriptFile_S4* scriptfile;
 	};
 
 	/*

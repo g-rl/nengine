@@ -219,7 +219,7 @@ namespace gsc
 			return pos_map;
 		}
 
-		game::ScriptFile* load_custom_script(game::name_or_hash file_name, const std::string& real_name)
+		game::ScriptFile_S4* load_custom_script(game::name_or_hash file_name, const std::string& real_name)
 		{
 			// override vlobby scripts
 			if (game::Com_FrontEnd_IsInFrontEnd())
@@ -243,7 +243,7 @@ namespace gsc
 
 			if (const auto ptr = find_loaded(file_name))
 			{
-				return reinterpret_cast<game::ScriptFile*>(ptr);
+				return reinterpret_cast<game::ScriptFile_S4*>(ptr);
 			}
 
 			std::string source_buffer{};
@@ -252,11 +252,11 @@ namespace gsc
 				return nullptr;
 			}
 
-			printf("Loading custom gsc '%s'\n", real_name.data());
+			//printf("Loading custom gsc '%s'\n", real_name.data());
 
 			try
 			{
-				return with_current_context([&](auto& ctx) -> game::ScriptFile*
+				return with_current_context([&](auto& ctx) -> game::ScriptFile_S4*
 				{
 					auto& compiler = ctx.compiler();
 					auto& assembler = ctx.assembler();
@@ -278,20 +278,19 @@ namespace gsc
 					void* script_ptr{};
 					if (game_ == "s4-mod"s)
 					{
-						const auto script_file_ptr = static_cast<game::ScriptFile_S4*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile_S4)));
+						auto* script_file_ptr = static_cast<game::ScriptFile_S4*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile_S4)));
 						script_file_ptr->name = file_name.name;
 						script_file_ptr->idk = nullptr;
 						script_file_ptr->compressedLen = 0;
 						script_file_ptr->len = static_cast<int>(stack.size);
 						script_file_ptr->bytecodeLen = static_cast<int>(bytecode.size);
-						script_file_ptr->pad = 0;
 						script_file_ptr->buffer = stack_buffer;
 						script_file_ptr->bytecode = bytecode_buffer;
 						script_ptr = script_file_ptr;
 					}
 					else
 					{
-						const auto script_file_ptr = static_cast<game::ScriptFile*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile)));
+						auto* script_file_ptr = static_cast<game::ScriptFile*>(scriptfile_allocator.allocate(sizeof(game::ScriptFile)));
 						if (game_ == "iw9-mod"s)
 						{
 							script_file_ptr->raw_name.hash = gsc_ctx_iw9->path_id(real_name.data());
@@ -338,7 +337,7 @@ namespace gsc
 
 					printf("Loaded custom gsc '%s'\n", real_name.data());
 
-					return reinterpret_cast<game::ScriptFile*>(script_ptr);
+					return reinterpret_cast<game::ScriptFile_S4*>(script_ptr);
 				});
 			}
 			catch (const std::exception& e)
@@ -457,6 +456,7 @@ namespace gsc
 			}
 			else
 			{
+				printf("loading script '%s'\n", name.data());
 				if (!game::Scr_LoadScript(scr_context, name.data()))
 				{
 					return;
@@ -542,6 +542,8 @@ namespace gsc
 
 		void load_scripts()
 		{
+			printf("calling load_scripts\n");
+
 			if (!game::Com_FrontEnd_IsInFrontEnd())
 			{
 				for (const auto& path : filesystem::get_search_paths())
@@ -593,13 +595,21 @@ namespace gsc
 		void scr_begin_load_scripts_stub(game::scrContext_t* context, char threadMode, unsigned int a3)
 		{
 			init_compiler();
+			scr_begin_load_scripts_hook.invoke<void>(context, threadMode, a3);
+			load_scripts();
+		}
 
-			static const auto& game_ = identification::game::get_target_game().client_name;
-			if (game_ == "s4-mod"s)
-				scr_begin_load_scripts_hook.invoke<void>(context, threadMode);
-			else
-				scr_begin_load_scripts_hook.invoke<void>(context, threadMode, a3);
-
+		void scr_begin_load_scripts_stub_s4(void* loadArray,
+			int scriptThreadMode,
+			const char* gameType,
+			bool isFrontEnd,
+			const char* mapName,
+			int gamemode,
+			bool botsEnabled,
+			bool agentsEnabled)
+		{
+			init_compiler();
+			scr_begin_load_scripts_hook.invoke<void>(loadArray, scriptThreadMode, gameType, isFrontEnd, mapName, gamemode, botsEnabled, agentsEnabled);
 			load_scripts();
 		}
 
@@ -694,7 +704,7 @@ namespace gsc
 		}
 	}
 
-	game::ScriptFile* find_script(game::XAssetType type, game::name_or_hash name, int allow_create_default)
+	game::ScriptFile_S4* find_script(game::XAssetType type, game::name_or_hash name, int allow_create_default)
 	{
 		auto real_name = get_script_name(name);
 
@@ -936,6 +946,13 @@ namespace gsc
 				batch.add(SETUP_POINTER(FindXAssetHeaderScript_call), "E8 ? ? ? FF 48 8B D3 B9 ? 00 00 00 48 8B F0 E8 ? ? ? FF 85 C0 75 0B 48 8B ? 48 8B ? E8 1E 00 00 00");
 			}
 
+			if (game_ == "s4-mod"s)
+			{
+				// diff function, but actually works
+				batch.add(SETUP_POINTER(game::Scr_BeginLoadScripts_S4), "E8 ? ? ? ? 33 FF 39 ? ? ? 0F ? ? 00 00 00 48 ? ? ? ? ? 00 00 48 8D", 
+					GRAB_CALL);
+			}
+
 			batch.add(SETUP_POINTER(game::Scr_EndLoadScripts), "48 89 5C 24 ? 57 48 83 EC ? 48 8B F9 E8 ? ? ? ? 48 8B CF E8");
 
 			if (identification::game::is_greater_or_eq("1.53.0")) {
@@ -986,12 +1003,17 @@ namespace gsc
 
 			scr_end_load_scripts_hook.create(game::Scr_EndLoadScripts, scr_end_load_scripts_stub);
 
-			if (is_game_iw9)
+			if (game_ == "s4-mod"s)
+			{
+				utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);
+				scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts_S4, scr_begin_load_scripts_stub_s4);
+			} 
+			else if (is_game_iw9)
 			{
 				utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub_iw9); // load our scripts with an uncompressed stack
 				scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub_iw9);
 			}
-			else
+			else // iw8
 			{
 				utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);
 				scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub);

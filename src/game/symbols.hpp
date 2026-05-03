@@ -65,6 +65,7 @@ namespace game
 	WEAK char* (*I_CleanStr)(char* string) = nullptr;
 
 	WEAK void(*Scr_BeginLoadScripts)(game::scrContext_t* context, int thread_mode) = nullptr;
+	WEAK void(*Scr_BeginLoadScripts_S4)() = nullptr; // blank on purpose
 	WEAK void(*Scr_EndLoadScripts)(game::scrContext_t* context) = nullptr;
 
 	// NCS
