@@ -184,7 +184,14 @@ namespace weapon
 				"48 8B D5 48 8B CF E8 ? ? ? ? 48 8B 4F 08 4C 8B ?? 24",
 				SETUP_MOD(add(7).rip())); // IW8, S4, IW9
 
-			if (game_ == "s4-mod"s)
+			if (game_ == "iw8-mod"s)
+			{
+				// all of iw8 to be reliable
+				batch.add(SETUP_POINTER(game::PM_Weapon_ProcessHand_sig),
+					"45 8B ?? ?? 8B ?? 48 8B ?? E8 ?? ?? 00 00 48 8B 8F ?? ?? 00 00 48 8B ?? 41",
+					SETUP_MOD(add(10).rip()));
+			}
+			else if (game_ == "s4-mod"s)
 			{
 				// s4 is weird idk
 				batch.add(SETUP_POINTER(game::PM_Weapon_ProcessHand_sig),
@@ -193,7 +200,7 @@ namespace weapon
 			}
 			else
 			{
-				// 1.20.4-replay, 1.38, IW9 (not atm but its found in ida? wut)
+				// IW9 (not atm but its found in ida? wut)
 				batch.add(SETUP_POINTER(game::PM_Weapon_ProcessHand_sig),
 					"48 8B F9 E8 ? ? FE FF 84 C0 0F 85 ? ? 00 00 48 89 9C 24 48 01",
 					SETUP_MOD(add(4).rip()));

@@ -257,7 +257,10 @@ namespace scripting
 					batch.add(SETUP_POINTER(game::G_MainMP_ShutdownGame), "E8 ? ? ? ? 65 48 8B 04 25 ? ? ? ? 48 8B CF 48 8B 14 18 33 C0", SETUP_MOD(add(1).rip()));
 			}
 
-			batch.add(SETUP_POINTER(game::Scr_AddClassField), "E8 ? ? ? 00 FF ? 48 8D ? ? 83 ? 0E 72 ? 48 8B 5C 24 ? 48 8B 74 24", GRAB_CALL);
+			if (game_ == "iw8-mod"s)
+				batch.add(SETUP_POINTER(game::Scr_AddClassField), "89 7C 24 20 44 8B 01 48 8B CE E8 ? ? ? 00 FF C7", SETUP_MOD(add(10).rip()));
+			else
+				batch.add(SETUP_POINTER(game::Scr_AddClassField), "E8 ? ? ? 00 FF ? 48 8D ? ? 83 ? 0E 72 ? 48 8B 5C 24 ? 48 8B 74 24", GRAB_CALL);
 
 			batch.add(SETUP_POINTER(game::Scr_SetThreadPosition), "E8 ? ? ? 00 4C 8D 44 24 20 C6 44 24 28 ? 8B D0 48 89 5C 24 20 48 8B CF E8 ? ? ? ? 48", [](memory::scanned_result<void> r) {
 				std::uintptr_t offset = 0;
@@ -294,4 +297,4 @@ namespace scripting
 	};
 }
 
-REGISTER_COMPONENT(scripting::component)
+//REGISTER_COMPONENT(scripting::component)

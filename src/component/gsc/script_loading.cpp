@@ -976,6 +976,7 @@ namespace gsc
 		void post_unpack() override
 		{
 			static const auto& game_ = identification::game::get_target_game().client_name;
+			/*
 			if ((game_ == "iw8-mod"s && identification::game::is_less_or_eq("1.23")))
 				return;
 
@@ -1013,11 +1014,11 @@ namespace gsc
 				utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub_iw9); // load our scripts with an uncompressed stack
 				scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub_iw9);
 			}
-			else // iw8
-			{
-				utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);
-				scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub);
-			}
+			//else // iw8
+			//{
+			//	utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);
+			//	scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub);
+			//}
 
 			utils::hook::call(FindXAssetHeaderScript_call, find_script);
 			db_is_x_asset_default_hook.create(game::DB_IsXAssetDefault, db_is_x_asset_default_stub);
@@ -1033,6 +1034,7 @@ namespace gsc
 					clear();
 				}
 			});
+			*/
 
 			// disable patchStrings from ZeroProxy
 			if (game_ == "iw8-mod"s)
@@ -1048,6 +1050,7 @@ namespace gsc
 				}
 			}
 
+			/*
 			// disable xp dec
 			[[maybe_unused]] game::dvar_t* xp_dec_dvar = nullptr;
 
@@ -1060,6 +1063,7 @@ namespace gsc
 			{
 				//game::Dvar_SetBool_Internal(xp_dec_dvar, false);
 			}
+			*/
 
 			// fix settext
 			NetConstStrings_GetIndexPlusOneFromName_hook.create(game::NetConstStrings_GetIndexPlusOneFromName, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override

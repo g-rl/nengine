@@ -23,9 +23,15 @@ namespace command
 
 		void main_handler()
 		{
+#ifdef _DEBUG
+			printf("main_handler\n");
+#endif
 			const auto command = utils::string::to_lower(game::Cmd_Argv(0));
 			if (handlers.find(command) != handlers.end())
 			{
+#ifdef _DEBUG
+				printf("handling %s\n", command.c_str());
+#endif
 				handlers[command]();
 			}
 		}
@@ -73,7 +79,7 @@ namespace command
 
 				batch.add(SETUP_POINTER(game::Cmd_Argv_internal),
 					"48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 85 C0 0F 84 ? ? ? ? 33 C9 E8 ? ? FF FF",
-					SETUP_MOD(add(28).rip()));
+					SETUP_MOD(add(27).rip()));
 			}
 			else if (game_ == "iw9-mod"s)
 			{
@@ -88,8 +94,8 @@ namespace command
 			SetConsoleTitleA("neura engine");
 
 			static const auto& game_ = identification::game::get_target_game().client_name;
-			//if (game_ == "iw8-mod"s || game_ == "iw9-mod"s)
-			//	return;
+			if (game_ == "iw8-mod"s || game_ == "iw9-mod"s)
+				return;
 
 			//FreeConsole();
 			AllocConsole();
@@ -118,7 +124,7 @@ namespace command
 			in_mode |= ENABLE_WINDOW_INPUT;
 			SetConsoleMode(in_handle, in_mode);
 
-			printf("neura patch console started!\n");
+			printf("neura patch started!\n");
 		}
 
 		void post_unpack() override
@@ -130,6 +136,9 @@ namespace command
 
 			add("map_restart", []()
 			{
+#ifdef _DEBUG
+				printf("attempting restart\n");
+#endif
 				game::SV_CmdsMP_RequestMapRestart(1, 0);
 			});
 		}

@@ -156,10 +156,10 @@ namespace gsc
 	public:
 		void find_signatures(memory::signature_store& batch) override
 		{
-			batch.add(SETUP_POINTER(FindVariable_call), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48");
-
 			if (is_iw9())
 			{
+				batch.add(SETUP_POINTER(FindVariable_call), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48");
+
 				batch.add(SETUP_POINTER(game::Scr_EmitFunction),
 					"48 89 5C 24 10 48 89 6C 24 18 56 57 41 56 48 83 EC 60 48 B8 FF");
 
@@ -172,19 +172,25 @@ namespace gsc
 			}
 			else
 			{
+				batch.add(SETUP_POINTER(FindVariable_call), "E8 ? ? 00 00 8B ? 85 C0 75 ? 48 8D ? ? ? ? ? 8D ? 01 E8");
+
 				batch.add(SETUP_POINTER(game::Scr_EmitFunction),
 					"48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 56 41 57 48 83 EC ? 41 8B E8 8B ? 44 8B C2");
 
 				// S4 has 2, IW8 has 1
 				batch.add_multi(SETUP_MULTI_POINTER(compile_error_sites_common),
-					"4C 8D 05 ? ? ? ? 48 8B CB E8 ? ? 00 00 ? 8B 16 44 8B C7 8B",
+					"4C 8D 05 ? ? ? ? 48 8B CB E8 ? ? 00 00 ? 8B 16",
 					(is_s4() ? 2 : 1), SETUP_MOD(add(10)));
 
 				if (!is_s4())
 				{
 					// extra CompileError sites on IW8
-					batch.add_multi(SETUP_MULTI_POINTER(compile_error_sites_iw8_extra),
-						"4C 8D 05 ? ? ? ? 48 8B D6 48 8B CB E8 ? ? 00 00", 2, SETUP_MOD(add(13)));
+					if (identification::game::is("1.20.4-replay"))
+						batch.add_multi(SETUP_MULTI_POINTER(compile_error_sites_iw8_extra),
+							"4C 8D 05 ? ? ? ? 48 8B CB 48 8B F8 48 8B 10 E8", 1, SETUP_MOD(add(16)));
+					else
+						batch.add_multi(SETUP_MULTI_POINTER(compile_error_sites_iw8_extra),
+							"4C 8D 05 ? ? ? ? 48 8B D6 48 8B CB E8 ? ? 00 00", 2, SETUP_MOD(add(13)));
 				}
 			}
 		}

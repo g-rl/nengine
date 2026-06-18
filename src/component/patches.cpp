@@ -196,12 +196,24 @@ namespace patches
 
 		void find_signatures(memory::signature_store& batch) override
 		{
-			batch.add(SETUP_POINTER(GameMessageVA_Stub), 
-				"E8 ? ? ? ? 48 8B BC 24 ? ? ? ? 48 8B B4 24 ? ? ? ? 48 8B 9C 24 ? ? 00 00 83");
+			static const auto& game_ = identification::game::get_target_game().client_name;
+			if (game_ == "iw8-mod"s)
+			{
+				batch.add(SETUP_POINTER(GameMessageVA_Stub),
+					"48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B ? 24 ? ? 00 00 4C 8B C0", SETUP_MOD(add(7)));
 
-			batch.add(SETUP_POINTER(game::Core_strcpy_va),
-				"E8 ? ? ? ? 48 8B BC 24 ? ? ? ? 48 8B B4 24 ? ? ? ? 48 8B 9C 24 ? ? 00 00 83",
-				GRAB_CALL);
+				batch.add(SETUP_POINTER(game::Core_strcpy_va),
+					"48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8B ? 24 ? ? 00 00 4C 8B C0", SETUP_MOD(add(7).rip()));
+			}
+			else
+			{
+				batch.add(SETUP_POINTER(GameMessageVA_Stub),
+					"E8 ? ? ? ? 48 8B BC 24 ? ? ? ? 48 8B B4 24 ? ? ? ? 48 8B 9C 24 ? ? 00 00 83");
+
+				batch.add(SETUP_POINTER(game::Core_strcpy_va),
+					"E8 ? ? ? ? 48 8B BC 24 ? ? ? ? 48 8B B4 24 ? ? ? ? 48 8B 9C 24 ? ? 00 00 83",
+					GRAB_CALL);
+			}
 		}
 
 		void post_unpack() override
