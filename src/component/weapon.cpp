@@ -188,7 +188,7 @@ namespace weapon
 			{
 				// all of iw8 to be reliable
 				batch.add(SETUP_POINTER(game::PM_Weapon_ProcessHand_sig),
-					"45 8B ?? ?? 8B ?? 48 8B ?? E8 ?? ?? 00 00 48 8B 8F ?? ?? 00 00 48 8B ?? 41",
+					"45 8B ?? ?? 8B ?? 48 8B ?? E8 ?? ?? ?? 00 48 8B 8F ?? ?? 00 00 48 8B ?? 41",
 					SETUP_MOD(add(10).rip()));
 			}
 			else if (game_ == "s4-mod"s)

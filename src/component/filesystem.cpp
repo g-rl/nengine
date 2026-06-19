@@ -205,10 +205,12 @@ namespace filesystem
 			filesystem::register_path(L".s4-mod");
 			filesystem::register_path(L".iw9-mod");
 
+#ifdef _DEBUG
 			if (identification::game::is("1.20.4-replay"))
 			{
 				utils::hook::jump(0x13F5340_b, sys_default_install_path_stub);
 			}
+#endif
 		}
 	};
 }

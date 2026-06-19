@@ -928,7 +928,7 @@ namespace gsc
 		void find_signatures(memory::signature_store& batch) override 
 		{
 			static const auto& game_ = identification::game::get_target_game().client_name;
-			if ( (game_ == "iw8-mod"s && identification::game::is_less_or_eq("1.23")) )
+			if (game_ == "iw8-mod"s)
 				return;
 
 			batch.add(SETUP_POINTER(game::DB_AllocXZoneMemory), "E8 ? ? 00 00 4C 8B ? ? ? 33 D2 41 B8", GRAB_CALL);
@@ -976,65 +976,65 @@ namespace gsc
 		void post_unpack() override
 		{
 			static const auto& game_ = identification::game::get_target_game().client_name;
-			/*
-			if ((game_ == "iw8-mod"s && identification::game::is_less_or_eq("1.23")))
-				return;
 
-			const auto is_game_iw9 = game_ == "iw9-mod"s;
-
-			ALLOCATE_FASTFILE = "code_post_gfx";
-			ALLOCATE_SCRIPT_POOL = 6;
-			ASSET_TYPE_SCRIPTFILE = game::ASSET_TYPE_SCRIPTFILE;
-
-			if (game_ == "s4-mod"s)
+			if (game_ != "iw8-mod"s)
 			{
-				ALLOCATE_FASTFILE = "global_mp";
-				ALLOCATE_SCRIPT_POOL = 8;
-				ASSET_TYPE_SCRIPTFILE = game::ASSET_TYPE_SCRIPTFILE_S4;
-			}
-			else if (is_game_iw9)
-			{
-				ALLOCATE_FASTFILE = "global_shared_mp";
-				ALLOCATE_SCRIPT_POOL = 10;
-				ASSET_TYPE_SCRIPTFILE = game::ASSET_TYPE_SCRIPTFILE_IW9;
-			}
+				const auto is_game_s4 = game_ == "s4-mod"s;
+				const auto is_game_iw9 = game_ == "iw9-mod"s;
 
-			// IW9 & S4 hook the original and handle the < 4 check ourselves
-			db_alloc_x_zone_memory_internal_hook.create(game::DB_AllocXZoneMemory, db_alloc_x_zone_memory_internal_stub); // allocation
+				ALLOCATE_FASTFILE = "code_post_gfx";
+				ALLOCATE_SCRIPT_POOL = 6;
+				ASSET_TYPE_SCRIPTFILE = game::ASSET_TYPE_SCRIPTFILE;
 
-			scr_end_load_scripts_hook.create(game::Scr_EndLoadScripts, scr_end_load_scripts_stub);
-
-			if (game_ == "s4-mod"s)
-			{
-				utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);
-				scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts_S4, scr_begin_load_scripts_stub_s4);
-			} 
-			else if (is_game_iw9)
-			{
-				utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub_iw9); // load our scripts with an uncompressed stack
-				scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub_iw9);
-			}
-			//else // iw8
-			//{
-			//	utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);
-			//	scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub);
-			//}
-
-			utils::hook::call(FindXAssetHeaderScript_call, find_script);
-			db_is_x_asset_default_hook.create(game::DB_IsXAssetDefault, db_is_x_asset_default_stub);
-
-			gscr_load_level_hook.create(game::GScr_LoadLevel, gscr_load_level_stub); // execute handles
-
-			// clear memory (SV_GameMP_ShutdownGameVM)
-			scripting::on_shutdown([](bool free_scripts, bool is_post_shutdown)
-			{
-				if (free_scripts && is_post_shutdown)
+				if (is_game_s4)
 				{
-					//printf("clearing script memory...\n");
-					clear();
+					ALLOCATE_FASTFILE = "global_mp";
+					ALLOCATE_SCRIPT_POOL = 8;
+					ASSET_TYPE_SCRIPTFILE = game::ASSET_TYPE_SCRIPTFILE_S4;
 				}
-			});
-			*/
+				else if (is_game_iw9)
+				{
+					ALLOCATE_FASTFILE = "global_shared_mp";
+					ALLOCATE_SCRIPT_POOL = 10;
+					ASSET_TYPE_SCRIPTFILE = game::ASSET_TYPE_SCRIPTFILE_IW9;
+				}
+
+				// IW9 & S4 hook the original and handle the < 4 check ourselves
+				db_alloc_x_zone_memory_internal_hook.create(game::DB_AllocXZoneMemory, db_alloc_x_zone_memory_internal_stub); // allocation
+
+				scr_end_load_scripts_hook.create(game::Scr_EndLoadScripts, scr_end_load_scripts_stub);
+
+				if (is_game_s4)
+				{
+					utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);
+					scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts_S4, scr_begin_load_scripts_stub_s4);
+				}
+				else if (is_game_iw9)
+				{
+					utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub_iw9); // load our scripts with an uncompressed stack
+					scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub_iw9);
+				}
+				//else // iw8
+				//{
+				//	utils::hook::call(DB_GetRawBuffer_call, db_get_raw_buffer_stub);
+				//	scr_begin_load_scripts_hook.create(game::Scr_BeginLoadScripts, scr_begin_load_scripts_stub);
+				//}
+
+				utils::hook::call(FindXAssetHeaderScript_call, find_script);
+				db_is_x_asset_default_hook.create(game::DB_IsXAssetDefault, db_is_x_asset_default_stub);
+
+				gscr_load_level_hook.create(game::GScr_LoadLevel, gscr_load_level_stub); // execute handles
+
+				// clear memory (SV_GameMP_ShutdownGameVM)
+				scripting::on_shutdown([](bool free_scripts, bool is_post_shutdown)
+				{
+					if (free_scripts && is_post_shutdown)
+					{
+						//printf("clearing script memory...\n");
+						clear();
+					}
+				});
+			}
 
 			// disable patchStrings from ZeroProxy
 			if (game_ == "iw8-mod"s)
@@ -1056,7 +1056,7 @@ namespace gsc
 
 			if (game_ == "iw8-mod"s)
 				xp_dec_dvar = game::Dvar_FindVarByName("NTTRLOPQKS");
-			else if (game_ == "s4-mod"s)
+			else if (is_game_s4)
 				xp_dec_dvar = game::Dvar_FindVarByName_IW9(0xB403CABB1673EEB5);
 
 			if (xp_dec_dvar)
@@ -1072,4 +1072,4 @@ namespace gsc
 	};
 }
 
-REGISTER_COMPONENT(gsc::loading)
+//REGISTER_COMPONENT(gsc::loading)

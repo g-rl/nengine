@@ -187,7 +187,7 @@ namespace patches
 
 					if (identification::game::get_target_game().client_name == "iw9-mod"s && strstr(stripped.c_str(), "Created inline hooks for checksums"))
 					{
-						component_loader::post_unpack();
+						//component_loader::post_unpack();
 						done = true;
 					}
 				});
@@ -243,119 +243,7 @@ namespace patches
 				game::Dvar_RegisterString("build_version", version_str.c_str(), game::DVAR_NOFLAG, "");
 				game::Dvar_RegisterString("build_version_full", version_str_full.c_str(), game::DVAR_NOFLAG, "");
 			
-				// register session dvars
-				neura_session_should_save = game::Dvar_RegisterBool("neura_sessionShouldSave", false, game::DVAR_NOFLAG, "");
-				neura_session_read_complete = game::Dvar_RegisterBool("neura_sessionDataReadComplete", false, game::DVAR_NOFLAG, "");
-				neura_session_data_count = game::Dvar_RegisterString("neura_sessionDataCount", "", game::DVAR_NOFLAG, "");
-				neura_session_data_current = game::Dvar_RegisterString("neura_sessionDataCurrent", "", game::DVAR_NOFLAG, "");
-				neura_session_should_load = game::Dvar_RegisterBool("neura_sessionShouldLoad", false, game::DVAR_NOFLAG, "");
-				neura_session_write_complete = game::Dvar_RegisterBool("neura_sessionDataWriteComplete", false, game::DVAR_NOFLAG, "");
 			}, scheduler::main);
-
-			// process one key:value per tick, GSC drives pacing via read_complete
-			scheduler::schedule([]
-			{
-				if (!game::dvar_is_enabled_safe(neura_session_should_save))
-				{
-					return scheduler::cond_continue;
-				}
-
-				// wait until GSC has set read_complete to false (new data ready)
-				if (game::dvar_is_enabled_safe(neura_session_read_complete))
-				{
-					return scheduler::cond_continue;
-				}
-
-				const auto* current_data_dvar = game::get_current(neura_session_data_current);
-				if (!current_data_dvar)
-				{
-					return scheduler::cond_continue;
-				}
-
-				std::string current_data = current_data_dvar->string;
-
-				auto sep = current_data.find(':');
-				if (sep != std::string::npos)
-				{
-					auto key = current_data.substr(0, sep);
-					auto data = current_data.substr(sep + 1);
-					utils::io::write_file(std::format("neura/{}", key), data);
-				}
-
-				game::get_current(neura_session_read_complete)->enabled = true;
-
-				return scheduler::cond_continue;
-			}, scheduler::main);
-
-			// load session: C++ reads neura/ files and feeds them to GSC one at a time
-			scheduler::schedule([]
-			{
-				if (!game::dvar_is_enabled_safe(neura_session_should_load))
-				{
-					return scheduler::cond_continue;
-				}
-
-				// first tick: read all files into memory
-				if (neura_load_entries.empty() && neura_load_index == 0)
-				{
-					auto files = utils::io::list_files("neura");
-					for (const auto& filepath : files)
-					{
-						auto slash = filepath.find_last_of("/\\");
-						auto key = (slash != std::string::npos) ? filepath.substr(slash + 1) : filepath;
-						auto data = utils::io::read_file(filepath);
-						neura_load_entries.emplace_back(key, data);
-					}
-
-					static std::string count_str;
-					count_str = std::to_string(neura_load_entries.size());
-
-					if (neura_session_data_count)
-						game::get_current(neura_session_data_count)->string = count_str.c_str();
-
-					if (neura_load_entries.empty())
-					{
-						game::get_current(neura_session_should_load)->enabled = false;
-						return scheduler::cond_continue;
-					}
-				}
-
-				// wait for GSC to signal it processed the previous entry
-				if (game::dvar_is_enabled_safe(neura_session_write_complete))
-				{
-					return scheduler::cond_continue;
-				}
-
-				// done
-				if (neura_load_index >= neura_load_entries.size())
-				{
-					printf("session loaded done\n");
-					game::get_current(neura_session_should_load)->enabled = false;
-					neura_load_entries.clear();
-					neura_load_index = 0;
-					return scheduler::cond_continue;
-				}
-
-				// feed next entry
-				auto& [key, data] = neura_load_entries[neura_load_index];
-				static std::string current_str;
-				current_str = key + ":" + data;
-				game::get_current(neura_session_data_current)->string = current_str.c_str();
-				game::get_current(neura_session_write_complete)->enabled = true;
-
-				neura_load_index++;
-
-				return scheduler::cond_continue;
-			}, scheduler::main);
-
-			scripting::on_shutdown([](const bool free_scripts, const bool is_post_shutdown)
-			{
-				if (is_post_shutdown)
-				{
-					neura_load_entries.clear();
-					neura_load_index = 0;
-				}
-			});
 		}
 	};
 }

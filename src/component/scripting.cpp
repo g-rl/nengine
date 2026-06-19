@@ -279,19 +279,21 @@ namespace scripting
 
 		void post_unpack() override
 		{
-			mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
+			//mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
 
 			if (is_iw9())
 			{
+				mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
+
 				scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub_iw9);
 				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub_iw9);
 				process_script_hook.create(game::ProcessScript, process_script_stub_iw9);
 			}
 			else
 			{
-				scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub);
-				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub);
-				process_script_hook.create(game::ProcessScript, process_script_stub);
+				//scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub);
+				//scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub);
+				//process_script_hook.create(game::ProcessScript, process_script_stub);
 			}
 		}
 	};

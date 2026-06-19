@@ -202,21 +202,26 @@ namespace gsc
 				scr_emit_function_hook.create(game::Scr_EmitFunction, scr_emit_function_stub_iw9);
 				utils::hook::call(FindVariable_call, find_variable_stub_iw9);
 
-				apply_compile_error_hooks(compile_error_sites_iw9);
+				if (compile_error_sites_iw9.size() > 0)
+					apply_compile_error_hooks(compile_error_sites_iw9);
 				if (CompileError_bonus_call)
 					utils::hook::call(CompileError_bonus_call, compile_error_stub);
+
 				return;
 			}
 
 			// IW8 + S4
-			scr_emit_function_hook.create(game::Scr_EmitFunction, scr_emit_function_stub);
-			utils::hook::call(FindVariable_call, find_variable_stub);
+			if (game::Scr_EmitFunction)
+				scr_emit_function_hook.create(game::Scr_EmitFunction, scr_emit_function_stub);
 
-			apply_compile_error_hooks(compile_error_sites_common);
+			if (FindVariable_call)
+				utils::hook::call(FindVariable_call, find_variable_stub);
+
+			if (compile_error_sites_iw9.size() > 0)
+				apply_compile_error_hooks(compile_error_sites_common);
+
 			if (!is_s4())
-			{
 				apply_compile_error_hooks(compile_error_sites_iw8_extra);
-			}
 		}
 	};
 }

@@ -148,6 +148,10 @@ public:
 				batch.add(SETUP_POINTER(game::Dvar_RegisterVariant), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 8B 05 ? ? ? ?"
 					" 4C 8B F9");
 			}
+			else {
+				// every other version
+				batch.add(SETUP_POINTER(game::Dvar_RegisterVariant), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 8B 05 ? ? ? ? ? 8B ? B9 ? ? 00 00");
+			}
 
 			batch.add(SETUP_POINTER(game::Dvar_SetBool_Internal_IW8), "B2 01 48 83 C4 28 E9 ? ? ? 00 48 83 C4 28 C3", SETUP_MOD(add(7).rip()));
 		}
@@ -166,7 +170,7 @@ public:
 		if (game_ == "iw8-mod"s)
 			batch.add(SETUP_POINTER(game::FindVariable), "E8 ? ? 00 00 8B ? 85 C0 75 ? 48 8D ? ? ? ? ? 8D ? 01 E8", GRAB_CALL);
 		else
-			batch.add(SETUP_POINTER(game::FindVariable), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48", GRAB_CALL);
+			batch.add(SETUP_POINTER(game::FindVariable_IW9), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48", GRAB_CALL);
 
 		if (game_ == "s4-mod"s)
 			batch.add(SETUP_POINTER(game::FindVariable_IW9), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48", GRAB_CALL);

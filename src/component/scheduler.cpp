@@ -108,12 +108,6 @@ namespace scheduler
 			call_spoofer::spoof_hook_invoke<void>(main_frame_hook);
 			execute(pipeline::main);
 		}
-
-		void main_frame_stub2(void* a1)
-		{
-			call_spoofer::spoof_hook_invoke<void>(main_frame_hook, a1);
-			execute(pipeline::main);
-		}
 	}
 
 	void schedule(const std::function<bool()>& callback, const pipeline type,
@@ -203,11 +197,9 @@ namespace scheduler
 				if (game_ == "s4-mod"s) // add 8B to end of sig for S4
 					batch.add(SETUP_POINTER(game::FenceManager_Frame), "48 89 5C 24 20 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 20 33 ED");
 				else if (game_ == "iw9-mod"s) // IW9 is missing 2 calls, but we change it anyways on here to be arxan safe
-				{
 					batch.add(SETUP_POINTER(game::FenceManager_Frame), "8B CB E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 8B D3", SETUP_MOD(add(8).rip()));
-				}
 				else
-					batch.add(SETUP_POINTER(game::FenceManager_Frame), "E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8 ? ? ? ?", GRAB_CALL);
+					batch.add(SETUP_POINTER(game::FenceManager_Frame), "E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? E8", GRAB_CALL);
 			}
 		}
 
@@ -225,8 +217,11 @@ namespace scheduler
 
 		void post_unpack() override
 		{
-			r_end_frame_hook.create(game::R_EndFrame, r_end_frame_stub);
-			main_frame_hook.create(game::FenceManager_Frame, main_frame_stub);
+			if (game::R_EndFrame)
+				r_end_frame_hook.create(game::R_EndFrame, r_end_frame_stub);
+
+			if (game::FenceManager_Frame)
+				main_frame_hook.create(game::FenceManager_Frame, main_frame_stub);
 		}
 
 		void pre_destroy() override
