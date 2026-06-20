@@ -94,8 +94,8 @@ namespace command
 			SetConsoleTitleA("neura engine");
 
 			static const auto& game_ = identification::game::get_target_game().client_name;
-			//if (game_ == "iw8-mod"s)
-			//	return;
+			if (game_ == "iw8-mod"s)
+				return;
 
 			//FreeConsole();
 			AllocConsole();

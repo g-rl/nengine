@@ -185,12 +185,12 @@ namespace gsc
 				if (!is_s4())
 				{
 					// extra CompileError sites on IW8
-					if (identification::game::is("1.20.4-replay"))
+					if (identification::game::is_less_or_eq("1.31.5"))
 						batch.add_multi(SETUP_MULTI_POINTER(compile_error_sites_iw8_extra),
 							"4C 8D 05 ? ? ? ? 48 8B CB 48 8B F8 48 8B 10 E8", 1, SETUP_MOD(add(16)));
 					else
 						batch.add_multi(SETUP_MULTI_POINTER(compile_error_sites_iw8_extra),
-							"4C 8D 05 ? ? ? ? 48 8B D6 48 8B CB E8 ? ? 00 00", 2, SETUP_MOD(add(13)));
+							"4C 8D 05 ? ? ? ? 48 8B D6 48 8B CB E8 ? ? 00 00", 2, SETUP_MOD(add(13))); // this is definitely 1.38 though, 1.34.1.8774611/ModernWarfare_dump.exe
 				}
 			}
 		}
