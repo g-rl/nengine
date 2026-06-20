@@ -95,6 +95,9 @@ namespace game
 	WEAK const char* (*SV_BotGetRandomName)() = nullptr;
 	WEAK int(*Sys_Milliseconds)() = nullptr;
 
+	// SL
+	WEAK scr_string_t(*SL_GetString)(const char* str, unsigned int user) = nullptr;
+
 	WEAK void* (*SV_ClientMP_ConnectBot)(void* result, const char* name, const int headModelIndex, const int bodyModelIndex, __int64 lol) = nullptr;
 
 	WEAK void(*R_EndFrame)() = nullptr;
@@ -179,8 +182,6 @@ namespace game
 	WEAK symbol<const char*(scrContext_t* context, unsigned int index)> Scr_GetString{0x13254D0};
 	WEAK symbol<void(scrContext_t* context, unsigned int id, scr_string_t stringValue,
 		unsigned int paramcount)> Scr_NotifyId{0x1325E20};
-
-	WEAK symbol<scr_string_t(const char* str, unsigned int user)> SL_GetString{0x131AE30};
 
 	WEAK symbol<void(const char* string)> SV_Cmd_TokenizeString{ 0x1298BD0 };
 	WEAK symbol<void()> SV_Cmd_EndTokenizedString{ 0x1298B90 };

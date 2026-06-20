@@ -706,19 +706,28 @@ namespace gsc
 
 	game::ScriptFile_S4* find_script(game::XAssetType type, game::name_or_hash name, int allow_create_default)
 	{
+		printf("finding script '%s'\n", name.name);
 		auto real_name = get_script_name(name);
+		printf("real script name '%s'\n", real_name.data());
 
+		/*
 		auto* script = load_custom_script(name, real_name);
 		if (script)
 		{
 			return script;
 		}
+		*/
 
 		static const auto& game_ = identification::game::get_target_game().client_name;
 		if (game_ == "iw9-mod"s)
 			return game::DB_FindXAssetHeader_IW9(type, name.hash, allow_create_default).scriptfile;
 
-		return game::DB_FindXAssetHeader(type, name.name, allow_create_default).scriptfile;
+		printf("looking for script asset '%s'\n", real_name.data());
+		auto res = game::DB_FindXAssetHeader(type, name.name, allow_create_default).scriptfile;
+		if (res)
+			printf("found script asset '%s' at %p\n", real_name.data(), res);
+
+		return res;
 	}
 
 	loaded_script_t* get_loaded_script(const std::string& name)

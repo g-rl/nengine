@@ -39,6 +39,8 @@ namespace scripting
 		// resolved readable filename, used as table key
 		std::string current_file;
 
+		game::ScriptFile* current_scriptfile_NOT_FILE = nullptr;
+
 		std::vector<std::function<void(bool, bool)>> shutdown_callbacks;
 
 		bool is_iw9()
@@ -84,15 +86,10 @@ namespace scripting
 
 		void add_function_sort(const std::string& file, const std::string& name, const char* pos)
 		{
+			printf("add_function_sort: %s::%s\n", file.c_str(), name.c_str());
 			if (!script_function_table_sort.contains(file))
 			{
-				auto* script = gsc::find_script(get_scriptfile_type(), current_script_asset_key, false);
-				if (script == nullptr)
-				{
-					return;
-				}
-
-				const auto* end = get_script_bytecode_end(script);
+				const auto* end = get_script_bytecode_end(current_scriptfile_NOT_FILE);
 				script_function_table_sort[file].emplace_back("__end__", end);
 			}
 
@@ -109,12 +106,14 @@ namespace scripting
 		void scr_add_class_field_stub(game::scrContext_t* context,
 			unsigned int classnum, game::scr_string_t name, unsigned int canonical_string, unsigned int offset)
 		{
+			printf("scr_add_class_field_stub\n");
 			const auto* name_str = game::SL_ConvertToString(name);
 			if (!fields_table[classnum].contains(name_str))
 			{
 				fields_table[classnum][name_str] = offset;
 			}
 			scr_add_class_field_hook.invoke<void>(context, classnum, name, canonical_string, offset);
+			printf("scr_add_class_field_stub 2\n");
 		}
 
 		void scr_add_class_field_stub_iw9(game::scrContext_t* context,
@@ -132,6 +131,7 @@ namespace scripting
 		{
 			const auto* filename = scriptfile && scriptfile->raw_name.name ? scriptfile->raw_name.name : "";
 			current_script_file = filename;
+			current_scriptfile_NOT_FILE = scriptfile;
 			current_script_asset_key.name = current_script_file.c_str();
 			current_file = gsc::get_script_name(current_script_file.c_str());
 
@@ -149,11 +149,14 @@ namespace scripting
 
 		void scr_set_thread_position_stub(game::scrContext_t* context, unsigned int thread_name, const char* code_pos)
 		{
+			//printf("scr_set_thread_position_stub\n");
 			const auto name = resolve_function_name(thread_name);
+			//printf("scr_set_thread_position_stub: %s\n", name.c_str());
 			add_function_sort(current_file, name, code_pos);
 			add_function(current_file, name, code_pos);
-
+			//printf("scr_set_thread_position_stub 2\n");
 			scr_set_thread_position_hook.invoke<void>(context, thread_name, code_pos);
+			//printf("scr_set_thread_position_stub 3\n");
 		}
 
 		void scr_set_thread_position_stub_iw9(game::scrContext_t* context, std::uint64_t thread_name, const char* code_pos)
@@ -258,7 +261,7 @@ namespace scripting
 			}
 
 			if (game_ == "iw8-mod"s)
-				batch.add(SETUP_POINTER(game::Scr_AddClassField), "89 7C 24 20 44 8B 01 48 8B CE E8 ? ? ? 00 FF C7", SETUP_MOD(add(10).rip()));
+				batch.add(SETUP_POINTER(game::Scr_AddClassField), "89 7C 24 20 44 8B 01 48 8B CE E8 ? ? ? 00 FF C7", SETUP_MOD(add(11).rip()));
 			else
 				batch.add(SETUP_POINTER(game::Scr_AddClassField), "E8 ? ? ? 00 FF ? 48 8D ? ? 83 ? 0E 72 ? 48 8B 5C 24 ? 48 8B 74 24", GRAB_CALL);
 
@@ -279,21 +282,19 @@ namespace scripting
 
 		void post_unpack() override
 		{
-			//mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
+			mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
 
 			if (is_iw9())
 			{
-				mp::g_main_mp_shutdowngame_hook.create(game::G_MainMP_ShutdownGame, mp::g_main_mp_shutdowngame_stub);
-
 				scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub_iw9);
 				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub_iw9);
 				process_script_hook.create(game::ProcessScript, process_script_stub_iw9);
 			}
 			else
 			{
-				//scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub);
-				//scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub);
-				//process_script_hook.create(game::ProcessScript, process_script_stub);
+				scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub);
+				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub);
+				process_script_hook.create(game::ProcessScript, process_script_stub);
 			}
 		}
 	};

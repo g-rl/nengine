@@ -168,16 +168,23 @@ public:
 			"24 40 49 81 C0 ? ? 00 00 BA 40 00 00 00 E8", SETUP_MOD(add(25).rip()));
 
 		if (game_ == "iw8-mod"s)
-			batch.add(SETUP_POINTER(game::FindVariable), "E8 ? ? 00 00 8B ? 85 C0 75 ? 48 8D ? ? ? ? ? 8D ? 01 E8", GRAB_CALL);
-		else
+		{
+			if (identification::game::is("1.20.4-replay"))
+				batch.add(SETUP_POINTER(game::FindVariable), "E8 ? ? 00 00 8B ? 85 C0 75 ? 48 8D ? ? ? ? ? 8D ? 01 E8", GRAB_CALL);
+			else // every other iw8 version uses this
+				batch.add(SETUP_POINTER(game::FindVariable), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48", GRAB_CALL);
+		
+			batch.add(SETUP_POINTER(game::SL_GetString), "C6 40 08 02 E8 ? ? ? ? 89 03 48", SETUP_MOD(add(5).rip()));
+		}
+		else if (game_ == "iw9-mod"s)	// IW9: E8 ? ? 00 00 8B ? 85 C0 75 ? 48 8D ? ? ? ? ? 8D ? 01 E8
 			batch.add(SETUP_POINTER(game::FindVariable_IW9), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48", GRAB_CALL);
-
-		if (game_ == "s4-mod"s)
+		else if (game_ == "s4-mod"s)	// S4: uses IW8 sig, has IW9 definition
 			batch.add(SETUP_POINTER(game::FindVariable_IW9), "E8 ? ? ? 00 8B ? 85 C0 75 15 41 B8 75 04 00 00 48", GRAB_CALL);
 
 		batch.add(SETUP_POINTER(game::SL_ConvertToString), "E8 ? ? ? ? 45 33 F6 4C 8B E0", GRAB_CALL);
 
 		batch.add(SETUP_POINTER(game::Sys_Milliseconds), "E8 ? ? ? 00 89 87 ? ? 00 00 FF 87", GRAB_CALL);
+
 	}
 };
 
