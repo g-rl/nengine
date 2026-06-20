@@ -22,23 +22,21 @@ namespace bots
 
 		void load_bot_data()
 		{
-			static const char* bots_txt = "neura/bots.txt";
-
 			std::string bots_content;
-			if (!utils::io::read_file(bots_txt, &bots_content))
+			if (!utils::io::read_file("neura/bots.txt", &bots_content) || !utils::io::read_file("bots.txt", &bots_content))
 			{
 				// add cool people n contributors
 				bot_names = {
-					"mjkzy", "alicealys", "Joelrau",
-					"momo5502", "skkuull", "yoyothebest",
-					"Lierrmm", "Wanted", "January",
-					"diamante0018", "efinst0rm"
+					"mjkzy", "ethan",
 				};
 
 				return;
 			}
 
 			auto names = utils::string::split(bots_content, '\n');
+
+			printf("loading %d custom bot names...\n", static_cast<int>(names.size()));
+
 			for (auto& name : names)
 			{
 				name = utils::string::replace(name, "\r", "");

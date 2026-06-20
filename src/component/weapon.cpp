@@ -227,7 +227,7 @@ namespace weapon
 				SETUP_MOD(add(20).rip()));
 
 			batch.add(SETUP_POINTER(game::PM_Weapon_Idle_sig),
-				"7F 0A 33 D2 48 8B CF E8 ? ? ? ? 4C 8B",
+				"7F 0A 33 D2 48 8B ? E8 ? ? ? ? 4C 8B",
 				SETUP_MOD(add(8).rip())); // IW8, S4, IW9 is all same
 
 			// B8 00 ? ? ? 85 ? B9 01 00 00 00 0F on all builds

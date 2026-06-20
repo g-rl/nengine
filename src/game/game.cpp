@@ -101,15 +101,20 @@ namespace game
 
 	int Cmd_Argc()
 	{
+		return 0;
+		/*
 		static const auto& game_ = identification::game::get_target_game().client_name;
 		if (game_ == "iw8-mod"s)
 			return game::Cmd_Argc_internal();
 		
 		return cmd_args->argc[cmd_args->nesting];
+		*/
 	}
 
 	const char* Cmd_Argv(int argIndex)
 	{
+		return "";
+		/*
 		static const auto& game_ = identification::game::get_target_game().client_name;
 		if (game_ == "iw8-mod"s)
 			return game::Cmd_Argv_internal(argIndex);
@@ -118,6 +123,7 @@ namespace game
 			return nullptr;
 		else
 			return cmd_args->argv[cmd_args->nesting][argIndex];
+		*/
 	}
 }
 

@@ -71,6 +71,7 @@ namespace command
 				"4C 8D 05 ? ? ? ? 48 8D 15 ? ? 00 00 48 8D 0D ? ? ? ? E8 ? ? ? 00",
 				SETUP_MOD(add(22).rip()));
 
+			/*
 			if (game_ == "iw8-mod"s)
 			{
 				batch.add(SETUP_POINTER(game::Cmd_Argc_internal),
@@ -87,6 +88,7 @@ namespace command
 					"48 63 ? ? ? ? ? 48 8d ? ? ? ? ? 83 ? ? ? ? 7C 44",
 					SETUP_MOD(add(3).rip()));
 			}
+			*/
 		}
 
 		void post_start() override
@@ -145,4 +147,4 @@ namespace command
 	};
 }
 
-REGISTER_COMPONENT(command::component)
+//REGISTER_COMPONENT(command::component)
