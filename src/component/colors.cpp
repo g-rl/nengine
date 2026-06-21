@@ -138,7 +138,7 @@ namespace colors
 		void find_signatures(memory::signature_store& batch) override
 		{
 			batch.add(SETUP_POINTER(game::Com_CleanName),
-				"41 B8 24 00 00 00 ? 8D ? ? ? 00 00 48 8B C8 E8 ? ? ? 00", SETUP_MOD(add(17).rip()));
+				"41 B8 24 00 00 00 ? 8D ? ? ? 00 00 48 8B C8 E8", SETUP_MOD(add(17).rip()));
 
 			//batch.add(SETUP_POINTER(game::CL_LookupColor),
 			//	"48 89 5C 24 08 57 48 83 EC 20 0F B6 CA 49 8B D8 0F B6 FA E8");

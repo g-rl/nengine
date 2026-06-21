@@ -136,7 +136,7 @@ namespace gsc
 			if (!_stricmp(filename, ALLOCATE_FASTFILE) && type == game::DM_MEMORY_SCRIPT)
 			{
 				patch = true;
-				printf("patching memory for '%s'\n", ALLOCATE_FASTFILE);
+				//printf("patching memory for '%s'\n", ALLOCATE_FASTFILE);
 			}
 
 			if (patch)
@@ -252,7 +252,7 @@ namespace gsc
 				return nullptr;
 			}
 
-			//printf("Loading custom gsc '%s'\n", real_name.data());
+			printf("Loading custom gsc '%s'\n", real_name.data());
 
 			try
 			{
@@ -381,7 +381,7 @@ namespace gsc
 				throw std::runtime_error(std::format("Could not load scriptfile '{}'", real_name));
 			}
 
-			printf("Decompiling scriptfile '%s'\n", real_name.data());
+			//printf("Decompiling scriptfile '%s'\n", real_name.data());
 
 			const auto len = script_file->compressedLen;
 			const std::string stack{script_file->buffer, static_cast<std::uint32_t>(len)};
@@ -428,14 +428,14 @@ namespace gsc
 			const auto main_handle = game::Scr_GetFunctionHandle_IW9(scr_context, path_id, gsc_ctx_iw9->hash_id("main"));
 			if (main_handle)
 			{
-				printf("Loaded '%s::main'\n", name.data());
+				//printf("Loaded '%s::main'\n", name.data());
 				main_handles[name] = main_handle;
 			}
 
 			const auto init_handle = game::Scr_GetFunctionHandle_IW9(scr_context, path_id, gsc_ctx_iw9->hash_id("init"));
 			if (init_handle)
 			{
-				printf("Loaded '%s::init'\n", name.data());
+				//printf("Loaded '%s::init'\n", name.data());
 				init_handles[name] = init_handle;
 			}
 		}
@@ -449,14 +449,14 @@ namespace gsc
 			if (game_ == "iw9-mod"s)
 			{
 				const auto path_id = gsc_ctx_iw9->path_id(name.data());
-				//printf("[load_script] caching and loading script %" PRIu64 " (%s)\n", path_id, name.data());
+				////printf("[load_script] caching and loading script %" PRIu64 " (%s)\n", path_id, name.data());
 				cached_ids[path_id] = name;
 
 				load_script_iw9(scr_context, path_id, name);
 			}
 			else
 			{
-				printf("loading script '%s'\n", name.data());
+				//printf("loading script '%s'\n", name.data());
 				if (!game::Scr_LoadScript(scr_context, name.data()))
 				{
 					return;
@@ -465,14 +465,14 @@ namespace gsc
 				const auto main_handle = game::Scr_GetFunctionHandle(scr_context, name.data(), token_id("main"));
 				if (main_handle)
 				{
-					printf("Loaded '%s::main'\n", name.data());
+					//printf("Loaded '%s::main'\n", name.data());
 					main_handles[name] = main_handle;
 				}
 
 				const auto init_handle = game::Scr_GetFunctionHandle(scr_context, name.data(), token_id("init"));
 				if (init_handle)
 				{
-					printf("Loaded '%s::init'\n", name.data());
+					//printf("Loaded '%s::init'\n", name.data());
 					init_handles[name] = init_handle;
 				}
 			}
@@ -505,13 +505,13 @@ namespace gsc
 			const auto scr_context = game::ScriptContext_Server();
 			for (auto& function_handle : main_handles)
 			{
-				printf("Executing '%s::main'\n", function_handle.first.data());
+				//printf("Executing '%s::main'\n", function_handle.first.data());
 				game::Scr_FreeThread(scr_context, game::Scr_ExecThread(scr_context, function_handle.second, 0));
 			}
 
 			for (auto& function_handle : init_handles)
 			{
-				printf("Executing '%s::init'\n", function_handle.first.data());
+				//printf("Executing '%s::init'\n", function_handle.first.data());
 				game::Scr_FreeThread(scr_context, game::Scr_ExecThread(scr_context, function_handle.second, 0));
 			}
 
@@ -542,7 +542,7 @@ namespace gsc
 
 		void load_scripts()
 		{
-			printf("calling load_scripts\n");
+			//printf("calling load_scripts\n");
 
 			if (!game::Com_FrontEnd_IsInFrontEnd())
 			{
@@ -622,7 +622,7 @@ namespace gsc
 
 		void scr_end_load_scripts_stub(game::scrContext_t* context)
 		{
-			printf("scr_end_load_scripts_stub\n");
+			//printf("scr_end_load_scripts_stub\n");
 			gsc_ctx->cleanup();
 			gsc_ctx_s4->cleanup();
 			gsc_ctx_iw9->cleanup();
@@ -706,26 +706,24 @@ namespace gsc
 
 	game::ScriptFile_S4* find_script(game::XAssetType type, game::name_or_hash name, int allow_create_default)
 	{
-		printf("finding script '%s'\n", name.name);
+		//printf("finding script '%s'\n", name.name);
 		auto real_name = get_script_name(name);
-		printf("real script name '%s'\n", real_name.data());
+		//printf("real script name '%s'\n", real_name.data());
 
-		/*
 		auto* script = load_custom_script(name, real_name);
 		if (script)
 		{
 			return script;
 		}
-		*/
 
 		static const auto& game_ = identification::game::get_target_game().client_name;
 		if (game_ == "iw9-mod"s)
 			return game::DB_FindXAssetHeader_IW9(type, name.hash, allow_create_default).scriptfile;
 
-		printf("looking for script asset '%s'\n", real_name.data());
+		//printf("looking for script asset '%s'\n", real_name.data());
 		auto res = game::DB_FindXAssetHeader(type, name.name, allow_create_default).scriptfile;
-		if (res)
-			printf("found script asset '%s' at %p\n", real_name.data(), res);
+		//if (res)
+		//printf("found script asset '%s' at %p\n", real_name.data(), res);
 
 		return res;
 	}
@@ -1039,7 +1037,7 @@ namespace gsc
 				{
 					if (free_scripts && is_post_shutdown)
 					{
-						//printf("clearing script memory...\n");
+						////printf("clearing script memory...\n");
 						clear();
 					}
 				});
@@ -1052,7 +1050,7 @@ namespace gsc
 				if (patch_strings_dvar)
 				{
 #ifdef _DEBUG
-					//printf("setting ZeroProxy ncs_patchStrings to 0\n");
+					////printf("setting ZeroProxy ncs_patchStrings to 0\n");
 #endif
 
 					game::Dvar_SetBool_Internal(patch_strings_dvar, false);

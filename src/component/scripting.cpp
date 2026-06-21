@@ -86,7 +86,7 @@ namespace scripting
 
 		void add_function_sort(const std::string& file, const std::string& name, const char* pos)
 		{
-			printf("add_function_sort: %s::%s\n", file.c_str(), name.c_str());
+			//printf("add_function_sort: %s::%s\n", file.c_str(), name.c_str());
 			if (!script_function_table_sort.contains(file))
 			{
 				const auto* end = get_script_bytecode_end(current_scriptfile_NOT_FILE);
@@ -106,14 +106,12 @@ namespace scripting
 		void scr_add_class_field_stub(game::scrContext_t* context,
 			unsigned int classnum, game::scr_string_t name, unsigned int canonical_string, unsigned int offset)
 		{
-			printf("scr_add_class_field_stub\n");
 			const auto* name_str = game::SL_ConvertToString(name);
 			if (!fields_table[classnum].contains(name_str))
 			{
 				fields_table[classnum][name_str] = offset;
 			}
 			scr_add_class_field_hook.invoke<void>(context, classnum, name, canonical_string, offset);
-			printf("scr_add_class_field_stub 2\n");
 		}
 
 		void scr_add_class_field_stub_iw9(game::scrContext_t* context,
@@ -290,7 +288,7 @@ namespace scripting
 				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub_iw9);
 				process_script_hook.create(game::ProcessScript, process_script_stub_iw9);
 			}
-			else
+			else if (is_s4())
 			{
 				scr_add_class_field_hook.create(game::Scr_AddClassField, scr_add_class_field_stub);
 				scr_set_thread_position_hook.create(game::Scr_SetThreadPosition, scr_set_thread_position_stub);
@@ -300,4 +298,4 @@ namespace scripting
 	};
 }
 
-//REGISTER_COMPONENT(scripting::component)
+REGISTER_COMPONENT(scripting::component)

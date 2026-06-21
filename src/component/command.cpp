@@ -131,6 +131,7 @@ namespace command
 
 		void post_unpack() override
 		{
+			/*
 			add("fast_restart", []()
 			{
 				game::SV_CmdsMP_RequestMapRestart(0, 0);
@@ -143,8 +144,9 @@ namespace command
 #endif
 				game::SV_CmdsMP_RequestMapRestart(1, 0);
 			});
+			*/
 		}
 	};
 }
 
-//REGISTER_COMPONENT(command::component)
+REGISTER_COMPONENT(command::component)
