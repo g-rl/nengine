@@ -123,19 +123,19 @@ public:
 		}
 
 		batch.add(SETUP_POINTER(game::Scr_ExecThread), "48 83 EC ? 33 C0 45 8B C8");
-		batch.add(SETUP_POINTER(game::Scr_FreeThread), "E8 ? ? ? ? 48 8B 4F ? 48 63 81", GRAB_CALL);
+		if (game_ == "s4-mod"s)
+			batch.add(SETUP_POINTER(game::Scr_FreeThread), "E8 ? ? ? ? 48 8B 4F ? 48 63 81 ? ? ? ? 48 63 91", GRAB_CALL);
+		else
+			batch.add(SETUP_POINTER(game::Scr_FreeThread), "E8 ? ? ? ? 48 8B 4F ? 48 63 81", GRAB_CALL);
 
-		if (game_ == "iw8-mod")
+		if (game_ == "iw8-mod"s)
 			batch.add(SETUP_POINTER(game::Dvar_FindVarByName), "E8 ? ? ? ? 48 8B CB 48 63 50", GRAB_CALL);
 		else
 			batch.add(SETUP_POINTER(game::Dvar_FindVarByName_IW9), "E8 ? ? ? ? 48 8B CB 48 63 50", GRAB_CALL);
-		//batch.add(SETUP_POINTER(game::Dvar_GetIntSafe), "E8 ? ? ? ? 8B D0 85 C0 75 ? 38 05", GRAB_CALL);
 
 		if (game_ == "iw8-mod"s)
 			batch.add(SETUP_POINTER(game::Dvar_RegisterBool_), "E8 ? ? ? ? 48 8B F0 F6 46", GRAB_CALL);
-		else if (game_ == "s4-mod"s)
-			batch.add(SETUP_POINTER(game::Dvar_RegisterBool_IW9), "E8 ? ? AD 00 F6 40 ? 08", GRAB_CALL);
-		else
+		else // s4 & iw9
 			batch.add(SETUP_POINTER(game::Dvar_RegisterBool_IW9), "E8 ? ? ? ? C5 FA 10 0D ? ? ? ? C5 FA 10 1D ? ? ? ? C5 F8 28 D1", GRAB_CALL);
 
 		if (game_ == "iw8-mod"s)
@@ -154,6 +154,15 @@ public:
 			}
 
 			batch.add(SETUP_POINTER(game::Dvar_SetBool_Internal_IW8), "B2 01 48 83 C4 28 E9 ? ? ? 00 48 83 C4 28 C3", SETUP_MOD(add(7).rip()));
+		}
+		else if (game_ == "s4-mod"s)
+		{
+			// 48 89 44 24 20 ? 8B ? 33 D2 C5 F8 77 E8 ? ? ? ? 4C 8D 5C 24 60
+			batch.add(SETUP_POINTER(game::Dvar_RegisterVariant), "48 89 44 24 20 ? 8B ? 33 D2 C5 F8 77 E8 ? ? ? ? 4C 8D 5C 24 60",
+				SETUP_MOD(add(14).rip()));
+			batch.add(SETUP_POINTER(game::Dvar_RegisterVariant_IW9), "48 89 44 24 20 ? 8B ? 33 D2 C5 F8 77 E8 ? ? ? ? 4C 8D 5C 24 60",
+				SETUP_MOD(add(14).rip()));
+			batch.add(SETUP_POINTER(game::Dvar_SetBool_Internal_IW9), "B2 01 48 83 C4 28 E9 ? ? ? 00 48 83 C4 28 C3", SETUP_MOD(add(7).rip()));
 		}
 		else {
 			batch.add(SETUP_POINTER(game::Dvar_RegisterVariant), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 8B 05 ? ? ? ? ? 8B ? B9 ? ? 00 00");

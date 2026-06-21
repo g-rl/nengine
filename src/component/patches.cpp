@@ -185,9 +185,11 @@ namespace patches
 						component_loader::find_signatures();
 					}
 
-					if (identification::game::get_target_game().client_name == "iw9-mod"s && strstr(stripped.c_str(), "Created inline hooks for checksums"))
+					if (identification::game::get_target_game().client_name != "iw8-mod"s 
+						&& strstr(stripped.c_str(), "Created inline hooks for checksums"))
 					{
-						//component_loader::post_unpack();
+						printf("alternative post unpack method\n");
+						component_loader::post_unpack();
 						done = true;
 					}
 				});

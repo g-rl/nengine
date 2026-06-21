@@ -143,18 +143,17 @@ namespace colors
 			//batch.add(SETUP_POINTER(game::CL_LookupColor),
 			//	"48 89 5C 24 08 57 48 83 EC 20 0F B6 CA 49 8B D8 0F B6 FA E8");
 
+			batch.add(SETUP_POINTER(game::ColorIndex), "80 E9 ?? B8 ?? 00 00 00 0F B6 ?? 80 FA");
+
 			static const auto& game_ = identification::game::get_target_game().client_name;
 
 			if (game_ != "iw8-mod"s)
 			{
-				batch.add(SETUP_POINTER(game::ColorIndex), "? ? ? ? ? C7 02 FF FF FF FF E8 ? ? ? FE", SETUP_MOD(add(12).rip()));
 				batch.add(SETUP_POINTER(rainbow_color_override_addr), "8B 84 ? ? ? ? 04 ? 03 ? 41 FF E0 8B 05",
 					SETUP_MOD(add(15).rip().add(8)));
 			}
 			else
 			{
-				batch.add(SETUP_POINTER(game::ColorIndex), "80 E9 ?? B8 ?? 00 00 00 0F B6 ?? 80 FA");
-
 				if (identification::game::is("1.20.4-replay"))
 				{
 					rainbow_color_override_addr = reinterpret_cast<void*>(0x10C793BC_b);
@@ -189,20 +188,23 @@ namespace colors
 		void post_unpack() override
 		{
 			// allows colored name in-game
-			utils::hook::jump(game::Com_CleanName, com_clean_name_stub, true);
+			if (game::Com_CleanName)
+				utils::hook::jump(game::Com_CleanName, com_clean_name_stub, true);
 
 			// don't apply colors to overhead names
 			//utils::hook::call(0x1406843FE, get_client_name_stub);
 
 			// patch I_CleanStr
-			utils::hook::jump(game::I_CleanStr, i_clean_str_stub, true);
+			if (game::I_CleanStr)
+				utils::hook::jump(game::I_CleanStr, i_clean_str_stub, true);
 			
 			// make color index higher for more colors
 			//utils::hook::jump(0x140CFA6F0, color_index, true);
 			//utils::hook::set<uint8_t>(0x140E4F64B, MAX_COLOR_INDEX);
 
 			// force new colors
-			ColorIndex_hook.create(game::ColorIndex, color_index_stub);
+			if (game::ColorIndex)
+				ColorIndex_hook.create(game::ColorIndex, color_index_stub);
 
 			// prevent name mismatch check
 			//utils::hook::set<uint8_t>(0x140805C10, 0xC3);

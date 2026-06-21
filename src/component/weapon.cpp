@@ -324,4 +324,4 @@ namespace weapon
 	};
 }
 
-REGISTER_COMPONENT(weapon::component)
+//REGISTER_COMPONENT(weapon::component)

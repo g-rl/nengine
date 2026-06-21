@@ -381,7 +381,7 @@ namespace gsc
 				throw std::runtime_error(std::format("Could not load scriptfile '{}'", real_name));
 			}
 
-			//printf("Decompiling scriptfile '%s'\n", real_name.data());
+			printf("Decompiling scriptfile '%s'\n", real_name.data());
 
 			const auto len = script_file->compressedLen;
 			const std::string stack{script_file->buffer, static_cast<std::uint32_t>(len)};
@@ -456,7 +456,7 @@ namespace gsc
 			}
 			else
 			{
-				//printf("loading script '%s'\n", name.data());
+				printf("loading script '%s'\n", name.data());
 				if (!game::Scr_LoadScript(scr_context, name.data()))
 				{
 					return;
@@ -465,14 +465,14 @@ namespace gsc
 				const auto main_handle = game::Scr_GetFunctionHandle(scr_context, name.data(), token_id("main"));
 				if (main_handle)
 				{
-					//printf("Loaded '%s::main'\n", name.data());
+					printf("Loaded '%s::main'\n", name.data());
 					main_handles[name] = main_handle;
 				}
 
 				const auto init_handle = game::Scr_GetFunctionHandle(scr_context, name.data(), token_id("init"));
 				if (init_handle)
 				{
-					//printf("Loaded '%s::init'\n", name.data());
+					printf("Loaded '%s::init'\n", name.data());
 					init_handles[name] = init_handle;
 				}
 			}
@@ -505,14 +505,20 @@ namespace gsc
 			const auto scr_context = game::ScriptContext_Server();
 			for (auto& function_handle : main_handles)
 			{
-				//printf("Executing '%s::main'\n", function_handle.first.data());
-				game::Scr_FreeThread(scr_context, game::Scr_ExecThread(scr_context, function_handle.second, 0));
+				printf("Executing '%s::main'\n", function_handle.first.data());
+				auto exec = game::Scr_ExecThread(scr_context, function_handle.second, 0);
+				printf("Finished '%s::main' with thread handle %d\n", function_handle.first.data(), exec);
+				game::Scr_FreeThread(scr_context, exec);
+				printf("Executed '%s::main'\n", function_handle.first.data());
 			}
 
 			for (auto& function_handle : init_handles)
 			{
-				//printf("Executing '%s::init'\n", function_handle.first.data());
-				game::Scr_FreeThread(scr_context, game::Scr_ExecThread(scr_context, function_handle.second, 0));
+				printf("Executing '%s::init'\n", function_handle.first.data());
+				auto exec = game::Scr_ExecThread(scr_context, function_handle.second, 0);
+				printf("Finished '%s::init' with thread handle %d\n", function_handle.first.data(), exec);
+				game::Scr_FreeThread(scr_context, exec);
+				printf("Executed '%s::init'\n", function_handle.first.data());
 			}
 
 			gscr_load_level_hook.invoke<void>();
