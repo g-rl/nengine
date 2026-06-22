@@ -22,6 +22,12 @@ namespace game
 
 		static const auto& game_ = identification::game::get_target_game().client_name;
 
+		if (game_ == "s4-mod"s)
+		{
+			auto dvar_ship_S4 = reinterpret_cast<game::dvar_t_S4*>(dvar);
+			return &dvar_ship_S4->current;
+		}
+
 		// IW9 ship
 		if (game_ == "iw9-mod"s)
 		{
@@ -62,7 +68,20 @@ namespace game
 		if (game_ == "s4-mod"s)
 		{
 			auto hash = game::hash_scr_dvar(name);
-			return game::Dvar_RegisterVariant_IW9(hash, 9, flags, &value, &domain, desc);
+			printf("registering \"%s\" with hash %llx\n", name, hash);
+			auto res = game::Dvar_RegisterVariant_IW9(hash, 9, flags, &value, &domain, desc);
+
+			/*
+			if (res)
+			{
+				auto bruh = get_current(res);
+				printf("current value: %s\n", bruh->string);
+			}
+			else
+				printf("failed to register dvar \"%s\"!\n", name);
+			*/
+
+			return res;
 		}
 		else if (game_ == "iw9-mod"s)
 		{
@@ -79,7 +98,20 @@ namespace game
 		if (game_ == "s4-mod"s)
 		{
 			auto hash = game::hash_scr_dvar(name);
-			return game::Dvar_RegisterBool_IW9(hash, value, flags, desc);
+			printf("registering \"%s\" with hash %llx\n", name, hash);
+			auto res = game::Dvar_RegisterBool_IW9(hash, value, flags, desc);
+			
+			/*
+			if (res)
+			{
+				auto bruh = get_current(res);
+				printf("current value: %d (%d)\n", bruh->enabled, bruh->integer);
+			}
+			else
+				printf("failed to register dvar \"%s\"!\n", name);
+			*/
+
+			return res;
 		}
 		else if (game_ == "iw9-mod"s)
 		{

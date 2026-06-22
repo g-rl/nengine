@@ -28,6 +28,9 @@ namespace
 		{
 			try
 			{
+				//printf("running find_signatures from SystemParametersInfoA hook\n");
+				//component_loader::find_signatures();
+				//printf("running post_unpack from SystemParametersInfoA hook\n");
 				component_loader::post_unpack();
 			}
 			catch (const std::exception& e)

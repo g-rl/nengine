@@ -35,6 +35,24 @@ namespace game
 		unsigned __int8 color[4];
 	};
 
+	union DvarValue_S4
+	{
+		union
+		{
+			bool enabled;
+			int integer;
+			unsigned int unsignedInt;
+			__int64 integer64;
+			unsigned __int64 unsignedInt64;
+			float value;
+			float vector[4];
+			const char* string;
+			unsigned __int8 color[4];
+		} naked;
+		uint64_t unk1;
+		bool unk2;
+	}; //static_assert(sizeof(DvarValue) == 0x20);
+
 	struct BbConstUsageFlags
 	{
 		bool initialized;
@@ -169,6 +187,22 @@ namespace game
 		} vector;
 	};
 	static_assert(sizeof(DvarLimits) == 0x10);
+	
+	struct dvar_t_S4
+	{
+		DvarValue current;
+		DvarValue latched;
+		DvarValue reset;
+		uint64_t hash;
+		uint64_t hashNext;
+		unsigned int flags;
+		DvarLevel level;
+		int type;
+		bool modified;
+		DvarLimits domain;
+		char gap[8];
+	};
+	//static_assert(sizeof(dvar_t_S4) == 0x90);
 
 	struct dvar_t_ship
 	{

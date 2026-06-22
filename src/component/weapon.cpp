@@ -311,8 +311,8 @@ namespace weapon
 			if (game::PM_Weapon_sig)
 				PM_Weapon_hook.create(game::PM_Weapon_sig, PM_Weapon_stub);
 
-			if (game::PM_Weapon_ProcessHand_sig)
-				PM_Weapon_ProcessHand_hook.create(game::PM_Weapon_ProcessHand_sig, PM_Weapon_ProcessHand_stub);
+			//if (game::PM_Weapon_ProcessHand_sig)
+			//	PM_Weapon_ProcessHand_hook.create(game::PM_Weapon_ProcessHand_sig, PM_Weapon_ProcessHand_stub);
 
 			// these 2 functions below are protected by Arxan :P
 			if (game::PM_BeginWeaponChange_sig)
@@ -324,4 +324,4 @@ namespace weapon
 	};
 }
 
-//REGISTER_COMPONENT(weapon::component)
+REGISTER_COMPONENT(weapon::component)
