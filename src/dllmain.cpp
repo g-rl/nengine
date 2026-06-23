@@ -24,7 +24,7 @@ namespace
 	BOOL WINAPI system_parameters_info_a(const UINT uiAction, const UINT uiParam, const PVOID pvParam, const UINT fWinIni)
 	{
 		static bool has_ran_unpack = false;
-		if (!has_ran_unpack)
+		if (!has_ran_unpack) 
 		{
 			try
 			{

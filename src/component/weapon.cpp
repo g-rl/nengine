@@ -295,6 +295,8 @@ namespace weapon
 
 		void post_unpack() override
 		{
+			static const auto& game_ = identification::game::get_target_game().client_name;
+
 			scheduler::once([]
 			{
 				sprint_swaps_dvar = game::Dvar_RegisterBool("pan_sprintswaps", false, game::DVAR_NOFLAG, "");
@@ -311,8 +313,12 @@ namespace weapon
 			if (game::PM_Weapon_sig)
 				PM_Weapon_hook.create(game::PM_Weapon_sig, PM_Weapon_stub);
 
-			//if (game::PM_Weapon_ProcessHand_sig)
-			//	PM_Weapon_ProcessHand_hook.create(game::PM_Weapon_ProcessHand_sig, PM_Weapon_ProcessHand_stub);
+			// TODO: instashoots not working
+			if (game_ != "s4-mod"s)
+			{
+				if (game::PM_Weapon_ProcessHand_sig)
+					PM_Weapon_ProcessHand_hook.create(game::PM_Weapon_ProcessHand_sig, PM_Weapon_ProcessHand_stub);
+			}
 
 			// these 2 functions below are protected by Arxan :P
 			if (game::PM_BeginWeaponChange_sig)
