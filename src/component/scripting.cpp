@@ -138,9 +138,10 @@ namespace scripting
 
 		void process_script_stub_iw9(game::scrContext_t* context, game::ScriptFile* scriptfile)
 		{
-			current_script_asset_key.hash = scriptfile->raw_name.hash;
 			current_file = gsc::get_script_name_iw9(scriptfile->raw_name.hash);
 			current_script_file = current_file;
+			current_scriptfile_NOT_FILE = scriptfile;
+			current_script_asset_key.hash = scriptfile->raw_name.hash;
 
 			call_spoofer::spoof_hook_invoke<void>(process_script_hook, context, scriptfile);
 		}

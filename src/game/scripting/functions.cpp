@@ -84,25 +84,4 @@ namespace scripting
 	{
 		return find_token(id);
 	}
-
-	script_function get_function_by_index(const std::uint32_t index)
-	{
-		static const auto function_table = &gsc::func_table;
-		static const auto method_table = &gsc::meth_table;
-
-		if (index < 0x1000)
-		{
-			return reinterpret_cast<script_function*>(function_table)[index - 1];
-		}
-
-		return reinterpret_cast<script_function*>(method_table)[index - 0x8000];
-	}
-
-	script_function find_function(const std::string& name, const bool prefer_global)
-	{
-		const auto index = find_function_index(name, prefer_global);
-		if (index < 0) return nullptr;
-
-		return get_function_by_index(index);
-	}
 }

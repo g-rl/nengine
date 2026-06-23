@@ -86,6 +86,7 @@ namespace game
 		else if (game_ == "iw9-mod"s)
 		{
 			auto hash = game::hash_scr_dvar_iw9(name);
+			printf("registering \"%s\" with hash %llx\n", name, hash);
 			return game::Dvar_RegisterVariant_IW9(hash, 10, flags, &value, &domain, desc);
 		}
 
@@ -116,6 +117,7 @@ namespace game
 		else if (game_ == "iw9-mod"s)
 		{
 			auto hash = game::hash_scr_dvar_iw9(name);
+			printf("registering \"%s\" with hash %llx\n", name, hash);
 			return game::Dvar_RegisterBool_IW9(hash, value, flags, desc);
 		}
 
@@ -133,29 +135,24 @@ namespace game
 
 	int Cmd_Argc()
 	{
-		return 0;
-		/*
 		static const auto& game_ = identification::game::get_target_game().client_name;
-		if (game_ == "iw8-mod"s)
-			return game::Cmd_Argc_internal();
-		
-		return cmd_args->argc[cmd_args->nesting];
-		*/
+		if (game_ == "iw9-mod"s)
+			return cmd_args->argc[cmd_args->nesting];
+			
+		//return game::Cmd_Argc_internal();
+		return 0;
 	}
 
 	const char* Cmd_Argv(int argIndex)
 	{
-		return "";
-		/*
 		static const auto& game_ = identification::game::get_target_game().client_name;
-		if (game_ == "iw8-mod"s)
-			return game::Cmd_Argv_internal(argIndex);
+		if (game_ != "iw9-mod"s)
+			return ""; // game::Cmd_Argv_internal(argIndex);
 		
 		if (argIndex >= cmd_args->argc[cmd_args->nesting])
 			return nullptr;
 		else
 			return cmd_args->argv[cmd_args->nesting][argIndex];
-		*/
 	}
 }
 

@@ -82,13 +82,14 @@ namespace command
 					"48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 85 C0 0F 84 ? ? ? ? 33 C9 E8 ? ? FF FF",
 					SETUP_MOD(add(27).rip()));
 			}
-			else if (game_ == "iw9-mod"s)
+			*/
+
+			if (game_ == "iw9-mod"s)
 			{
 				batch.add(SETUP_POINTER(game::cmd_args),
 					"48 63 ? ? ? ? ? 48 8d ? ? ? ? ? 83 ? ? ? ? 7C 44",
 					SETUP_MOD(add(3).rip()));
 			}
-			*/
 		}
 
 		void post_start() override
@@ -131,7 +132,6 @@ namespace command
 
 		void post_unpack() override
 		{
-			/*
 			add("fast_restart", []()
 			{
 				game::SV_CmdsMP_RequestMapRestart(0, 0);
@@ -139,12 +139,8 @@ namespace command
 
 			add("map_restart", []()
 			{
-#ifdef _DEBUG
-				printf("attempting restart\n");
-#endif
 				game::SV_CmdsMP_RequestMapRestart(1, 0);
 			});
-			*/
 		}
 	};
 }

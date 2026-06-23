@@ -10,9 +10,6 @@
 [submodule "deps/minhook"]
 	path = deps/minhook
 	url = https://github.com/TsudaKageyu/minhook.git
-[submodule "deps/discord-rpc"]
-	path = deps/discord-rpc
-	url = https://github.com/alicealys/discord-rpc
 [submodule "deps/asmjit"]
 	path = deps/asmjit
 	url = https://github.com/asmjit/asmjit.git

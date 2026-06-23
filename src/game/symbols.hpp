@@ -77,7 +77,12 @@ namespace game
 		std::uint32_t offset) = nullptr;
 	WEAK void(*Scr_SetThreadPosition)(game::scrContext_t* scr_context, int val) = nullptr;
 	WEAK void(*Scr_EmitFunction)()  = nullptr;
+
+	WEAK bool (*Scr_CastString)(game::scrContext_t* scr_context, __int64* out) = nullptr;
+	WEAK __int64* (*Scr_PeekXHashDvar)(__int64* a1, game::scrContext_t* scr_context, int index) = nullptr;
 	
+	WEAK const char* (*Scr_GetString)(scrContext_t* context, unsigned int index) = nullptr;
+
 	WEAK unsigned int(*Scr_LoadScript)(game::scrContext_t* scr_context, const char* filename) = nullptr;
 	WEAK unsigned int(*Scr_LoadScript_IW9)(game::scrContext_t* scr_context, std::uint64_t filename) = nullptr;
 
@@ -179,7 +184,6 @@ namespace game
 	WEAK symbol<void(scrContext_t* context)> Scr_ClearOutParams{0x1323410};
 	WEAK symbol<void(scrContext_t* context)> Scr_ErrorInternal{0x13237B0};
 	WEAK symbol<const char*(int type)> Scr_GetNameForType{0x13210A0};
-	WEAK symbol<const char*(scrContext_t* context, unsigned int index)> Scr_GetString{0x13254D0};
 	WEAK symbol<void(scrContext_t* context, unsigned int id, scr_string_t stringValue,
 		unsigned int paramcount)> Scr_NotifyId{0x1325E20};
 
