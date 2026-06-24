@@ -15,7 +15,7 @@ namespace identification::game
 				{ { 1, 18, 0, 15257229 }, MP, BattleNet, Ship, 0xF3A1CB7F, XXH32 },	// 18/07/2023 22:30:50
 				{ { 1, 19, 0, 15332815 }, MP, Steam,     Ship, 0xFCABC600 },		// 25/07/2023 18:29:41
 				{ { 1, 25, 0, 16245188 }, MP, Steam,     Ship, 0xC26D5FD7, XXH32 },	// 07/10/2023 03:29:42
-				{ { 1, 40, 0, 23226476 }, MP, Steam,     Ship, 0x23301CA2 },		// 18/07/2025 15:08:33
+				{ { 1, 40, 0, 23226476 }, MP, Steam,     Ship, 0xE8E555B2, XXH32 },	// 18/07/2025 15:08:33
 				
 				// i think this is the build i'm on, but this wasn't what ZeroProxy had
 				// i calculated XXH32 myself and got this

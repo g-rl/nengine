@@ -31,7 +31,11 @@ namespace
 				//printf("running find_signatures from SystemParametersInfoA hook\n");
 				//component_loader::find_signatures();
 				//printf("running post_unpack from SystemParametersInfoA hook\n");
-				component_loader::post_unpack();
+				if (identification::game::is_platform(identification::game::Steam))
+				{
+					component_loader::find_signatures();
+					component_loader::post_unpack();
+				}
 			}
 			catch (const std::exception& e)
 			{
@@ -51,6 +55,8 @@ namespace
 		utils::io::remove_file("__ModernWarfare");
 		utils::io::remove_file("__Vanguard");
 		utils::io::remove_file("__cod");
+		utils::io::remove_file("__cod23-cod");
+		utils::io::remove_file("__cod22-cod");
 		utils::io::remove_file("Data/data/CASCRepair.mrk"); // E_REPAIR (28)
 	}
 
@@ -152,7 +158,7 @@ namespace
 				}
 
 				static const auto& game_ = identification::game::get_target_game().client_name;
-				if (game_ == "iw8-mod"s)
+				if (game_ == "iw8-mod"s || identification::game::is_platform(identification::game::Steam))
 				{
 					auto* system_parameters_info = utils::nt::library{}.get_iat_entry("user32.dll", "SystemParametersInfoA");
 					if (!system_parameters_info)
