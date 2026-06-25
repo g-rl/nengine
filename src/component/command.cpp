@@ -71,7 +71,6 @@ namespace command
 				"4C 8D 05 ? ? ? ? 48 8D 15 ? ? 00 00 48 8D 0D ? ? ? ? E8 ? ? ? 00",
 				SETUP_MOD(add(22).rip()));
 
-			/*
 			if (game_ == "iw8-mod"s)
 			{
 				batch.add(SETUP_POINTER(game::Cmd_Argc_internal),
@@ -80,9 +79,8 @@ namespace command
 
 				batch.add(SETUP_POINTER(game::Cmd_Argv_internal),
 					"48 8D 0D ? ? ? ? E8 ? ? ? ? E8 ? ? ? ? 85 C0 0F 84 ? ? ? ? 33 C9 E8 ? ? FF FF",
-					SETUP_MOD(add(27).rip()));
+					SETUP_MOD(add(28).rip()));
 			}
-			*/
 
 			if (game_ == "iw9-mod"s)
 			{
@@ -139,6 +137,7 @@ namespace command
 
 			add("map_restart", []()
 			{
+				printf("map_restart\n");
 				game::SV_CmdsMP_RequestMapRestart(1, 0);
 			});
 		}
