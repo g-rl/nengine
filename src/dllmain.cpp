@@ -28,10 +28,8 @@ namespace
 		{
 			try
 			{
-				//printf("running find_signatures from SystemParametersInfoA hook\n");
-				//component_loader::find_signatures();
-				//printf("running post_unpack from SystemParametersInfoA hook\n");
-				if (identification::game::is_platform(identification::game::Steam))
+				static const auto is_steam = identification::game::is_platform(identification::game::Steam);
+				if (identification::game::is("1.20.4-replay") || is_steam)
 				{
 					component_loader::find_signatures();
 					component_loader::post_unpack();

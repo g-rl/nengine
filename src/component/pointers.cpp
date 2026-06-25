@@ -143,8 +143,8 @@ public:
 		if (game_ == "iw8-mod"s)
 		{
 			if (identification::game::is("1.20.4-replay")) {
-				batch.add(SETUP_POINTER(game::Dvar_RegisterVariant), "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 81 EC ? ? ? ? 48 8B 05 ? ? ? ? 48 33 C4"
-					" 48 89 84 24 ? ? ? ? 8B 05");
+				batch.add(SETUP_POINTER(game::Dvar_RegisterVariant), "8B D0 48 8B CE E8 ? ? 00 00 48 8B 5C 24 70 48",
+					SETUP_MOD(add(6).rip()));
 			}
 			else if (identification::game::is_less_or_eq("1.24.0")) {
 				batch.add(SETUP_POINTER(game::Dvar_RegisterVariant), "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 7C 24 ? 41 54 41 56 41 57 48 83 EC ? 8B 05 ? ? ? ?"

@@ -73,7 +73,8 @@ namespace gsc
 
 		void post_unpack() override
 		{
-			Scr_PeekXHashDvar_hook.create(game::Scr_PeekXHashDvar, Scr_PeekXHashDvar_stub);
+			if (game::Scr_PeekXHashDvar)
+				Scr_PeekXHashDvar_hook.create(game::Scr_PeekXHashDvar, Scr_PeekXHashDvar_stub);
 		}
 	};
 }
