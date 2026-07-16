@@ -11,6 +11,7 @@ this should support most of IW8, S4, IW9, and JUP out of the box.
 4. make sure it is named XInput9_1_0.dll, drag into game, and you're done
 
 ## features
+- native .GPC scripting (Cronus format)
 - custom bot names via `neura/bots.txt` in main folder
 - ^: rainbow color
 - custom weapon mechanics (sprint swaps, instashoots, always canswaps, freeze animation, canzoom, altswaps)
@@ -27,5 +28,5 @@ this should support most of IW8, S4, IW9, and JUP out of the box.
 
 ### credits
 - [mjkzy](https://github.com/mjkzy) - initial research + compatibility for every single game version [when possible]
-- [blue](https://github.com/SadesperRecord) - IW8 player mechanics research (added to S4, IW9, and JUP!)
+- [blue](https://github.com/SadesperRecord) - cronus & IW8 player mechanics research (added to S4, IW9, and JUP!)
 - [hinatyu](https://x.com/hinatyu) - extremely useful resources for reverse engineering newer games
