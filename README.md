@@ -4,6 +4,10 @@ the DLL source code that is used with the [neura GSC mod](https://github.com/g-r
 
 this should support most of IW8, S4, IW9, and JUP out of the box.
 
+- **you must own a license to the game(s) in order to use neura.**
+- neura's engine and GSC will *always* be **free** and **Open Source** for anyone
+- neura is only usable offline and is not to be used as "cheats" or "hacks"
+
 ## how to compile
 1. run `generate.bat`
 2. go to `build/` folder, open the .SLN file for Visual Studio 2026
