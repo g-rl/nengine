@@ -2,7 +2,7 @@
 
 the DLL source code that is used with the [neura GSC mod](https://github.com/g-rl/neura). 
 
-this should support most of IW8, S4, IW9, and JUP out of the box.
+this should support most of IW8, S4, IW9 out of the box. JUP is a seperate project to enable further development, though the IW9 work here can be used for it very easily.
 
 - **you must own a license to the game(s) in order to use neura.**
 - neura's engine and GSC will *always* be **free** and **Open Source** for anyone
