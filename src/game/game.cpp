@@ -139,15 +139,14 @@ namespace game
 		if (game_ == "iw9-mod"s)
 			return cmd_args->argc[cmd_args->nesting];
 			
-		//return game::Cmd_Argc_internal();
-		return 0;
+		return game::Cmd_Argc_internal();
 	}
 
 	const char* Cmd_Argv(int argIndex)
 	{
 		static const auto& game_ = identification::game::get_target_game().client_name;
 		if (game_ != "iw9-mod"s)
-			return ""; // game::Cmd_Argv_internal(argIndex);
+			return game::Cmd_Argv_internal(argIndex);
 		
 		if (argIndex >= cmd_args->argc[cmd_args->nesting])
 			return nullptr;
