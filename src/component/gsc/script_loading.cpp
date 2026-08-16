@@ -344,8 +344,6 @@ namespace gsc
 			}
 			catch (const std::exception& e)
 			{
-				// Parse compiler message for file:line:col prefixes so we can pass
-				// precise locations to ReportCompileError.
 				const std::string what = e.what();
 				std::smatch m;
 
@@ -360,20 +358,17 @@ namespace gsc
 					const int line = std::stoi(m[2].str());
 					const int col = std::stoi(m[3].str());
 					const std::string msg = m[4].str();
-					ReportCompileError(real_name, file, line, col, msg);
+					report_compile_error(real_name, file, line, col, msg);
 				}
 				else if (std::regex_match(what, m, re_file_line) && m.size() == 4)
 				{
 					const std::string file = m[1].str();
 					const int line = std::stoi(m[2].str());
 					const std::string msg = m[3].str();
-					ReportCompileError(real_name, file, line, -1, msg);
+					report_compile_error(real_name, file, line, -1, msg);
 				}
 				else
-				{
-					// Fallback: show the whole exception text once
-					ReportCompileError(real_name, real_name, what);
-				}
+					report_compile_error(real_name, real_name, what);
 
 				return nullptr;
 			}
@@ -672,7 +667,8 @@ namespace gsc
 			std::string value_copy;
 		};
 
-		static std::array<custom_text_slot, 32> custom_text_slots = { {
+		static std::array<custom_text_slot, 32> custom_text_slots = 
+		{ {
 			{790, "", ""}, {791, "", ""}, {792, "", ""}, {787, "", ""},
 			{794, "", ""}, {795, "", ""}, {796, "", ""}, {797, "", ""},
 			{830, "", ""}, {831, "", ""}, {832, "", ""}, {833, "", ""},
@@ -690,20 +686,18 @@ namespace gsc
 			if (!str || !str[0])
 				return false;
 
-			// Only intercept strings that look like HUD text (color codes or newlines)
+			// we only intercept strings that look like HUD text (color codes or new lines)
 			return strchr(str, '^') != nullptr || strchr(str, '\n') != nullptr;
 		}
 
 		unsigned int get_or_alloc_custom_text(const char* string)
 		{
-			// Reuse an existing slot if the same text is already registered
 			for (auto& slot : custom_text_slots)
 			{
 				if (!slot.value.empty() && slot.value == string)
 					return slot.id;
 			}
 
-			// Allocate the next slot (round-robin)
 			auto& slot = custom_text_slots[next_slot];
 			slot.value = string;
 			next_slot = (next_slot + 1) % custom_text_slots.size();
@@ -717,7 +711,6 @@ namespace gsc
 			if (res)
 				return true;
 
-			// Only hijack strings that look like HUD text
 			if (looks_like_hud_text(string) && outIndex)
 			{
 				*outIndex = get_or_alloc_custom_text(string);
@@ -1082,7 +1075,7 @@ namespace gsc
 				{
 					if (free_scripts && is_post_shutdown)
 					{
-						////printf("clearing script memory...\n");
+						printf("clearing script memory...\n");
 						clear();
 					}
 				});
@@ -1094,10 +1087,6 @@ namespace gsc
 				auto patch_strings_dvar = game::Dvar_FindVarByName("ncs_patchStrings");
 				if (patch_strings_dvar)
 				{
-#ifdef _DEBUG
-					////printf("setting ZeroProxy ncs_patchStrings to 0\n");
-#endif
-
 					game::Dvar_SetBool_Internal(patch_strings_dvar, false);
 				}
 			}
@@ -1117,7 +1106,7 @@ namespace gsc
 			}
 			*/
 
-			// Fixed custom text (setText) system
+			// fix settext using custom text system
 			NetConstStrings_GetIndexPlusOneFromName_hook.create(game::NetConstStrings_GetIndexPlusOneFromName, NetConstStrings_GetIndexPlusOneFromName); // return our hardcoded ID we override
 			NetConstStrings_GetNameFromIndexPlusOne_hook.create(game::NetConstStrings_GetNameFromIndexPlusOne, NetConstStrings_GetNameFromIndexPlusOne); // return custom name for index
 		}
