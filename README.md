@@ -28,7 +28,6 @@ this should support most of IW8, S4, IW9 out of the box. JUP is a seperate proje
 - S4 1.26
 - IW9 1.25
 - IW9 latest steam
-- JUP latest steam & bnet (on the `jup` branch, contains no gsc loading)
 
 ### credits
 - [mjkzy](https://github.com/mjkzy) - initial research + compatibility for every single game version [when possible]
