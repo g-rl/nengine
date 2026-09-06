@@ -31,5 +31,5 @@ this should support most of IW8, S4, IW9 out of the box. JUP is a seperate proje
 
 ### credits
 - [mjkzy](https://github.com/mjkzy) - initial research + compatibility for every single game version [when possible]
-- [blue](https://github.com/SadesperRecord) - cronus & IW8 player mechanics research (added to S4, IW9, and JUP!)
+- blue - cronus & player mechanics research
 - [hinatyu](https://x.com/hinatyu) - extremely useful resources for reverse engineering newer games
