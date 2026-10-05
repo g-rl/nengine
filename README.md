@@ -2,11 +2,12 @@
 
 the DLL source code that is used with the [neura GSC mod](https://github.com/g-rl/neura). 
 
-this should support most of IW8, S4, IW9 out of the box. JUP is a seperate project to enable further development, though the IW9 work here can be used for it very easily.
+this should support most of IW8, S4, IW9. if you are looking for JUP/MWIII, check out [cengine](https://github.com/g-rl/cengine) instead
 
 - **you must own a license to the game(s) in order to use neura.**
 - neura's engine and GSC will *always* be **free** and **Open Source** for anyone
 - neura is only usable offline and is not to be used as "cheats" or "hacks"
+- nengine contains **0 AI code** inside of it and has been written and tested entirely by hand
 
 ## how to compile
 1. run `generate.bat`
